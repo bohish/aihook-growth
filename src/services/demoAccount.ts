@@ -48,7 +48,7 @@ const BLUEPRINTS: Blueprint[] = [
   { caption: "كواليس جلسة التصوير", tags: ["behind_scenes"], hookType: "story", personOnCamera: true, hasOffer: false, duration: 24, strength: 1.0 },
   { caption: "قبل ما أقول السعر… شوفي التفصيلة", tags: ["product_demo", "offer"], hookType: "curiosity", personOnCamera: true, hasOffer: true, duration: 20, strength: 1.2 },
   { caption: "عباية اليوم", tags: ["ugc"], hookType: "generic", personOnCamera: true, hasOffer: false, duration: 13, strength: 1.1 },
-  { caption: "لماذا القماش الكوري أغلى", tags: ["educational"], hookType: "problem", personOnCamery: true, hasOffer: false, duration: 16, strength: 1.6 } as unknown as Blueprint,
+  { caption: "لماذا القماش الكوري أغلى", tags: ["educational"], hookType: "problem", personOnCamera: true, hasOffer: false, duration: 16, strength: 1.6 },
   { caption: "طلبيات اليوم", tags: ["behind_scenes"], hookType: "generic", personOnCamera: false, hasOffer: false, duration: 28, strength: 0.35 },
   { caption: "طلة المناسبة بميزانية بسيطة", tags: ["ugc", "educational"], hookType: "problem", personOnCamera: true, hasOffer: false, duration: 18, strength: 2.0 },
   { caption: "استعراض التغليف الجديد", tags: ["product_demo"], hookType: "generic", personOnCamera: false, hasOffer: false, duration: 25, strength: 0.4 },
