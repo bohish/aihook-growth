@@ -10,33 +10,128 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AnalyzingRouteImport } from './routes/analyzing'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as ConnectRouteImport } from './routes/connect'
+import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as HistoryRouteImport } from './routes/history'
+import { Route as PricingRouteImport } from './routes/pricing'
+import { Route as ApiPublicTiktokCallbackRouteImport } from './routes/api/public/tiktok/callback'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AnalyzingRoute = AnalyzingRouteImport.update({
+  id: '/analyzing',
+  path: '/analyzing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConnectRoute = ConnectRouteImport.update({
+  id: '/connect',
+  path: '/connect',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HistoryRoute = HistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PricingRoute = PricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicTiktokCallbackRoute = ApiPublicTiktokCallbackRouteImport.update({
+  id: '/api/public/tiktok/callback',
+  path: '/api/public/tiktok/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/analyzing': typeof AnalyzingRoute
+  '/auth': typeof AuthRoute
+  '/connect': typeof ConnectRoute
+  '/dashboard': typeof DashboardRoute
+  '/history': typeof HistoryRoute
+  '/pricing': typeof PricingRoute
+  '/api/public/tiktok/callback': typeof ApiPublicTiktokCallbackRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/analyzing': typeof AnalyzingRoute
+  '/auth': typeof AuthRoute
+  '/connect': typeof ConnectRoute
+  '/dashboard': typeof DashboardRoute
+  '/history': typeof HistoryRoute
+  '/pricing': typeof PricingRoute
+  '/api/public/tiktok/callback': typeof ApiPublicTiktokCallbackRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/analyzing': typeof AnalyzingRoute
+  '/auth': typeof AuthRoute
+  '/connect': typeof ConnectRoute
+  '/dashboard': typeof DashboardRoute
+  '/history': typeof HistoryRoute
+  '/pricing': typeof PricingRoute
+  '/api/public/tiktok/callback': typeof ApiPublicTiktokCallbackRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/analyzing'
+    | '/auth'
+    | '/connect'
+    | '/dashboard'
+    | '/history'
+    | '/pricing'
+    | '/api/public/tiktok/callback'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/analyzing'
+    | '/auth'
+    | '/connect'
+    | '/dashboard'
+    | '/history'
+    | '/pricing'
+    | '/api/public/tiktok/callback'
+  id:
+    | '__root__'
+    | '/'
+    | '/analyzing'
+    | '/auth'
+    | '/connect'
+    | '/dashboard'
+    | '/history'
+    | '/pricing'
+    | '/api/public/tiktok/callback'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AnalyzingRoute: typeof AnalyzingRoute
+  AuthRoute: typeof AuthRoute
+  ConnectRoute: typeof ConnectRoute
+  DashboardRoute: typeof DashboardRoute
+  HistoryRoute: typeof HistoryRoute
+  PricingRoute: typeof PricingRoute
+  ApiPublicTiktokCallbackRoute: typeof ApiPublicTiktokCallbackRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +143,67 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/analyzing': {
+      id: '/analyzing'
+      path: '/analyzing'
+      fullPath: '/analyzing'
+      preLoaderRoute: typeof AnalyzingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/connect': {
+      id: '/connect'
+      path: '/connect'
+      fullPath: '/connect'
+      preLoaderRoute: typeof ConnectRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/history': {
+      id: '/history'
+      path: '/history'
+      fullPath: '/history'
+      preLoaderRoute: typeof HistoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pricing': {
+      id: '/pricing'
+      path: '/pricing'
+      fullPath: '/pricing'
+      preLoaderRoute: typeof PricingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/tiktok/callback': {
+      id: '/api/public/tiktok/callback'
+      path: '/api/public/tiktok/callback'
+      fullPath: '/api/public/tiktok/callback'
+      preLoaderRoute: typeof ApiPublicTiktokCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AnalyzingRoute: AnalyzingRoute,
+  AuthRoute: AuthRoute,
+  ConnectRoute: ConnectRoute,
+  DashboardRoute: DashboardRoute,
+  HistoryRoute: HistoryRoute,
+  PricingRoute: PricingRoute,
+  ApiPublicTiktokCallbackRoute: ApiPublicTiktokCallbackRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
