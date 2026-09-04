@@ -57,9 +57,11 @@ function consistencyScore(m: Metrics): number {
  */
 function efficiencyScore(m: Metrics): number {
   const spread = m.avgViews > 0 ? m.medianViews / m.avgViews : 0; // 1 = perfectly even
-  const spreadScore = clamp(spread * 120);
-  const dependencyScore = clamp((1 - Math.max(0, m.viralDependency - 0.25) / 0.6) * 100);
+  const spreadScore = clamp(spread * 100);
+  // Dependency of 0.15 or less is healthy; 0.75+ means the account rides one hit.
+  const dependencyScore = clamp((1 - Math.max(0, m.viralDependency - 0.15) / 0.6) * 100);
   return Math.round(spreadScore * 0.5 + dependencyScore * 0.5);
+
 }
 
 export function computeScore(m: Metrics): ScoreResult {
