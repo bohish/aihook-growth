@@ -4,6 +4,7 @@
  * the snapshot + report + recommendations + weekly plan for history.
  */
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 import { computeMetrics } from "@/lib/metrics";
 import { computeScore } from "@/lib/scoring";
 import { analyze } from "@/lib/analysis";
@@ -71,7 +72,7 @@ async function persistReport(report: AnalysisReport) {
       is_demo: report.isDemo,
       score: report.scoring.score,
       subscores,
-      metrics: report.metrics as unknown as Record<string, number>,
+      metrics: report.metrics as unknown as Json,
     })
     .select("id")
     .single();
@@ -87,12 +88,12 @@ async function persistReport(report: AnalysisReport) {
       score_delta: report.scoreDelta,
       summary: report.scoring.summaryAr,
       subscores,
-      content_dna: report.dna as unknown as Record<string, unknown>[],
+      content_dna: report.dna as unknown as Json,
       payload: {
         account: report.account,
         top: report.top.map((v) => v.id),
         bottom: report.bottom.map((v) => v.id),
-      },
+      } as unknown as Json,
       model: "deterministic-v1",
     })
     .select("id")
@@ -116,7 +117,7 @@ async function persistReport(report: AnalysisReport) {
   await supabase.from("weekly_plans").insert({
     user_id: userId,
     report_id: saved.id,
-    days: report.plan as unknown as Record<string, unknown>[],
+    days: report.plan as unknown as Json,
   });
 }
 

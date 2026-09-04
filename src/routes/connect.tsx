@@ -10,11 +10,18 @@ import { useConnection } from "@/hooks/useConnection";
 import { startTikTokOAuth } from "@/lib/tiktok-oauth.functions";
 import { TIKTOK_NOT_REQUESTED_AR, TIKTOK_PERMISSIONS_AR } from "@/services/tiktok";
 
+interface ConnectSearch {
+  state?: string;
+  reason?: string;
+}
+
 export const Route = createFileRoute("/connect")({
-  validateSearch: (search: Record<string, unknown>) => ({
-    state: typeof search["state"] === "string" ? (search["state"] as string) : undefined,
-    reason: typeof search["reason"] === "string" ? (search["reason"] as string) : undefined,
-  }),
+  validateSearch: (search: Record<string, unknown>): ConnectSearch => {
+    const out: ConnectSearch = {};
+    if (typeof search["state"] === "string") out.state = search["state"];
+    if (typeof search["reason"] === "string") out.reason = search["reason"];
+    return out;
+  },
   head: () => ({
     meta: [
       { title: "ربط حساب TikTok — TikTok Growth AI" },
