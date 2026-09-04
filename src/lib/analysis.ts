@@ -163,12 +163,19 @@ export function buildVerdicts(videos: VideoRecord[], all: VideoRecord[]): Record
     const erLift = medEr > 0 ? (er - medEr) / medEr : 0;
     const bits: string[] = [];
 
+    const viewPct = Math.abs(Math.round(viewLift * 100));
+    const erPct = Math.abs(Math.round(erLift * 100));
     bits.push(
-      `المشاهدات ${viewLift >= 0 ? "أعلى" : "أقل"} من وسيط الحساب بـ ${Math.abs(Math.round(viewLift * 100))}%`,
+      viewPct >= 1
+        ? `المشاهدات ${viewLift >= 0 ? "أعلى" : "أقل"} من وسيط الحساب بـ ${viewPct}%`
+        : "المشاهدات قريبة من وسيط الحساب",
     );
-    bits.push(
-      `والتفاعل ${erLift >= 0 ? "أعلى" : "أقل"} بـ ${Math.abs(Math.round(erLift * 100))}%`,
-    );
+    if (erPct >= 1) {
+      bits.push(`والتفاعل ${erLift >= 0 ? "أعلى" : "أقل"} بـ ${erPct}%`);
+    } else {
+      bits.push("والتفاعل بمستوى وسيط الحساب");
+    }
+
 
     if (viewLift >= 0) {
       if (v.features.hookType === "problem") bits.push("الهوك يبدأ بمشكلة واضحة يعيشها الجمهور");
