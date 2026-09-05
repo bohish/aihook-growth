@@ -71,7 +71,7 @@ function ConnectPage() {
   const { user } = useAuth();
   const { connection, isLoading, refetch } = useConnection();
   const [busy, setBusy] = useState(false);
-  const [override, setOverride] = useState<{ status: ConnectionStatus; message?: string } | null>(null);
+  const [override, setOverride] = useState<{ status: ConnectionStatus; message?: string | undefined } | null>(null);
 
   useEffect(() => {
     if (search.state === "error") {
