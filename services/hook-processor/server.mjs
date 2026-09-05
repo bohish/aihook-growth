@@ -3,6 +3,7 @@ import { mkdtemp, rm, writeFile, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawn } from "node:child_process";
+import { chromium } from "playwright";
 
 const port = Number(process.env.PORT || 3000);
 const timeoutMs = 45_000;
@@ -15,7 +16,7 @@ const run = (command, args) => new Promise((resolve, reject) => {
 
 async function resolveMedia(input) {
   const endpoint = process.env.MEDIA_RESOLVER_URL;
-  if (!endpoint) throw new Error("media_resolver_not_configured");
+  if (!endpoint) return resolveWithBrowser(input.share_url);
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
       const controller = new AbortController(); const timer = setTimeout(() => controller.abort(), 12_000);
@@ -26,6 +27,19 @@ async function resolveMedia(input) {
       throw new Error("media_resolver_invalid_response");
     } catch (error) { if (attempt === 1) throw error; }
   }
+}
+
+async function resolveWithBrowser(shareUrl) {
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const page = await browser.newPage(); const media = [];
+    page.on("response", (response) => { const url = response.url(); if (/\.mp4(?:\?|$)|mime_type=video/i.test(url)) media.push(url); });
+    await page.goto(shareUrl, { waitUntil: "domcontentloaded", timeout: 30_000 });
+    await page.waitForTimeout(3_000);
+    const direct = media.find((url) => url.startsWith("https://"));
+    if (!direct) throw new Error("browser_media_not_found");
+    return direct;
+  } finally { await browser.close(); }
 }
 
 async function openAiTranscribe(audioPath) {
