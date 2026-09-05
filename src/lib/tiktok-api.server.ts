@@ -24,12 +24,13 @@ const TOKEN_URL = "https://open.tiktokapis.com/v2/oauth/token/";
 const USER_INFO_URL = "https://open.tiktokapis.com/v2/user/info/";
 const VIDEO_LIST_URL = "https://open.tiktokapis.com/v2/video/list/";
 
+// NOTE: `bio_description` and `profile_deep_link` require the extra
+// `user.info.profile` scope, which this app does not request. Asking for them
+// makes TikTok reject the whole request with 401 scope_not_authorized.
 const USER_FIELDS = [
   "open_id",
   "display_name",
   "avatar_url",
-  "bio_description",
-  "profile_deep_link",
   "follower_count",
   "following_count",
   "likes_count",
@@ -220,11 +221,13 @@ function assertOk(status: number, error?: { code?: string; message?: string }): 
     return;
   }
   const message = error?.message ?? code;
-  if (status === 401 || code === "access_token_invalid" || code === "access_token_expired") {
-    throw new TikTokError("expired", "The TikTok access token is no longer valid.", message);
-  }
+  // Scope errors must be checked first: TikTok returns them with HTTP 401,
+  // which would otherwise be misreported as an expired connection.
   if (status === 403 || code === "scope_not_authorized" || code === "scope_permission_missed") {
     throw new TikTokError("permission_denied", "A required TikTok permission was not granted.", message);
+  }
+  if (status === 401 || code === "access_token_invalid" || code === "access_token_expired") {
+    throw new TikTokError("expired", "The TikTok access token is no longer valid.", message);
   }
   if (status === 429 || code === "rate_limit_exceeded") {
     throw new TikTokError("rate_limited", "TikTok rate limit reached, try again shortly.", message);
