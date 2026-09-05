@@ -21,7 +21,7 @@ const inputSchema = z.object({
 });
 
 export type HookAgentResult =
-  | { ok: true; data: unknown }
+  | { ok: true; json: string }
   | { ok: false; error: string; missing?: string[] };
 
 /** Calls the external HookAnalyzerAgent backend. */
@@ -51,7 +51,7 @@ export const analyzeHook = createServerFn({ method: "POST" })
         return { ok: false, error: `فشل الوكيل الخارجي (HTTP ${response.status})` };
       }
 
-      return { ok: true, data: await response.json() };
+      return { ok: true, json: await response.text() };
     } catch {
       return { ok: false, error: "تعذّر الوصول إلى الوكيل الخارجي" };
     }

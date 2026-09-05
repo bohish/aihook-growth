@@ -100,7 +100,7 @@ function HookAgentPage() {
           <div className="panel mt-6 p-5 text-sm">
             {result.ok ? (
               <pre className="overflow-x-auto whitespace-pre-wrap break-words text-xs">
-                {JSON.stringify(result.data, null, 2)}
+                {result.json}
               </pre>
             ) : (
               <p className="text-destructive">{result.error}</p>
