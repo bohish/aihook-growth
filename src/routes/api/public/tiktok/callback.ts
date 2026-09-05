@@ -1,58 +1,68 @@
 /**
- * TikTok OAuth redirect target. The authorization-code → access-token exchange
- * happens here, server-side, so the client secret is never exposed. Tokens are
- * stored in `tiktok_connections` with the service role (encrypted columns) and
- * are never returned to the browser.
+ * TikTok OAuth redirect target.
+ *
+ * - Verifies the signed, httpOnly `state` cookie against the `state` query
+ *   parameter (CSRF protection) and derives the owning user from it.
+ * - Exchanges the authorization code for tokens server-side (client secret
+ *   never leaves the server).
+ * - Stores the connection encrypted with the service role.
+ * - Redirects to /analyzing on success, or /connect with an explicit state.
+ *
+ * Nothing about the token payload is logged or returned to the browser.
  */
 import { createFileRoute } from "@tanstack/react-router";
+
+function clearCookie(cookieName: string): string {
+  return `${cookieName}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`;
+}
+
+function redirect(to: string, cookieName: string): Response {
+  return new Response(null, {
+    status: 302,
+    headers: { Location: to, "Set-Cookie": clearCookie(cookieName) },
+  });
+}
 
 export const Route = createFileRoute("/api/public/tiktok/callback")({
   server: {
     handlers: {
       GET: async ({ request }) => {
+        const store = await import("@/lib/tiktok-connection.server");
         const url = new URL(request.url);
-        const code = url.searchParams.get("code");
+        const cookieName = store.OAUTH_COOKIE;
+
+        const cookieHeader = request.headers.get("cookie") ?? "";
+        const cookieValue = cookieHeader
+          .split(";")
+          .map((c) => c.trim())
+          .find((c) => c.startsWith(`${cookieName}=`))
+          ?.slice(cookieName.length + 1);
+
+        const verified = store.verifyStateToken(cookieValue, url.searchParams.get("state"));
+        if (!verified) {
+          return redirect(`${url.origin}/connect?state=error&reason=invalid_state`, cookieName);
+        }
+
         const error = url.searchParams.get("error");
-
         if (error) {
-          return Response.redirect(`${url.origin}/connect?state=error&reason=${encodeURIComponent(error)}`, 302);
-        }
-        if (!code) {
-          return Response.redirect(`${url.origin}/connect?state=error&reason=missing_code`, 302);
+          const reason = error === "access_denied" ? "permission_denied" : "api_error";
+          await store.markConnectionState(verified.userId, reason, null).catch(() => undefined);
+          return redirect(`${url.origin}/connect?state=error&reason=${reason}`, cookieName);
         }
 
-        const clientKey = process.env["TIKTOK_CLIENT_KEY"];
-        const clientSecret = process.env["TIKTOK_CLIENT_SECRET"];
-        if (!clientKey || !clientSecret) {
-          return Response.redirect(`${url.origin}/connect?state=error&reason=not_configured`, 302);
+        const code = url.searchParams.get("code");
+        if (!code) {
+          return redirect(`${url.origin}/connect?state=error&reason=missing_code`, cookieName);
         }
 
         try {
-          const res = await fetch("https://open.tiktokapis.com/v2/oauth/token/", {
-            method: "POST",
-            headers: { "Content-Type": "application/x-www-form-urlencoded" },
-            body: new URLSearchParams({
-              client_key: clientKey,
-              client_secret: clientSecret,
-              code,
-              grant_type: "authorization_code",
-              redirect_uri: `${url.origin}/api/public/tiktok/callback`,
-            }),
-          });
-
-          if (!res.ok) {
-            return Response.redirect(`${url.origin}/connect?state=error&reason=token_exchange_failed`, 302);
-          }
-
-          // Token payload intentionally not logged and not sent to the browser.
-          // Persist with the service role, encrypted, keyed by the signed-in
-          // user, once the account-linking step is wired to the session.
-          await res.json();
-
-          return Response.redirect(`${url.origin}/connect?state=connected`, 302);
-        } catch {
-          return Response.redirect(`${url.origin}/connect?state=error&reason=network`, 302);
+          await store.completeOAuth(verified.userId, code, url.origin);
+        } catch (err) {
+          const reason = (err as { code?: string }).code ?? "api_error";
+          return redirect(`${url.origin}/connect?state=error&reason=${reason}`, cookieName);
         }
+
+        return redirect(`${url.origin}/analyzing`, cookieName);
       },
     },
   },
