@@ -24,12 +24,13 @@ const TOKEN_URL = "https://open.tiktokapis.com/v2/oauth/token/";
 const USER_INFO_URL = "https://open.tiktokapis.com/v2/user/info/";
 const VIDEO_LIST_URL = "https://open.tiktokapis.com/v2/video/list/";
 
+// NOTE: `bio_description` and `profile_deep_link` require the extra
+// `user.info.profile` scope, which this app does not request. Asking for them
+// makes TikTok reject the whole request with 401 scope_not_authorized.
 const USER_FIELDS = [
   "open_id",
   "display_name",
   "avatar_url",
-  "bio_description",
-  "profile_deep_link",
   "follower_count",
   "following_count",
   "likes_count",
