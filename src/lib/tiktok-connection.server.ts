@@ -10,6 +10,7 @@
  * to the signed-in user without trusting any query parameter.
  */
 import { createCipheriv, createDecipheriv, createHmac, randomBytes, createHash, timingSafeEqual } from "node:crypto";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 import {
   TikTokError,
@@ -19,6 +20,24 @@ import {
   type TokenSet,
 } from "./tiktok-api.server";
 import type { ConnectionState } from "./types";
+import type { Database } from "@/integrations/supabase/types";
+
+type UserDb = SupabaseClient<Database>;
+
+/**
+ * Creates an RLS-bound database client for the currently signed-in owner.
+ * This deliberately does not use the service-role key: OAuth data belongs to
+ * exactly one user and the existing RLS policies enforce that ownership.
+ */
+export function userDb(accessToken: string): UserDb {
+  const url = process.env["SUPABASE_URL"];
+  const key = process.env["SUPABASE_PUBLISHABLE_KEY"];
+  if (!url || !key) throw new Error("Supabase user credentials are not configured.");
+  return createClient<Database>(url, key, {
+    global: { headers: { Authorization: `Bearer ${accessToken}` } },
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+}
 
 function encKey(): Buffer {
   const raw = process.env["TIKTOK_TOKEN_ENC_KEY"];
@@ -49,9 +68,11 @@ function sign(payload: string): string {
 }
 
 /** Opaque, tamper-proof value: base64url(json).signature */
-export function createStateToken(userId: string): { state: string; cookieValue: string } {
+export function createStateToken(userId: string, accessToken: string): { state: string; cookieValue: string } {
   const nonce = randomBytes(16).toString("base64url");
-  const body = Buffer.from(JSON.stringify({ userId, nonce, ts: Date.now() })).toString("base64url");
+  // The session token is encrypted before entering the httpOnly state cookie.
+  // It is only needed briefly by the callback to make the user-owned insert.
+  const body = Buffer.from(JSON.stringify({ userId, nonce, ts: Date.now(), session: encryptToken(accessToken) })).toString("base64url");
   const token = `${body}.${sign(body)}`;
   return { state: nonce, cookieValue: token };
 }
@@ -59,7 +80,7 @@ export function createStateToken(userId: string): { state: string; cookieValue: 
 export function verifyStateToken(
   cookieValue: string | undefined,
   stateParam: string | null,
-): { userId: string } | null {
+): { userId: string; accessToken: string } | null {
   if (!cookieValue || !stateParam) return null;
   const [body, signature] = cookieValue.split(".");
   if (!body || !signature) return null;
@@ -72,23 +93,19 @@ export function verifyStateToken(
       userId?: string;
       nonce?: string;
       ts?: number;
+      session?: string;
     };
-    if (!parsed.userId || !parsed.nonce) return null;
+    if (!parsed.userId || !parsed.nonce || !parsed.session) return null;
     if (parsed.nonce !== stateParam) return null;
     // 15 minute window for completing consent.
     if (!parsed.ts || Date.now() - parsed.ts > 15 * 60_000) return null;
-    return { userId: parsed.userId };
+    return { userId: parsed.userId, accessToken: decryptToken(parsed.session) };
   } catch {
     return null;
   }
 }
 
 /* ------------------------------ persistence ------------------------------ */
-
-async function admin() {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  return supabaseAdmin;
-}
 
 interface ConnectionRow {
   status: string;
@@ -101,8 +118,7 @@ interface ConnectionRow {
   refresh_token_encrypted: string | null;
 }
 
-async function loadRow(userId: string): Promise<ConnectionRow | null> {
-  const db = await admin();
+async function loadRow(db: UserDb, userId: string): Promise<ConnectionRow | null> {
   const { data } = await db
     .from("tiktok_connections")
     .select(
@@ -115,8 +131,7 @@ async function loadRow(userId: string): Promise<ConnectionRow | null> {
   return (data as ConnectionRow | null) ?? null;
 }
 
-export async function saveTokenSet(userId: string, tokens: TokenSet): Promise<void> {
-  const db = await admin();
+export async function saveTokenSet(db: UserDb, userId: string, tokens: TokenSet): Promise<void> {
   const payload = {
     user_id: userId,
     status: "connected",
@@ -135,20 +150,19 @@ export async function saveTokenSet(userId: string, tokens: TokenSet): Promise<vo
 }
 
 export async function markConnectionState(
+  db: UserDb,
   userId: string,
   status: string,
   errorMessage: string | null,
 ): Promise<void> {
-  const db = await admin();
   await db
     .from("tiktok_connections")
     .update({ status, error_message: errorMessage, updated_at: new Date().toISOString() })
     .eq("user_id", userId);
 }
 
-export async function deleteConnection(userId: string): Promise<void> {
-  const db = await admin();
-  const row = await loadRow(userId);
+export async function deleteConnection(db: UserDb, userId: string): Promise<void> {
+  const row = await loadRow(db, userId);
   if (row?.access_token_encrypted) {
     try {
       await revokeAccessToken(decryptToken(row.access_token_encrypted));
@@ -163,8 +177,8 @@ export async function deleteConnection(userId: string): Promise<void> {
  * Returns a usable access token, refreshing it when close to expiry.
  * Throws a TikTokError with an explicit code when the user must reconnect.
  */
-export async function getValidAccessToken(userId: string): Promise<string> {
-  const row = await loadRow(userId);
+export async function getValidAccessToken(db: UserDb, userId: string): Promise<string> {
+  const row = await loadRow(db, userId);
   if (!row || !row.access_token_encrypted) {
     throw new TikTokError("expired", "No TikTok connection stored for this user.");
   }
@@ -174,24 +188,24 @@ export async function getValidAccessToken(userId: string): Promise<string> {
   if (stillFresh) return decryptToken(row.access_token_encrypted);
 
   if (!row.refresh_token_encrypted) {
-    await markConnectionState(userId, "expired", "انتهت صلاحية الربط، يلزم إعادة الربط.");
+    await markConnectionState(db, userId, "expired", "انتهت صلاحية الربط، يلزم إعادة الربط.");
     throw new TikTokError("expired", "Access token expired and no refresh token is stored.");
   }
 
   try {
     const refreshed = await refreshAccessToken(decryptToken(row.refresh_token_encrypted));
-    await saveTokenSet(userId, refreshed);
+    await saveTokenSet(db, userId, refreshed);
     return refreshed.accessToken;
   } catch (error) {
-    await markConnectionState(userId, "expired", "تعذّر تحديث صلاحية الربط، يلزم إعادة الربط.");
+    await markConnectionState(db, userId, "expired", "تعذّر تحديث صلاحية الربط، يلزم إعادة الربط.");
     if (error instanceof TikTokError) throw error;
     throw new TikTokError("expired", "Token refresh failed.");
   }
 }
 
-export async function completeOAuth(userId: string, code: string, origin: string): Promise<void> {
+export async function completeOAuth(db: UserDb, userId: string, code: string, origin: string): Promise<void> {
   const tokens = await exchangeCodeForToken(code, origin);
-  await saveTokenSet(userId, tokens);
+  await saveTokenSet(db, userId, tokens);
 }
 
 const AR_MESSAGES: Record<string, string> = {
@@ -201,8 +215,8 @@ const AR_MESSAGES: Record<string, string> = {
 };
 
 /** Browser-safe view of the connection (never includes tokens). */
-export async function readConnectionState(userId: string): Promise<ConnectionState> {
-  const row = await loadRow(userId);
+export async function readConnectionState(db: UserDb, userId: string): Promise<ConnectionState> {
+  const row = await loadRow(db, userId);
   if (!row) return { status: "disconnected" };
   const status = row.status;
   if (status === "connected") {

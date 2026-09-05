@@ -23,7 +23,10 @@ export const analyzeLatestVideo = createServerFn({ method: "POST" })
   .handler(async ({ context }): Promise<HookAgentResult> => {
     const api = await import("./tiktok-api.server");
     const store = await import("./tiktok-connection.server");
-    const video = (await api.fetchVideos(await store.getValidAccessToken(context.userId), 1))[0];
+    const { getRequest } = await import("@tanstack/react-start/server");
+    const session = getRequest()?.headers.get("authorization")?.replace(/^Bearer\\s+/, "");
+    if (!session) throw new Error("Unauthorized: missing session token.");
+    const video = (await api.fetchVideos(await store.getValidAccessToken(store.userDb(session), context.userId), 1))[0];
     if (!video?.shareUrl) throw new Error("latest_video_has_no_share_url");
     const url = process.env.HOOK_PROCESSOR_URL;
     const secret = process.env.HOOK_PROCESSOR_SHARED_SECRET;

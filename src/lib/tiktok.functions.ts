@@ -37,7 +37,10 @@ export const startTikTokOAuth = createServerFn({ method: "POST" })
     }
 
     const store = await import("./tiktok-connection.server");
-    const { state, cookieValue } = store.createStateToken(context.userId);
+    const request = getRequest();
+    const accessToken = request?.headers.get("authorization")?.replace(/^Bearer\\s+/, "");
+    if (!accessToken) throw new Error("Unauthorized: missing session token for OAuth callback.");
+    const { state, cookieValue } = store.createStateToken(context.userId, accessToken);
     const origin = originFrom();
     setResponseHeader(
       "Set-Cookie",
@@ -58,7 +61,9 @@ export const getConnectionState = createServerFn({ method: "GET" })
       };
     }
     const store = await import("./tiktok-connection.server");
-    return store.readConnectionState(context.userId);
+    const token = getRequest()?.headers.get("authorization")?.replace(/^Bearer\\s+/, "");
+    if (!token) throw new Error("Unauthorized: missing session token.");
+    return store.readConnectionState(store.userDb(token), context.userId);
   });
 
 export interface AccountDataResult {
@@ -82,7 +87,10 @@ export const fetchTikTokAccountData = createServerFn({ method: "POST" })
     }
     const store = await import("./tiktok-connection.server");
     try {
-      const token = await store.getValidAccessToken(context.userId);
+      const session = getRequest()?.headers.get("authorization")?.replace(/^Bearer\\s+/, "");
+      if (!session) throw new Error("Unauthorized: missing session token.");
+      const db = store.userDb(session);
+      const token = await store.getValidAccessToken(db, context.userId);
       const data = await api.fetchAccountData(token);
       if (data.videos.length === 0) {
         return {
@@ -107,7 +115,7 @@ export const fetchTikTokAccountData = createServerFn({ method: "POST" })
       if (code === "rate_limited") {
         return { ok: false, status: "api_error", message: "تم تجاوز حد الطلبات لدى تيك توك. أعد المحاولة بعد قليل." };
       }
-      await store.markConnectionState(context.userId, "api_error", "تعذّر جلب بيانات الحساب من تيك توك.");
+      if (session) await store.markConnectionState(db, context.userId, "api_error", "تعذّر جلب بيانات الحساب من تيك توك.");
       return { ok: false, status: "api_error", message: "تعذّر جلب بيانات الحساب من تيك توك." };
     }
   });
@@ -116,6 +124,8 @@ export const disconnectTikTok = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<{ ok: true }> => {
     const store = await import("./tiktok-connection.server");
-    await store.deleteConnection(context.userId);
+    const token = getRequest()?.headers.get("authorization")?.replace(/^Bearer\\s+/, "");
+    if (!token) throw new Error("Unauthorized: missing session token.");
+    await store.deleteConnection(store.userDb(token), context.userId);
     return { ok: true };
   });
