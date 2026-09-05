@@ -212,7 +212,7 @@ function Landing() {
             </div>
             <div className="flex flex-col gap-3">
               <Button asChild size="lg" className="h-12 px-6">
-                <Link to="/analyzing">حلّل حسابي الآن</Link>
+                <Link to="/connect">حلّل حسابي الآن</Link>
               </Button>
               <Button asChild size="lg" variant="outline" className="h-12 px-6">
                 <Link to="/pricing">
