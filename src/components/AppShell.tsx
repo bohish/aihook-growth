@@ -94,6 +94,14 @@ export function AppShell({ children }: { children: ReactNode }) {
       <footer className="border-t border-border/70 py-8">
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-4 text-xs text-muted-foreground sm:flex-row sm:items-center">
           <p>© {new Date().getFullYear()} TikTok Growth AI — اسم مبدئي. غير مرتبط بشركة TikTok.</p>
+          <nav className="flex items-center gap-4">
+            <Link to="/terms" className="transition-colors hover:text-foreground">
+              شروط الاستخدام
+            </Link>
+            <Link to="/privacy" className="transition-colors hover:text-foreground">
+              سياسة الخصوصية
+            </Link>
+          </nav>
           <p className="sm:mr-auto">
             التحليل يعتمد على بيانات حسابك فقط، ولا يتضمن أي تقديرات ديموغرافية.
           </p>
