@@ -1,44 +1,31 @@
-import { useCallback, useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 
-export type ConnectionStatus = "disconnected" | "connecting" | "connected" | "error";
-
-export interface ConnectionState {
-  status: ConnectionStatus;
-  isDemo: boolean;
-  message?: string;
-}
-
-const KEY = "tga.connection.v1";
-const DEFAULT: ConnectionState = { status: "disconnected", isDemo: true };
-
-function read(): ConnectionState {
-  if (typeof window === "undefined") return DEFAULT;
-  try {
-    const raw = window.localStorage.getItem(KEY);
-    return raw ? { ...DEFAULT, ...(JSON.parse(raw) as ConnectionState) } : DEFAULT;
-  } catch {
-    return DEFAULT;
-  }
-}
+import { useAuth } from "@/hooks/useAuth";
+import { getConnectionState } from "@/lib/tiktok.functions";
+import type { ConnectionState } from "@/lib/types";
 
 /**
- * Local mirror of the TikTok integration state. The authoritative record lives
- * in `tiktok_connections` (tokens server-side only); this keeps the UI honest
- * about which of the four states the user is in.
+ * Authoritative connection state, read from the server (tokens stay server-side).
+ * There is no local/demo mirror: an unauthenticated visitor is simply
+ * "disconnected".
  */
 export function useConnection() {
-  const [state, setState] = useState<ConnectionState>(DEFAULT);
+  const { user } = useAuth();
 
-  useEffect(() => setState(read()), []);
+  const query = useQuery<ConnectionState>({
+    queryKey: ["tiktok-connection", user?.id ?? "anon"],
+    queryFn: () => getConnectionState(),
+    enabled: Boolean(user),
+    staleTime: 15_000,
+  });
 
-  const update = useCallback((next: ConnectionState) => {
-    setState(next);
-    try {
-      window.localStorage.setItem(KEY, JSON.stringify(next));
-    } catch {
-      /* ignore */
-    }
-  }, []);
+  const connection: ConnectionState = user
+    ? (query.data ?? { status: "disconnected" })
+    : { status: "disconnected" };
 
-  return { connection: state, setConnection: update };
+  return {
+    connection,
+    isLoading: Boolean(user) && query.isLoading,
+    refetch: query.refetch,
+  };
 }
