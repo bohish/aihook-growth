@@ -35,17 +35,38 @@ async function openAiTranscribe(audioPath) {
   const data = await response.json(); return { spoken_text: data.text || null, detected_language: data.language || null, transcription_confidence: data.text ? 0.8 : 0 };
 }
 
+async function extractFrames(clip, dir) {
+  const pattern = join(dir, "frame-%02d.jpg");
+  await run("ffmpeg", ["-y", "-ss", "0.5", "-i", clip, "-vf", "fps=1/1,scale=480:-2", "-frames:v", "5", "-q:v", "4", pattern]);
+  const frames = await Promise.all([1, 2, 3, 4, 5].map(async (n) => {
+    const bytes = await readFile(join(dir, `frame-${String(n).padStart(2, "0")}.jpg`));
+    return `data:image/jpeg;base64,${bytes.toString("base64")}`;
+  }));
+  return frames;
+}
+
+async function analyzeVisuals(frames, spokenText) {
+  const prompt = `Analyze these five sequential frames from the first five seconds of one TikTok video. Read onscreen text only from pixels; do not use captions. The independently transcribed spoken text is ${JSON.stringify(spokenText)}. Return JSON only with keys onscreen_text, visual_opening, main_subject, visual_changes, hook_summary, confidence. confidence is 0..1. hook_summary should combine spoken, visual, and screen text only when each is actually available.`;
+  const content = [{ type: "text", text: prompt }, ...frames.map((image_url) => ({ type: "image_url", image_url }))];
+  const response = await fetch("https://api.openai.com/v1/chat/completions", { method: "POST", headers: { authorization: `Bearer ${process.env.OPENAI_API_KEY}`, "content-type": "application/json" }, body: JSON.stringify({ model: "gpt-4.1-mini", temperature: 0, response_format: { type: "json_object" }, messages: [{ role: "user", content }] }) });
+  if (!response.ok) throw new Error("vision_ocr_failed");
+  const data = await response.json();
+  return JSON.parse(data.choices?.[0]?.message?.content || "{}");
+}
+
 async function main(input) {
   if (!process.env.OPENAI_API_KEY) throw new Error("openai_not_configured");
   const dir = await mkdtemp(join(tmpdir(), "aihook-"));
   try {
     const mediaUrl = await resolveMedia(input);
     const clip = join(dir, "hook.mp4"), audio = join(dir, "hook.mp3");
-    await run("ffmpeg", ["-y", "-ss", "0", "-t", "5", "-i", mediaUrl, "-map", "0:v:0?", "-map", "0:a:0?", "-c:v", "libx264", "-c:a", "libmp3lame", clip]);
+    await run("ffmpeg", ["-y", "-ss", "0", "-t", "5", "-i", mediaUrl, "-c:v", "libx264", "-c:a", "aac", clip]);
     await run("ffmpeg", ["-y", "-i", clip, "-vn", "-ac", "1", "-ar", "16000", audio]);
     const transcription = await openAiTranscribe(audio).catch(() => ({ spoken_text: null, detected_language: null, transcription_confidence: 0 }));
-    // Vision/OCR is deliberately a separate next adapter: frames stay local and are never persisted.
-    return { status: "partial", media_resolver_status: "resolved", processed_seconds: 5, ...transcription, error_code: "vision_adapter_not_configured" };
+    const frames = await extractFrames(clip, dir);
+    const visual = await analyzeVisuals(frames, transcription.spoken_text).catch(() => null);
+    const confidence = visual ? Math.min(1, (Number(visual.confidence) || 0.5 + transcription.transcription_confidence) / 2) : transcription.transcription_confidence;
+    return { status: visual ? "complete" : "partial", media_resolver_status: "resolved", processed_seconds: 5, ...transcription, onscreen_text: visual?.onscreen_text ?? null, visual_opening: visual?.visual_opening ?? null, main_subject: visual?.main_subject ?? null, visual_changes: visual?.visual_changes ?? null, hook_summary: visual?.hook_summary ?? null, confidence, frames, ...(visual ? {} : { error_code: "vision_ocr_failed" }) };
   } finally { await rm(dir, { recursive: true, force: true }); }
 }
 
