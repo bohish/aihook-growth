@@ -221,11 +221,13 @@ function assertOk(status: number, error?: { code?: string; message?: string }): 
     return;
   }
   const message = error?.message ?? code;
-  if (status === 401 || code === "access_token_invalid" || code === "access_token_expired") {
-    throw new TikTokError("expired", "The TikTok access token is no longer valid.", message);
-  }
+  // Scope errors must be checked first: TikTok returns them with HTTP 401,
+  // which would otherwise be misreported as an expired connection.
   if (status === 403 || code === "scope_not_authorized" || code === "scope_permission_missed") {
     throw new TikTokError("permission_denied", "A required TikTok permission was not granted.", message);
+  }
+  if (status === 401 || code === "access_token_invalid" || code === "access_token_expired") {
+    throw new TikTokError("expired", "The TikTok access token is no longer valid.", message);
   }
   if (status === 429 || code === "rate_limit_exceeded") {
     throw new TikTokError("rate_limited", "TikTok rate limit reached, try again shortly.", message);
