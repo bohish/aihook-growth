@@ -3,7 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import { History as HistoryIcon, Loader2, TrendingDown, TrendingUp } from "lucide-react";
 
 import { AppShell } from "@/components/AppShell";
-import { DemoBadge } from "@/components/DemoBadge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
@@ -89,7 +88,6 @@ function HistoryPage() {
                       {delta > 0 ? <TrendingUp className="size-3.5" /> : delta < 0 ? <TrendingDown className="size-3.5" /> : null}
                       {delta === 0 ? "بدون تغيير" : `${delta > 0 ? "+" : ""}${delta}`}
                     </span>
-                    {row.is_demo ? <DemoBadge className="mr-auto" /> : null}
                     <span className="mr-auto text-xs text-muted-foreground" dir="ltr">
                       {new Date(row.created_at).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}
                     </span>

@@ -4,8 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/AppShell";
-import { DemoBadge } from "@/components/DemoBadge";
-import { runAnalysis } from "@/lib/report";
+import { AnalysisUnavailableError, runAnalysis } from "@/lib/report";
 
 export const Route = createFileRoute("/analyzing")({
   head: () => ({
@@ -50,8 +49,12 @@ function AnalyzingPage() {
           void navigate({ to: "/dashboard" });
         }, 1500);
       })
-      .catch(() => {
-        toast.error("تعذّر إكمال التحليل، حاول مرة أخرى");
+      .catch((error: unknown) => {
+        const message =
+          error instanceof AnalysisUnavailableError
+            ? error.message
+            : "تعذّر إكمال التحليل، حاول مرة أخرى";
+        toast.error(message);
         void navigate({ to: "/connect" });
       });
 
@@ -64,10 +67,9 @@ function AnalyzingPage() {
         <div className="panel p-6 md:p-8">
           <div className="flex items-center justify-between gap-3">
             <h1 className="text-lg font-bold sm:text-xl">جاري تحليل الحساب</h1>
-            <DemoBadge />
           </div>
           <p className="mt-2 text-sm text-muted-foreground">
-            كل المقاييس تُحسب من بيانات الحساب مباشرة.
+            كل المقاييس تُحسب من بيانات حسابك المسحوبة من تيك توك مباشرة.
           </p>
 
           <ol className="mt-7 grid gap-3">
