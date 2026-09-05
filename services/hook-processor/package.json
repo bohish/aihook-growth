@@ -1,8 +1,0 @@
-{
-  "name": "aihook-hook-processor",
-  "private": true,
-  "type": "module",
-  "scripts": { "start": "node server.mjs" },
-  "dependencies": { "playwright": "^1.55.0" },
-  "engines": { "node": ">=20" }
-}

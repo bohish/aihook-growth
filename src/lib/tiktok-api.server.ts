@@ -94,11 +94,6 @@ export function hasCredentials(): boolean {
 }
 
 export function redirectUriFor(origin: string): string {
-  // Reverse proxies commonly expose the upstream request as HTTP even when the
-  // browser is using HTTPS. OAuth requires an exact, pre-registered URI, so a
-  // deployment may pin that public callback without trusting proxy headers.
-  const configured = process.env["TIKTOK_REDIRECT_URI"]?.trim();
-  if (configured) return configured;
   return `${origin}/api/public/tiktok/callback`;
 }
 

@@ -1,7 +1,14 @@
-# AiHook
+# Welcome to your Lovable project
 
-AiHook is a TikTok account analysis app deployed from GitHub to Railway with a
-self-owned Supabase backend.
+This project was built with [Lovable](https://lovable.dev).
+
+## Build with Lovable
+
+Open your project in the [Lovable editor](https://lovable.dev) and keep building.
+
+- **Ship faster**: describe what you want to build and Lovable handles the code.
+- **Stay in sync**: connect the project to GitHub and every change made in Lovable is committed straight to your repository.
+- **Full ownership**: this code is yours. Push to your repository and your changes sync back into Lovable, ready for your next prompt.
 
 ## Development
 
@@ -36,12 +43,12 @@ Until the credentials below exist, the connect screen shows an explicit
    - `video.list`
 4. Register the redirect URI exactly:
    - Production: `https://<your-domain>/api/public/tiktok/callback`
-   - Local: `http://127.0.0.1:8080/api/public/tiktok/callback`
+   - Preview: `https://project--a5630791-0198-4227-8db7-69946144ad4d-dev.lovable.app/api/public/tiktok/callback`
 5. Submit the app for TikTok review — unaudited apps only work for accounts
    added as testers in the developer portal.
 
 ### 2. Configure secrets
-Add these in the Railway service variables (never in code or `.env`):
+Add these in **Project Settings → Secrets** (never in code or `.env`):
 
 | Secret | Purpose |
 | --- | --- |
@@ -49,9 +56,8 @@ Add these in the Railway service variables (never in code or `.env`):
 | `TIKTOK_CLIENT_SECRET` | OAuth client secret (server-only) |
 | `TIKTOK_TOKEN_ENC_KEY` | Already generated — encrypts stored tokens (AES-256-GCM) |
 
-Set the self-owned Supabase variables in Railway: `SUPABASE_URL`,
-`SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, and their
-`VITE_` equivalents used by the browser.
+Backend Supabase variables (`SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`,
+`SUPABASE_SERVICE_ROLE_KEY`) are injected automatically.
 
 ### 3. How the flow works
 - `startTikTokOAuth` (server fn, auth required) mints a signed `state`, sets it

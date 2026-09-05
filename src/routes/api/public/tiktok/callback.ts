@@ -46,7 +46,7 @@ export const Route = createFileRoute("/api/public/tiktok/callback")({
         const error = url.searchParams.get("error");
         if (error) {
           const reason = error === "access_denied" ? "permission_denied" : "api_error";
-          await store.markConnectionState(store.userDb(verified.accessToken), verified.userId, reason, null).catch(() => undefined);
+          await store.markConnectionState(verified.userId, reason, null).catch(() => undefined);
           return redirect(`${url.origin}/connect?state=error&reason=${reason}`, cookieName);
         }
 
@@ -56,7 +56,7 @@ export const Route = createFileRoute("/api/public/tiktok/callback")({
         }
 
         try {
-          await store.completeOAuth(store.userDb(verified.accessToken), verified.userId, code, url.origin);
+          await store.completeOAuth(verified.userId, code, url.origin);
         } catch (err) {
           const reason = (err as { code?: string }).code ?? "api_error";
           return redirect(`${url.origin}/connect?state=error&reason=${reason}`, cookieName);
