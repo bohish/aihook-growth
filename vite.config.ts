@@ -7,6 +7,14 @@
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
 export default defineConfig({
+  vite: {
+    server: {
+      // Railway forwards requests with its public hostname while the preview
+      // service is running. Keep the allow-list explicit rather than enabling
+      // every host header.
+      allowedHosts: ["aihook-growth-production.up.railway.app"],
+    },
+  },
   tanstackStart: {
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
     // nitro/vite builds from this
