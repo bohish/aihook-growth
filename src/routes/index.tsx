@@ -38,7 +38,7 @@ export const Route = createFileRoute("/")({
 
 const ANALYZES = [
   { icon: BarChart3, title: "أداء الفيديوهات", detail: "المشاهدات، الوسيط، التفاعل، والفرق بين أفضل وأضعف المقاطع." },
-  { icon: Fingerprint, title: "بصمة المحتوى", detail: "أي صيغة تنجح في حسابك تحديداً: المدة، الهوك، وجود شخص، نوع المقطع." },
+  { icon: Fingerprint, title: "بصمة المحتوى", detail: "أي صيغة تنجح في حسابك تحديداً: مدة المقطع، صياغة الهوك، ونوع الوصف." },
   { icon: TrendingUp, title: "اتجاه النمو", detail: "مقارنة آخر 7 و30 يوم بالفترة السابقة، ومدى اعتمادك على فيديو واحد ناجح." },
   { icon: Layers, title: "الانتظام", detail: "معدل النشر الفعلي، أطول انقطاع، وتأثيره على الوصول." },
 ];
@@ -52,11 +52,11 @@ const STEPS = [
 const EXAMPLES = [
   {
     tone: "up" as const,
-    text: "الفيديوهات التي فيها شخص أمام الكاميرا تتفوق على مقاطع المنتج فقط بـ 214% في وسيط المشاهدات.",
+    text: "المقاطع 12–18 ثانية تحقق وسيط مشاهدات أعلى من بقية المدد في حسابك.",
   },
   {
     tone: "down" as const,
-    text: "62% من إجمالي مشاهداتك تأتي من 3 فيديوهات فقط — نموك هشّ ويعتمد على الحظ.",
+    text: "نسبة كبيرة من إجمالي مشاهداتك تأتي من ثلاثة فيديوهات فقط — نمو هشّ يعتمد على الحظ.",
   },
   {
     tone: "up" as const,
@@ -64,7 +64,7 @@ const EXAMPLES = [
   },
   {
     tone: "down" as const,
-    text: "أطول انقطاع في النشر 9 أيام، وهو أكبر سبب لانخفاض محور الاستمرارية.",
+    text: "أطول انقطاع في النشر يظهر كأكبر سبب لانخفاض محور الاستمرارية.",
   },
 ];
 
@@ -88,7 +88,7 @@ function Landing() {
             </p>
             <div className="mt-7 flex flex-wrap items-center gap-3">
               <Button asChild size="lg" className="h-12 px-6 text-base">
-                <Link to="/analyzing">
+                <Link to="/connect">
                   حلّل حسابي
                   <ArrowLeft className="size-4" />
                 </Link>
@@ -98,7 +98,7 @@ function Landing() {
               </Button>
             </div>
             <p className="mt-4 text-xs text-muted-foreground">
-              تجربة فورية بحساب تجريبي واقعي (عبايات / متجر إلكتروني) قبل ربط حسابك الحقيقي.
+              التحليل يعمل على حسابك الحقيقي فقط بعد ربط تيك توك — لا أرقام افتراضية ولا حسابات وهمية.
             </p>
           </div>
 
@@ -151,7 +151,7 @@ function Landing() {
         <div className="mx-auto w-full max-w-6xl px-4 py-14">
           <h2 className="text-2xl font-bold sm:text-3xl">أمثلة على النتائج</h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            هذه أمثلة من الحساب التجريبي — النتائج الحقيقية تُبنى على فيديوهاتك أنت.
+            هذه صيغ الاستنتاجات التي يخرجها التحليل — والأرقام فيها تُحسب من فيديوهاتك أنت بعد الربط.
           </p>
           <div className="mt-8 grid gap-4 md:grid-cols-2">
             {EXAMPLES.map((ex) => (
@@ -212,7 +212,7 @@ function Landing() {
             </div>
             <div className="flex flex-col gap-3">
               <Button asChild size="lg" className="h-12 px-6">
-                <Link to="/analyzing">حلّل حسابي الآن</Link>
+                <Link to="/connect">حلّل حسابي الآن</Link>
               </Button>
               <Button asChild size="lg" variant="outline" className="h-12 px-6">
                 <Link to="/pricing">

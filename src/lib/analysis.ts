@@ -55,20 +55,6 @@ const fmt = (n: number) => Math.round(n).toLocaleString("en-US");
 export function buildContentDna(videos: VideoRecord[]): DnaInsight[] {
   const insights: DnaInsight[] = [];
 
-  const onCam = videos.filter((v) => v.features.personOnCamera);
-  const noCam = videos.filter((v) => !v.features.personOnCamera);
-  const camInsight = compare(
-    { label: "onCam", videos: onCam },
-    { label: "noCam", videos: noCam },
-    (lift) =>
-      lift > 0
-        ? "الفيديوهات التي فيها شخص أمام الكاميرا تتفوق على مقاطع المنتج فقط"
-        : "مقاطع المنتج فقط تتفوق حالياً على الفيديوهات التي فيها شخص أمام الكاميرا",
-    (a, b) =>
-      `وسيط المشاهدات ${fmt(a)} للفيديوهات التي فيها شخص، مقابل ${fmt(b)} لمقاطع المنتج فقط.`,
-  );
-  if (camInsight) insights.push(camInsight);
-
   const short = videos.filter((v) => v.features.durationBucket === "12-18");
   const others = videos.filter((v) => v.features.durationBucket !== "12-18");
   const durInsight = compare(
@@ -179,12 +165,10 @@ export function buildVerdicts(videos: VideoRecord[], all: VideoRecord[]): Record
 
     if (viewLift >= 0) {
       if (v.features.hookType === "problem") bits.push("الهوك يبدأ بمشكلة واضحة يعيشها الجمهور");
-      if (v.features.personOnCamera) bits.push("وجود شخص أمام الكاميرا يرفع الثقة والإكمال");
       if (v.features.durationBucket === "12-18") bits.push("المدة قصيرة بما يكفي لإكمال المشاهدة");
       if (v.shares > v.comments) bits.push("نسبة المشاركات مرتفعة، وهي أقوى إشارة توزيع");
     } else {
       if (v.features.hookType === "generic") bits.push("المقدمة عامة ولا تعطي سبباً للبقاء");
-      if (!v.features.personOnCamera) bits.push("لا يوجد عنصر بشري يربط المشاهد بالمنتج");
       if (v.durationSeconds > 30) bits.push("المدة طويلة نسبياً لنمط حسابك");
       if (v.features.hasOffer && er < medEr) bits.push("الرسالة بيعية مباشرة بدون قيمة قبل العرض");
     }
@@ -404,7 +388,6 @@ export function analyze(data: AccountData, metrics: Metrics, previousScore?: num
 
   return {
     account: data.account,
-    isDemo: data.isDemo,
     metrics,
     scoring,
     scoreDelta: previousScore != null ? scoring.score - previousScore : 0,
@@ -412,6 +395,7 @@ export function analyze(data: AccountData, metrics: Metrics, previousScore?: num
     bottom,
     verdicts: buildVerdicts([...top, ...bottom], data.videos),
     dna,
+    limitedData: data.videos.length < 5,
     recommendations: buildRecommendations(metrics, dna, data.videos),
     plan: buildWeeklyPlan(metrics, dna, data.videos),
     generatedAt: new Date().toISOString(),

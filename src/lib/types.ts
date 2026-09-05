@@ -1,9 +1,13 @@
 /**
- * Shared domain types for TikTok Growth AI.
+ * Shared domain types for Growth Pulse AI.
  * These mirror the database tables (tiktok_accounts, tiktok_videos,
  * video_metrics, content_features, account_snapshots, ai_reports,
  * recommendations, weekly_plans) but stay framework-free so both the
  * deterministic engine and the UI can use them.
+ *
+ * Every field here must be obtainable from the approved TikTok scopes
+ * (user.info.basic, user.info.stats, video.list). Anything the API does not
+ * return is either absent or explicitly `null` (unknown) — never inferred.
  */
 
 export type ContentTag =
@@ -22,9 +26,11 @@ export type DurationBucket = "0-12" | "12-18" | "18-30" | "30+";
 export interface VideoFeatures {
   tags: ContentTag[];
   hookType: HookType;
-  personOnCamera: boolean;
+  /** null = unknown; the API gives no access to the video content itself. */
+  personOnCamera: boolean | null;
   hasOffer: boolean;
   durationBucket: DurationBucket;
+  captionAvailable: boolean;
 }
 
 export interface VideoRecord {
@@ -32,7 +38,7 @@ export interface VideoRecord {
   caption: string;
   publishedAt: string; // ISO date
   durationSeconds: number;
-  thumbnailSeed: number; // used for the deterministic thumbnail placeholder
+  thumbnailUrl: string | null;
   shareUrl: string | null;
   views: number;
   likes: number;
@@ -42,23 +48,20 @@ export interface VideoRecord {
 }
 
 export interface AccountRecord {
-  username: string;
   displayName: string;
+  avatarUrl: string | null;
+  profileUrl: string | null;
   bio: string;
   followerCount: number;
   followingCount: number;
   likesCount: number;
   videoCount: number;
-  isDemo: boolean;
 }
 
 export interface AccountData {
   account: AccountRecord;
   videos: VideoRecord[];
-  /** true when the data comes from the demo provider (no real TikTok token). */
-  isDemo: boolean;
-  /** Human label shown in the UI when data is not real. */
-  demoLabel?: string;
+  fetchedAt: string;
 }
 
 export interface Metrics {
@@ -137,7 +140,6 @@ export interface VideoVerdict {
 
 export interface AnalysisReport {
   account: AccountRecord;
-  isDemo: boolean;
   metrics: Metrics;
   scoring: ScoreResult;
   scoreDelta: number;
@@ -148,4 +150,28 @@ export interface AnalysisReport {
   recommendations: Recommendation[];
   plan: PlanDay[];
   generatedAt: string;
+  /** Set when there are too few videos for a trustworthy score. */
+  limitedData?: boolean;
+}
+
+/* --------------------------- connection state ---------------------------- */
+
+export type ConnectionStatus =
+  | "disconnected"
+  | "connecting"
+  | "connected"
+  | "expired"
+  | "missing_credentials"
+  | "permission_denied"
+  | "api_error";
+
+export interface ConnectionState {
+  status: ConnectionStatus;
+  displayName?: string | null;
+  avatarUrl?: string | null;
+  profileUrl?: string | null;
+  scopes?: string[];
+  connectedAt?: string | null;
+  /** Arabic, user-facing explanation for non-connected states. */
+  message?: string;
 }

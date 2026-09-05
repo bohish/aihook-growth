@@ -8,8 +8,8 @@ import type { Json } from "@/integrations/supabase/types";
 import { computeMetrics } from "@/lib/metrics";
 import { computeScore } from "@/lib/scoring";
 import { analyze } from "@/lib/analysis";
-import type { AccountData, AnalysisReport } from "@/lib/types";
-import { demoProvider, type TikTokProvider } from "@/services/tiktok";
+import { fetchTikTokAccountData } from "@/lib/tiktok.functions";
+import type { AccountData, AnalysisReport, ConnectionState } from "@/lib/types";
 
 const CACHE_KEY = "tga.report.v1";
 
@@ -26,8 +26,27 @@ function priorPeriodScore(data: AccountData): number | undefined {
   return computeScore(past).score;
 }
 
-export async function runAnalysis(provider: TikTokProvider = demoProvider): Promise<AnalysisReport> {
-  const data = await provider.fetchAccountData();
+export class AnalysisUnavailableError extends Error {
+  constructor(
+    readonly status: ConnectionState["status"],
+    message: string,
+  ) {
+    super(message);
+    this.name = "AnalysisUnavailableError";
+  }
+}
+
+/**
+ * Runs the analysis on REAL account data only. If the connection is missing,
+ * expired, unauthorized or the API fails, this throws an explicit
+ * AnalysisUnavailableError — it never substitutes fabricated data.
+ */
+export async function runAnalysis(): Promise<AnalysisReport> {
+  const result = await fetchTikTokAccountData();
+  if (!result.ok || !result.data) {
+    throw new AnalysisUnavailableError(result.status, result.message ?? "تعذّر جلب بيانات الحساب.");
+  }
+  const data = result.data;
   const metrics = computeMetrics(data);
   const report = analyze(data, metrics, priorPeriodScore(data));
   cacheReport(report);
@@ -69,7 +88,7 @@ async function persistReport(report: AnalysisReport) {
     .from("account_snapshots")
     .insert({
       user_id: userId,
-      is_demo: report.isDemo,
+      is_demo: false,
       score: report.scoring.score,
       subscores,
       metrics: report.metrics as unknown as Json,
@@ -83,7 +102,7 @@ async function persistReport(report: AnalysisReport) {
     .insert({
       user_id: userId,
       snapshot_id: snapshot.id,
-      is_demo: report.isDemo,
+      is_demo: false,
       score: report.scoring.score,
       score_delta: report.scoreDelta,
       summary: report.scoring.summaryAr,
@@ -126,7 +145,6 @@ export interface HistoryRow {
   score: number;
   score_delta: number | null;
   summary: string | null;
-  is_demo: boolean;
   created_at: string;
   subscores: Record<string, number>;
 }
@@ -136,7 +154,7 @@ export async function fetchHistory(): Promise<HistoryRow[]> {
   if (!auth.user) return [];
   const { data, error } = await supabase
     .from("ai_reports")
-    .select("id, score, score_delta, summary, is_demo, created_at, subscores")
+    .select("id, score, score_delta, summary, created_at, subscores")
     .order("created_at", { ascending: false })
     .limit(30);
   if (error || !data) return [];

@@ -55,7 +55,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               </Button>
             )}
             <Button asChild size="sm">
-              <Link to="/analyzing">حلّل حسابي</Link>
+              <Link to="/connect">حلّل حسابي</Link>
             </Button>
             <button
               type="button"

@@ -171,19 +171,28 @@ function VideoCard({ video, verdict, tone }: { video: VideoRecord; verdict: stri
 
   return (
     <article className="panel overflow-hidden">
-      <div
-        className="relative flex h-28 items-end p-3"
-        style={{
-          background:
-            tone === "top"
-              ? "linear-gradient(135deg, color-mix(in oklab, var(--primary) 26%, var(--card)), var(--card))"
-              : "linear-gradient(135deg, color-mix(in oklab, var(--destructive) 20%, var(--card)), var(--card))",
-        }}
-      >
-        <span className="rounded-md bg-background/70 px-2 py-1 text-[10px] text-muted-foreground">
-          صورة مصغّرة — تظهر بعد ربط الحساب
-        </span>
-      </div>
+      {video.thumbnailUrl ? (
+        <img
+          src={video.thumbnailUrl}
+          alt={video.caption}
+          loading="lazy"
+          className="h-28 w-full object-cover"
+        />
+      ) : (
+        <div
+          className="relative flex h-28 items-end p-3"
+          style={{
+            background:
+              tone === "top"
+                ? "linear-gradient(135deg, color-mix(in oklab, var(--primary) 26%, var(--card)), var(--card))"
+                : "linear-gradient(135deg, color-mix(in oklab, var(--destructive) 20%, var(--card)), var(--card))",
+          }}
+        >
+          <span className="rounded-md bg-background/70 px-2 py-1 text-[10px] text-muted-foreground">
+            لا تتوفر صورة مصغّرة لهذا الفيديو
+          </span>
+        </div>
+      )}
 
       <div className="p-4">
         <h3 className="text-sm font-semibold leading-snug">{video.caption}</h3>
@@ -218,11 +227,9 @@ function VideoCard({ video, verdict, tone }: { video: VideoRecord; verdict: stri
           <Badge variant="outline" className="text-[10px] font-normal">
             {HOOK_LABELS[video.features.hookType]}
           </Badge>
-          {video.features.personOnCamera ? (
-            <Badge variant="outline" className="text-[10px] font-normal">
-              شخص أمام الكاميرا
-            </Badge>
-          ) : null}
+          <Badge variant="outline" className="text-[10px] font-normal">
+            {video.durationSeconds} ثانية
+          </Badge>
         </div>
 
         <div

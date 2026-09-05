@@ -135,16 +135,17 @@ function AuthPage() {
         <div className="panel mt-4 flex gap-3 p-5">
           <ShieldCheck className="mt-0.5 size-4 shrink-0 accent-text" />
           <p className="text-xs leading-relaxed text-muted-foreground">
-            تجربة التحليل متاحة بدون حساب باستخدام البيانات التجريبية. الحساب مطلوب فقط لحفظ
-            السجل ومقارنة النتائج.
+الحساب مطلوب لربط تيك توك بشكل آمن وحفظ سجل تحليلاتك ومقارنة درجتك عبر الوقت. لا نطلب
+            اسم مستخدم أو كلمة مرور تيك توك أبداً.
           </p>
         </div>
 
         <p className="mt-4 text-center text-xs text-muted-foreground">
-          تريد التجربة أولاً؟{" "}
-          <Link to="/analyzing" className="accent-text underline-offset-4 hover:underline">
-            حلّل حساباً تجريبياً
-          </Link>
+          بعد تسجيل الدخول{" "}
+          <Link to="/connect" className="accent-text underline-offset-4 hover:underline">
+            اربط حساب تيك توك
+          </Link>{" "}
+          لبدء التحليل.
         </p>
       </div>
     </AppShell>

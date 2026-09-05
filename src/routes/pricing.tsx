@@ -30,7 +30,7 @@ const PLANS = [
       { label: "سجل ومقارنة التقارير", on: false },
     ],
     cta: "ابدأ الآن",
-    to: "/analyzing" as const,
+    to: "/connect" as const,
     highlight: false,
   },
   {
