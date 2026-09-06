@@ -240,11 +240,12 @@ function Dashboard() {
               <ContentDna insights={report.dna} />
             </TabsContent>
             <TabsContent value="actions" className="mt-6">
-              <Recommendations items={report.recommendations} locked={lockedCount} />
+              <Recommendations items={report.recommendations} locked={lockedCount} contextNote={report.contextNote} />
             </TabsContent>
             <TabsContent value="plan" className="mt-6">
               {report.plan.length > 0 ? (
-                <WeeklyPlan days={report.plan} />
+                <WeeklyPlan days={report.plan} focus={report.planFocus} />
+
               ) : (
                 <div className="panel flex flex-col items-start gap-4 p-6">
                   <div className="flex items-center gap-2">
