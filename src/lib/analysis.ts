@@ -33,7 +33,12 @@ interface Group {
   videos: VideoRecord[];
 }
 
-function compare(a: Group, b: Group, titleFor: (liftPct: number) => string, detailFor: (aMed: number, bMed: number) => string): DnaInsight | null {
+function compare(
+  a: Group,
+  b: Group,
+  titleFor: (liftPct: number) => string,
+  detailFor: (aMed: number, bMed: number) => string,
+): DnaInsight | null {
   if (a.videos.length < MIN_GROUP || b.videos.length < MIN_GROUP) return null;
   const aMed = median(a.videos.map((v) => v.views));
   const bMed = median(b.videos.map((v) => v.views));
@@ -51,6 +56,130 @@ function compare(a: Group, b: Group, titleFor: (liftPct: number) => string, deta
 }
 
 const fmt = (n: number) => Math.round(n).toLocaleString("en-US");
+
+/*
+ * Captions are useful account signals, but they are not titles.  TikTok captions
+ * commonly contain discovery hashtags, duplicated words and OCR-like fragments.
+ * Keep this deterministic and local: the report must not spend another model call
+ * just to turn "#اكسبلورexplore #FC26" into a subject.
+ */
+const NOISE_TAGS = new Set([
+  "اكسبلور",
+  "explore",
+  "fyp",
+  "foryou",
+  "viral",
+  "ترند",
+  "trend",
+  "tiktok",
+  "تيك توك",
+  "اكسبلورر",
+  "اكسبلوررر",
+  "foryoupage",
+  "xyzbca",
+]);
+const META_WORDS = new Set([
+  "الجزء",
+  "جزء",
+  "الاول",
+  "الأول",
+  "الثاني",
+  "ثاني",
+  "جديد",
+  "فيديو",
+  "مقطع",
+  "انحذف",
+  "رجع",
+]);
+
+function normaliseCaption(value: string): string {
+  return value
+    .normalize("NFKC")
+    .replace(/[ـ]/g, "")
+    .replace(/[أإآ]/g, "ا")
+    .replace(/ى/g, "ي")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function cleanToken(value: string): string {
+  return normaliseCaption(value)
+    .replace(/^#+/, "")
+    .replace(/[_-]+/g, " ")
+    .replace(/[^\p{L}\p{N}\s+]/gu, "")
+    .replace(/(.)\1{2,}/gu, "$1$1")
+    .trim();
+}
+
+function usefulToken(value: string): boolean {
+  const token = cleanToken(value);
+  const compact = token.replace(/\s/g, "").toLowerCase();
+  return (
+    Boolean(token) &&
+    token.length > 1 &&
+    !NOISE_TAGS.has(compact) &&
+    !META_WORDS.has(token.toLowerCase())
+  );
+}
+
+/** A short, readable subject built from meaningful caption text and tags. */
+export function subjectFromCaption(caption: string): string | null {
+  const text = normaliseCaption(caption);
+  if (!text) return null;
+  const tags = [...text.matchAll(/#([^#\n]+)/g)]
+    .map((m) => cleanToken(m[1] ?? ""))
+    .filter(usefulToken);
+  const body = text
+    .replace(/https?:\/\/\S+/g, "")
+    .replace(/@[\p{L}\p{N}_.]+/gu, "")
+    .replace(/#[^#\n]+/g, " ")
+    .replace(/[^\p{L}\p{N}\s+]/gu, " ")
+    .split(/\n|[.!؟?،]/)[0]!
+    .split(/\s+/)
+    .filter(usefulToken)
+    .slice(0, 6)
+    .join(" ");
+  const fc =
+    tags.find((tag) => /^fc\s?2[456]$/i.test(tag)) ??
+    /(?:\bfc\s?2[456]\b)/i.exec(text)?.[0]?.toUpperCase();
+  const career = [...tags, body].find((part) => /مسيره لاعب|مسيرة لاعب/i.test(part));
+  if (career && fc) return `مسيرة لاعب في ${fc.replace(/\s/g, "")}`;
+  const candidate =
+    tags.find((tag) => tag.split(" ").filter(usefulToken).length >= 2) ?? body ?? tags[0];
+  if (!candidate) return fc ? fc.replace(/\s/g, "") : null;
+  const clean = candidate.split(" ").filter(usefulToken).slice(0, 6).join(" ");
+  return clean || null;
+}
+
+function accountSubjects(videos: VideoRecord[]): string[] {
+  const score = new Map<string, number>();
+  for (const video of videos) {
+    const subject = subjectFromCaption(video.caption);
+    if (!subject) continue;
+    const key = subject.toLowerCase();
+    // Performance breaks ties without allowing one viral post to erase the account's theme.
+    score.set(
+      key,
+      (score.get(key) ?? 0) +
+        1 +
+        Math.min(2, video.views / Math.max(1, median(videos.map((v) => v.views)))),
+    );
+  }
+  return [...score.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([subject]) => subject)
+    .filter(
+      (subject, index, all) =>
+        !all.some((other, i) => i < index && (other.includes(subject) || subject.includes(other))),
+    )
+    .slice(0, 3);
+}
+
+function isGaming(subjects: string[], videos: VideoRecord[]): boolean {
+  return /\bfc\s?2[456]\b|فيفا|كرة|لاعب|كاريير|مسيرة/i.test(
+    `${subjects.join(" ")} ${videos.map((v) => v.caption).join(" ")}`,
+  );
+}
 
 export function buildContentDna(videos: VideoRecord[]): DnaInsight[] {
   const insights: DnaInsight[] = [];
@@ -162,7 +291,6 @@ export function buildVerdicts(videos: VideoRecord[], all: VideoRecord[]): Record
       bits.push("والتفاعل بمستوى وسيط الحساب");
     }
 
-
     if (viewLift >= 0) {
       if (v.features.hookType === "problem") bits.push("الهوك يبدأ بمشكلة واضحة يعيشها الجمهور");
       if (v.features.durationBucket === "12-18") bits.push("المدة قصيرة بما يكفي لإكمال المشاهدة");
@@ -179,7 +307,11 @@ export function buildVerdicts(videos: VideoRecord[], all: VideoRecord[]): Record
   return out;
 }
 
-export function buildRecommendations(m: Metrics, dna: DnaInsight[], videos: VideoRecord[]): Recommendation[] {
+export function buildRecommendations(
+  m: Metrics,
+  dna: DnaInsight[],
+  videos: VideoRecord[],
+): Recommendation[] {
   const pool: Recommendation[] = [];
   const dnaText = (needle: string) => dna.find((d) => d.title.includes(needle));
 
@@ -190,7 +322,8 @@ export function buildRecommendations(m: Metrics, dna: DnaInsight[], videos: Vide
       impact: "high",
       confidence: m.totalVideos >= 10 ? "high" : "medium",
       evidence: `${formatPercent(m.viralDependency, 0)} من إجمالي المشاهدات تأتي من أقوى 3 فيديوهات فقط.`,
-      action: "أعد إنتاج نفس صيغة الفيديو الأقوى بثلاث زوايا مختلفة خلال أسبوعين، وقِس الوسيط لا الذروة.",
+      action:
+        "أعد إنتاج نفس صيغة الفيديو الأقوى بثلاث زوايا مختلفة خلال أسبوعين، وقِس الوسيط لا الذروة.",
       targetMetric: "views",
     });
   }
@@ -202,7 +335,8 @@ export function buildRecommendations(m: Metrics, dna: DnaInsight[], videos: Vide
       impact: "high",
       confidence: "high",
       evidence: `معدل النشر الحالي ${m.postsPerWeek} أسبوعياً وأطول انقطاع ${m.longestGapDays} يوم.`,
-      action: "صوّر دفعة واحدة (batch) 8 مقاطع، وانشر بأيام ثابتة: السبت، الاثنين، الأربعاء، الخميس.",
+      action:
+        "صوّر دفعة واحدة (batch) 8 مقاطع، وانشر بأيام ثابتة: السبت، الاثنين، الأربعاء، الخميس.",
       targetMetric: "consistency",
     });
   }
@@ -305,7 +439,11 @@ export function buildRecommendations(m: Metrics, dna: DnaInsight[], videos: Vide
 
   const impactRank: Record<Level, number> = { high: 0, medium: 1, low: 2 };
   return pool
-    .sort((a, b) => impactRank[a.impact] - impactRank[b.impact] || impactRank[a.confidence] - impactRank[b.confidence])
+    .sort(
+      (a, b) =>
+        impactRank[a.impact] - impactRank[b.impact] ||
+        impactRank[a.confidence] - impactRank[b.confidence],
+    )
     .slice(0, 5)
     .map((r, i) => ({ ...r, priority: i + 1 }));
 }
@@ -313,73 +451,142 @@ export function buildRecommendations(m: Metrics, dna: DnaInsight[], videos: Vide
 export function buildWeeklyPlan(m: Metrics, dna: DnaInsight[], videos: VideoRecord[]): PlanDay[] {
   const days = ["السبت", "الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة"];
   const best = [...videos].sort((a, b) => b.views - a.views)[0];
-  const camWins = (dna.find((d) => d.title.includes("شخص أمام الكاميرا"))?.liftPct ?? 0) > 0;
   const shortWins = (dna.find((d) => d.title.includes("12–18"))?.liftPct ?? 0) > 0;
   const duration = shortWins ? "12–18 ثانية" : "18–25 ثانية";
+  const subjects = accountSubjects(videos);
+  const primary = subjects[0] ?? "الفكرة الأقوى في أحدث فيديوهاتك";
+  const secondary = subjects[1] ?? primary;
+  const gaming = isGaming(subjects, videos);
+  const bestSubject = subjectFromCaption(best?.caption ?? "") ?? primary;
+  const game =
+    /fc\s?2[456]/i.exec(`${primary} ${secondary}`)?.[0]?.toUpperCase().replace(/\s/g, "") ?? "FC26";
 
-  const base: Omit<PlanDay, "dayAr">[] = [
-    {
-      idea: "طلة عباية واحدة بثلاث طرق تنسيق",
-      hook: "«نفس العباية… ثلاث طلات مختلفة»",
-      format: camWins ? "شخص أمام الكاميرا + تبديل سريع" : "لقطات قريبة + انتقالات",
-      cta: "أي طلة تختارينها؟ اكتبي 1 أو 2 أو 3",
-      targetDuration: duration,
-      why: `أعلى فيديو في حسابك (${fmt(best?.views ?? 0)} مشاهدة) كان من نفس عائلة المحتوى، وسؤال الاختيار يرفع التعليقات.`,
-    },
-    {
-      idea: "مشكلة قماش شائعة والحل",
-      hook: "«العباية تتجعد بعد ساعة؟»",
-      format: "حديث مباشر + إثبات على القماش",
-      cta: "احفظي المقطع قبل الشراء القادم",
-      targetDuration: duration,
-      why: "هوك المشكلة سجّل أفضل وسيط مشاهدات في حسابك مقارنة بالمقدمات العامة.",
-    },
-    {
-      idea: "مقارنة بين قماشين بنفس السعر",
-      hook: "«الفرق بين قماشين… يبان بعد أول غسلة»",
-      format: "مقارنة جانبية (Split screen)",
-      cta: "قولي أي قماش تفضلين",
-      targetDuration: duration,
-      why: "المحتوى التعليمي في حسابك يحقق تفاعلاً أعلى من المحتوى البيعي المباشر.",
-    },
-    {
-      idea: "كواليس تجهيز الطلبات",
-      hook: "«كيف تُجهّز طلبيتك قبل ما توصلك»",
-      format: "كواليس سريعة",
-      cta: "تابعينا لمتابعة الدفعة القادمة",
-      targetDuration: "18–25 ثانية",
-      why: "محتوى الكواليس يرفع الثقة ويخفض الاعتماد على المحتوى البيعي المتكرر.",
-    },
-    {
-      idea: "أسئلة العميلات الأكثر تكراراً",
-      hook: "«أكثر سؤال يوصلنا كل يوم»",
-      format: camWins ? "حديث مباشر" : "نص على الشاشة + لقطات منتج",
-      cta: "اسألي في التعليقات وسنجيب في مقطع",
-      targetDuration: duration,
-      why: "الردود المباشرة تولّد تعليقات، ووسيط التفاعل الحالي أقل من المستهدف.",
-    },
-    {
-      idea: "إعادة إنتاج أفضل فيديو بهوك جديد",
-      hook: "«طلبتوا نعيدها… هذي النسخة المحدثة»",
-      format: "نفس بنية الفيديو الأقوى",
-      cta: "الرابط في البايو",
-      targetDuration: duration,
-      why: `الاعتماد على أقوى الفيديوهات يبلغ ${formatPercent(m.viralDependency, 0)}، وإعادة الصيغة تختبر إن كان النجاح قابلاً للتكرار.`,
-    },
-    {
-      idea: "عرض محدود بقيمة قبل السعر",
-      hook: "«قبل ما أقول السعر… شوفي التفصيلة»",
-      format: "استعراض منتج + عرض في النهاية",
-      cta: "العرض ينتهي الأحد",
-      targetDuration: "18–25 ثانية",
-      why: "تأخير العرض إلى نهاية المقطع يقلل الهبوط المبكر الذي ظهر في فيديوهاتك البيعية.",
-    },
-  ];
+  const base: Omit<PlanDay, "dayAr">[] = gaming
+    ? [
+        {
+          idea: `${primary}: مقارنة قرارين داخل ${game}`,
+          hook: `«في ${game}: هذا القرار يغيّر مسيرة اللاعب من أول موسم»`,
+          format: "لقطتان متقابلتان + نتيجة كل خيار",
+          cta: "أي خيار ستختار؟ اكتب A أو B",
+          targetDuration: duration,
+          why: "زاوية المقارنة تخدم محتوى اللعب لأنها تعطي المشاهد قراراً واضحاً ليعلّق عليه.",
+        },
+        {
+          idea: `${primary}: تحدي موسم واحد`,
+          hook: `«هل أقدر أنقذ هذا اللاعب في موسم واحد في ${game}؟»`,
+          format: "هدف التحدي ثم 3 لقطات تقدم",
+          cta: "اختر التحدي التالي للمسيرة",
+          targetDuration: duration,
+          why: "التحدي يخلق نهاية مفتوحة ويحوّل نفس سلسلة المسيرة إلى حلقة قابلة للمتابعة.",
+        },
+        {
+          idea: `ترتيب خيارات ${game} المرتبطة بـ${secondary}`,
+          hook: `«ترتيبي الصريح في ${game}… وهذا الخيار لا أنصح فيه»`,
+          format: "ترتيب من 3 مراتب + لقطة دليل",
+          cta: "وش ترتيبك؟",
+          targetDuration: duration,
+          why: "الرأي والتصنيف مناسبان عندما يكون الموضوع فيه خيارات متنافسة، ويشجعان الردود بدون تكرار نفس الهوك.",
+        },
+        {
+          idea: `خطأ شائع في ${primary}`,
+          hook: `«لا تبدأ مسيرة اللاعب في ${game} بهذا الخطأ»`,
+          format: "الخطأ أولاً ثم التصحيح داخل اللعبة",
+          cta: "احفظه قبل بدايتك القادمة",
+          targetDuration: duration,
+          why: "زاوية الخطأ تستخدم المشكلة فقط حين يوجد تصرف واضح يمكن إثباته في الفيديو.",
+        },
+        {
+          idea: `اختبار حقيقي لـ${secondary}`,
+          hook: `«اختبرت هذه الخطة في ${game}… والنتيجة ما توقعتها»`,
+          format: "فرضية قصيرة + تجربة + النتيجة",
+          cta: "تبغون اختباراً ثانياً؟",
+          targetDuration: duration,
+          why: "التجربة تضيف دليلاً للمحتوى بدلاً من وعد عام أو وصف مكرر.",
+        },
+        {
+          idea: `قصة قرار غيّر ${primary}`,
+          hook: `«قرار واحد قلب مسيرة هذا اللاعب في ${game}»`,
+          format: "الموقف ثم النتيجة في تسلسل سريع",
+          cta: "أكمل القصة في الجزء الجاي؟",
+          targetDuration: duration,
+          why: "القصة تناسب المسيرة لأنها تربط اللقطات بسياق، لا لأنها مجرد صيغة جاهزة.",
+        },
+        {
+          idea: `كشف مفاجأة من ${bestSubject}`,
+          hook: `«رجعت لأقوى لحظة في ${game}… واكتشفت تفصيلة ما انتبهت لها»`,
+          format: "إعادة اللقطة الأقوى + كشف التفصيلة",
+          cta: "شفتها من أول مرة؟",
+          targetDuration: duration,
+          why: `يبني على موضوع أفضل فيديو (${fmt(best?.views ?? 0)} مشاهدة) بهوك جديد، بدلاً من إعادة النص نفسه.`,
+        },
+      ]
+    : [
+        {
+          idea: `${primary}: مقارنة خيارين`,
+          hook: `«بين هذين الخيارين في ${primary}… الفرق الذي يهم فعلاً هو هذا»`,
+          format: "مقارنة مباشرة + دليل واحد",
+          cta: "أي خيار تختار؟",
+          targetDuration: duration,
+          why: "زاوية المقارنة تستخدم عندما يتيح الموضوع خيارين واضحين.",
+        },
+        {
+          idea: `${primary}: تحدٍ قابل للقياس`,
+          hook: `«جربت ${primary} بطريقة مختلفة اليوم… وهذه النتيجة»`,
+          format: "وعد التحدي + النتيجة",
+          cta: "اقترح تحدي الغد",
+          targetDuration: duration,
+          why: "يبقي الفكرة نفسها جديدة من خلال تجربة محددة، لا تغيير الموضوع عشوائياً.",
+        },
+        {
+          idea: `رأي وترتيب حول ${secondary}`,
+          hook: `«رأيي الصريح في ${secondary}: هذا يستحق التجربة وهذا لا»`,
+          format: "3 نقاط مرتبة + سبب مختصر",
+          cta: "تتفق أو تختلف؟",
+          targetDuration: duration,
+          why: "الرأي مناسب فقط للموضوعات التي يمكن المفاضلة فيها.",
+        },
+        {
+          idea: `خطأ شائع في ${primary}`,
+          hook: `«إذا تسوي هذا في ${primary}، فأنت تضيع النتيجة من البداية»`,
+          format: "الخطأ ثم بديله",
+          cta: "احفظ المقطع وارجع له",
+          targetDuration: duration,
+          why: "يحوّل الفائدة إلى خطوة عملية ويعطي المشاهد سبباً واضحاً للاستمرار.",
+        },
+        {
+          idea: `تجربة أو اختبار لـ${secondary}`,
+          hook: `«اختبرت ${secondary} بنفسي… وهذه النتيجة بدون تجميل»`,
+          format: "فرضية + اختبار + نتيجة",
+          cta: "وش نختبر بعده؟",
+          targetDuration: duration,
+          why: "التجربة تمنح الفيديو دليلاً بدلاً من تعميمات في الكابتشن.",
+        },
+        {
+          idea: `قصة قصيرة من ${primary}`,
+          hook: `«هذا الموقف هو الذي غيّر رأيي في ${primary}»`,
+          format: "موقف واحد + التحول",
+          cta: "مرّ عليك شيء مشابه؟",
+          targetDuration: duration,
+          why: "نستخدم القصة لأن الموضوع يحمل موقفاً أو تحولاً قابلاً للحكي.",
+        },
+        {
+          idea: `كشف جديد مبني على ${bestSubject}`,
+          hook: `«رجعت لـ${bestSubject} واكتشفت تفصيلة ما كانت واضحة من أول مرة»`,
+          format: "إعادة لحظة قوية + كشف",
+          cta: "لاحظتها من البداية؟",
+          targetDuration: duration,
+          why: `يعيد اختبار موضوع أفضل فيديو (${fmt(best?.views ?? 0)} مشاهدة) بزاوية جديدة، من دون نسخ الكابتشن.`,
+        },
+      ];
 
   return base.map((d, i) => ({ dayAr: days[i]!, ...d }));
 }
 
-export function analyze(data: AccountData, metrics: Metrics, previousScore?: number): AnalysisReport {
+export function analyze(
+  data: AccountData,
+  metrics: Metrics,
+  previousScore?: number,
+): AnalysisReport {
   const scoring = computeScore(metrics);
   const sorted = [...data.videos].sort((a, b) => b.views - a.views);
   const top = sorted.slice(0, 5);
