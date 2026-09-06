@@ -245,6 +245,8 @@ export const getVideoHookAnalysis = createServerFn({ method: "POST" })
           payload: {
             video_id: data.video_id,
             ...(data.share_url ? { share_url: data.share_url } : {}),
+            output_language: "ar",
+            locale: "ar-SA",
           },
         }),
       });
@@ -266,8 +268,11 @@ export const getVideoHookAnalysis = createServerFn({ method: "POST" })
         ? rewrites.filter((x): x is string => typeof x === "string" && x.trim() !== "").slice(0, 3)
         : [];
 
-      await save(row);
-      return normalize({ ...row, video_id: data.video_id }, data.video_id);
+      const { arabizeAnalysis } = await import("./hook-arabic.server");
+      const arabic = await arabizeAnalysis(row);
+
+      await save(arabic);
+      return normalize({ ...arabic, video_id: data.video_id }, data.video_id);
     } catch {
       return failWith("تعذّر الوصول إلى الوكيل الخارجي");
     }
