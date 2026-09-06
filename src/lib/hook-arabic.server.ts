@@ -1,13 +1,12 @@
 /**
- * Backend-only Arabic normalization for HookAnalyzerAgent output.
- * Translates marketing/explanatory fields to Arabic before persistence.
- * Never touches the raw transcript fields (spoken_text / onscreen_text),
- * and never invents content: on any failure the original values are kept.
+ * Backend-only "marketing expert" pass over HookAnalyzerAgent output.
+ * It does not translate word-by-word: it rewrites the structured fields as a
+ * practical TikTok marketing expert would, in short simple Arabic.
+ * Raw transcript fields (spoken_text / onscreen_text) are kept as-is,
+ * and on any failure the original values are preserved (nothing invented).
  */
 
-const LATIN = /[A-Za-z]{3,}/;
-
-/** Fields that must always be Arabic in the UI (verdict stays an enum key). */
+/** Fields that must always read as Arabic marketing copy (verdict stays an enum key). */
 export const ARABIC_FIELDS = [
   "visual_description",
   "hook_summary",
@@ -33,6 +32,19 @@ export const ARABIC_FIELDS = [
   "avoid_this",
 ] as const;
 
+const SYSTEM_PROMPT = `أنت خبير تسويق محتوى على تيك توك، عملي وصريح.
+تستلم تحليلًا خامًا لأول 5 ثوانٍ من فيديو، وتعيد صياغته كخبير لا كآلة.
+القواعد:
+- عربية بسيطة وواضحة وقريبة من المستخدم، لا فصحى ثقيلة ولا عامية مبالغ فيها.
+- لا تخترع أي معلومة غير موجودة في المدخل. إذا الحقل غير واضح، اتركه كما هو أو اجعله موجزًا جدًا.
+- hook_summary جملة أو جملتين فقط: لماذا شدّ الانتباه أو لماذا لم يشدّ، مع ربط الصوت والصورة والنص.
+- hook_type اسم عربي قصير مثل: تشويق، سؤال مباشر، وعد بنتيجة، صدمة، كشف تدريجي، قصة.
+- attention_trigger و curiosity_gap و value_promise و retention_risk و best_moment و weakest_moment و replicate_this و avoid_this: عبارات قصيرة مباشرة قابلة للتنفيذ.
+- three_rewrites_N: بدايات بديلة أقوى بالعربية، كل واحدة سطر واحد قابل للقول أمام الكاميرا.
+- تجاهل نصوص الشاشة غير المتعلقة بالهوك مثل شعارات الرعاة أو واجهات التطبيقات أو أرقام الواجهة.
+- لا نِسب مئوية ولا لغة تقنية ولا شرح طويل.
+حافظ على نفس مفاتيح JSON تمامًا، بدون مفاتيح جديدة، وأعد JSON فقط.`;
+
 export async function arabizeAnalysis(
   row: Record<string, unknown>,
 ): Promise<Record<string, unknown>> {
@@ -42,7 +54,7 @@ export async function arabizeAnalysis(
   const items: Record<string, string> = {};
   for (const key of ARABIC_FIELDS) {
     const v = row[key];
-    if (typeof v === "string" && v.trim() && LATIN.test(v)) items[key] = v;
+    if (typeof v === "string" && v.trim()) items[key] = v;
   }
   const rewrites = Array.isArray(row["three_rewrites"])
     ? (row["three_rewrites"] as unknown[]).filter(
@@ -50,10 +62,17 @@ export async function arabizeAnalysis(
       )
     : [];
   rewrites.forEach((r, i) => {
-    if (LATIN.test(r)) items[`three_rewrites_${i}`] = r;
+    items[`three_rewrites_${i}`] = r;
   });
 
   if (Object.keys(items).length === 0) return row;
+
+  // Light context so the rewrite is grounded, never invented.
+  const context = {
+    spoken_text: typeof row["spoken_text"] === "string" ? row["spoken_text"] : "",
+    onscreen_text: typeof row["onscreen_text"] === "string" ? row["onscreen_text"] : "",
+    verdict: typeof row["verdict"] === "string" ? row["verdict"] : "",
+  };
 
   try {
     const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -64,14 +83,13 @@ export async function arabizeAnalysis(
         "X-Lovable-AIG-SDK": "fetch",
       },
       body: JSON.stringify({
-        model: "google/gemini-3.1-flash-lite",
+        model: "google/gemini-3.7-flash",
         messages: [
+          { role: "system", content: SYSTEM_PROMPT },
           {
-            role: "system",
-            content:
-              "ترجم قيم JSON إلى عربية تسويقية موجزة وواضحة. حافظ على نفس المفاتيح تمامًا. لا تضف مفاتيح ولا شرحًا. أعد JSON فقط.",
+            role: "user",
+            content: JSON.stringify({ context, fields: items }),
           },
-          { role: "user", content: JSON.stringify(items) },
         ],
         response_format: { type: "json_object" },
       }),
@@ -82,7 +100,12 @@ export async function arabizeAnalysis(
     };
     const content = data.choices?.[0]?.message?.content;
     if (!content) return row;
-    const translated = JSON.parse(content) as Record<string, unknown>;
+    const parsed = JSON.parse(content) as Record<string, unknown>;
+    const translated = (
+      typeof parsed["fields"] === "object" && parsed["fields"] !== null
+        ? parsed["fields"]
+        : parsed
+    ) as Record<string, unknown>;
 
     const out = { ...row };
     for (const key of ARABIC_FIELDS) {
