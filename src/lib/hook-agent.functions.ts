@@ -44,6 +44,8 @@ export type HookAgentResult =
 export const analyzeHook = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => inputSchema.parse(data))
   .handler(async ({ data }): Promise<HookAgentResult> => {
+    if (data.cache_only) return existing ? (existing as StoredHookAnalysis) : { ...base, status: "pending" };
+
     const url = process.env["HOOK_PROCESSOR_URL"];
     const secret = process.env["HOOK_SHARED_SECRET"];
     const missing: string[] = [];
@@ -111,6 +113,7 @@ const videoInput = z.object({
   video_id: z.string().min(1).max(64),
   share_url: z.string().url().max(500).optional(),
   force: z.boolean().optional(),
+  cache_only: z.boolean().optional(),
 });
 
 function pickStr(src: Record<string, unknown>, key: string): string | null {
@@ -152,6 +155,8 @@ export const getVideoHookAnalysis = createServerFn({ method: "POST" })
     if (existing && (existing.status === "completed" || (existing.status === "failed" && !data.force))) {
       return existing as StoredHookAnalysis;
     }
+
+    if (data.cache_only) return existing ? (existing as StoredHookAnalysis) : { ...base, status: "pending" };
 
     const url = process.env["HOOK_PROCESSOR_URL"];
     const secret = process.env["HOOK_SHARED_SECRET"];
