@@ -168,8 +168,9 @@ export function HookAnalysisPanel({ videoId, shareUrl }: { videoId: string; shar
           ) : null}
 
           <Button size="sm" variant="ghost" className="h-7 px-2 text-[11px]" onClick={() => void analyze(true)}>
-            <RefreshCw className="size-3" /> إعادة التحليل
+            <RefreshCw className="size-3" /> إعادة التحليل من جديد
           </Button>
+
         </div>
       ) : data?.status === "failed" ? (
         <div className="mt-2 text-[11px]">
