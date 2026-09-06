@@ -36,7 +36,7 @@ function HookAgentPage() {
   useEffect(() => {
     void statusFn()
       .then(setStatus)
-      .catch(() => setStatus({ configured: false, missing: ["HOOK_PROCESSOR_URL", "PROCESSOR_SHARED_SECRET"] }));
+      .catch(() => setStatus({ configured: false, missing: ["HOOK_PROCESSOR_URL", "HOOK_SHARED_SECRET"] }));
   }, [statusFn]);
 
   const run = async () => {
