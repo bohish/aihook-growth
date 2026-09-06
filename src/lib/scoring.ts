@@ -91,17 +91,17 @@ export function computeScore(m: Metrics): ScoreResult {
     },
     {
       key: "consistency",
-      labelAr: "الاستمرارية",
+      labelAr: "انتظام النشر",
       labelEn: "Consistency",
       value: consistency,
       note: `${m.postsPerWeek} فيديو أسبوعياً، أطول انقطاع ${m.longestGapDays} يوم`,
     },
     {
       key: "efficiency",
-      labelAr: "كفاءة المحتوى",
+      labelAr: "قوة المحتوى",
       labelEn: "Content Efficiency",
       value: efficiency,
-      note: `${formatPercent(m.viralDependency, 0)} من المشاهدات تأتي من أقوى 3 فيديوهات`,
+      note: `أقوى 3 فيديوهات تمثل ${formatPercent(m.viralDependency, 0)} من مشاهداتك`,
     },
   ];
 
@@ -120,8 +120,8 @@ function buildSummary(score: number, m: Metrics): string {
   const weakest = [
     { name: "الوصول", v: reachScore(m) },
     { name: "التفاعل", v: engagementScore(m) },
-    { name: "الاستمرارية", v: consistencyScore(m) },
-    { name: "كفاءة المحتوى", v: efficiencyScore(m) },
+    { name: "انتظام النشر", v: consistencyScore(m) },
+    { name: "قوة المحتوى", v: efficiencyScore(m) },
   ].sort((a, b) => a.v - b.v)[0]!;
 
   const band =
