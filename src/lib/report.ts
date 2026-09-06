@@ -8,8 +8,10 @@ import type { Json } from "@/integrations/supabase/types";
 import { computeMetrics } from "@/lib/metrics";
 import { computeScore } from "@/lib/scoring";
 import { analyze } from "@/lib/analysis";
+import type { StoredHookAnalysis } from "@/lib/niche";
 import { fetchTikTokAccountData } from "@/lib/tiktok.functions";
 import type { AccountData, AnalysisReport, ConnectionState } from "@/lib/types";
+
 
 const CACHE_KEY = "tga.report.v1";
 

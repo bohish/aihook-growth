@@ -266,10 +266,19 @@ const METRIC_AR: Record<Recommendation["targetMetric"], string> = {
   consistency: "انتظام النشر",
 };
 
-export function Recommendations({ items, locked = 0 }: { items: Recommendation[]; locked?: number }) {
+export function Recommendations({
+  items,
+  locked = 0,
+  contextNote,
+}: {
+  items: Recommendation[];
+  locked?: number;
+  contextNote?: string;
+}) {
   return (
     <section>
-      <h2 className="text-lg font-bold">خطة العمل — 5 توصيات مرتبة</h2>
+      <h2 className="text-lg font-bold">الخطة التسويقية — رؤية الخبير</h2>
+      {contextNote ? <p className="mt-2 text-xs text-muted-foreground">{contextNote}</p> : null}
       <div className="mt-4 grid gap-4">
         {items.map((r, i) => {
           const isLocked = i >= items.length - locked;
@@ -302,16 +311,44 @@ export function Recommendations({ items, locked = 0 }: { items: Recommendation[]
                   هذه التوصية متاحة في خطة Pro مع تفاصيل الدليل والخطوة المقترحة.
                 </p>
               ) : (
-                <div className="mt-4 grid gap-3 md:grid-cols-2">
-                  <div className="border border-border bg-surface/60 p-3">
-                    <p className="text-xs font-semibold">الدليل من حسابك</p>
-                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{r.evidence}</p>
+                <>
+                  <div className="mt-4 grid gap-3 md:grid-cols-2">
+                    <div className="border border-border bg-surface/60 p-3">
+                      <p className="text-xs font-semibold">ليش اخترناه من حسابك</p>
+                      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{r.evidence}</p>
+                    </div>
+                    <div className="border border-border bg-surface/60 p-3">
+                      <p className="text-xs font-semibold">الاتجاه المطلوب</p>
+                      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{r.action}</p>
+                    </div>
                   </div>
-                  <div className="border border-border bg-surface/60 p-3">
-                    <p className="text-xs font-semibold">الإجراء المقترح</p>
-                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{r.action}</p>
-                  </div>
-                </div>
+                  {r.hookLine ? (
+                    <div className="mt-3 border border-border p-3">
+                      <p className="text-xs font-semibold">جملة افتتاحية جاهزة</p>
+                      <p className="mt-1 text-sm leading-relaxed">{r.hookLine}</p>
+                    </div>
+                  ) : null}
+                  <dl className="mt-3 grid gap-3 md:grid-cols-3">
+                    {r.shoot ? (
+                      <div className="border border-border bg-surface/60 p-3">
+                        <dt className="text-xs font-semibold">وش نصوّر</dt>
+                        <dd className="mt-1 text-xs leading-relaxed text-muted-foreground">{r.shoot}</dd>
+                      </div>
+                    ) : null}
+                    {r.build ? (
+                      <div className="border border-border bg-surface/60 p-3">
+                        <dt className="text-xs font-semibold">طريقة البناء</dt>
+                        <dd className="mt-1 text-xs leading-relaxed text-muted-foreground">{r.build}</dd>
+                      </div>
+                    ) : null}
+                    {r.cta ? (
+                      <div className="border border-border bg-surface/60 p-3">
+                        <dt className="text-xs font-semibold">الدعوة للإجراء</dt>
+                        <dd className="mt-1 text-xs leading-relaxed text-muted-foreground">{r.cta}</dd>
+                      </div>
+                    ) : null}
+                  </dl>
+                </>
               )}
             </article>
           );
@@ -320,6 +357,7 @@ export function Recommendations({ items, locked = 0 }: { items: Recommendation[]
     </section>
   );
 }
+
 
 /* ------------------------------- weekly plan ------------------------------ */
 
