@@ -44,8 +44,6 @@ export type HookAgentResult =
 export const analyzeHook = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => inputSchema.parse(data))
   .handler(async ({ data }): Promise<HookAgentResult> => {
-    if (data.cache_only) return existing ? (existing as StoredHookAnalysis) : { ...base, status: "pending" };
-
     const url = process.env["HOOK_PROCESSOR_URL"];
     const secret = process.env["HOOK_SHARED_SECRET"];
     const missing: string[] = [];
@@ -155,6 +153,8 @@ export const getVideoHookAnalysis = createServerFn({ method: "POST" })
     if (existing && (existing.status === "completed" || (existing.status === "failed" && !data.force))) {
       return existing as StoredHookAnalysis;
     }
+
+    if (data.cache_only) return existing ? (existing as StoredHookAnalysis) : { ...base, status: "pending" };
 
     if (data.cache_only) return existing ? (existing as StoredHookAnalysis) : { ...base, status: "pending" };
 
