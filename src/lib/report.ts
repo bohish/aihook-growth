@@ -8,8 +8,10 @@ import type { Json } from "@/integrations/supabase/types";
 import { computeMetrics } from "@/lib/metrics";
 import { computeScore } from "@/lib/scoring";
 import { analyze } from "@/lib/analysis";
+import type { StoredHookAnalysis } from "@/lib/niche";
 import { fetchTikTokAccountData } from "@/lib/tiktok.functions";
 import type { AccountData, AnalysisReport, ConnectionState } from "@/lib/types";
+
 
 const CACHE_KEY = "tga.report.v1";
 
@@ -48,13 +50,38 @@ export async function runAnalysis(): Promise<AnalysisReport> {
   }
   const data = result.data;
   const metrics = computeMetrics(data);
-  const report = analyze(data, metrics, priorPeriodScore(data));
+  const hookAnalyses = await fetchStoredHookAnalyses();
+  const report = analyze(data, metrics, priorPeriodScore(data), hookAnalyses);
   cacheReport(report);
   void persistReport(report).catch(() => {
     /* history persistence is best-effort; the analysis itself is local */
   });
   return report;
 }
+
+/**
+ * Reads hook analyses that already exist for this user. Read-only: it never
+ * triggers a new analysis, so no extra API cost is introduced.
+ */
+async function fetchStoredHookAnalyses(): Promise<StoredHookAnalysis[]> {
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) return [];
+  const { data, error } = await supabase
+    .from("hook_analyses")
+    .select("video_id, hook_type, hook_summary, spoken_text, replicate_this, hook_score")
+    .eq("status", "completed")
+    .limit(100);
+  if (error || !data) return [];
+  return data.map((r) => ({
+    videoId: r.video_id,
+    hookType: r.hook_type,
+    hookSummary: r.hook_summary,
+    spokenText: r.spoken_text,
+    replicateThis: r.replicate_this,
+    hookScore: r.hook_score,
+  }));
+}
+
 
 export function cacheReport(report: AnalysisReport) {
   if (typeof window === "undefined") return;
