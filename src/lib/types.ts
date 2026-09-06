@@ -113,7 +113,13 @@ export interface Recommendation {
   evidence: string;
   action: string;
   targetMetric: "views" | "engagement" | "consistency";
+  /** Marketing detail — present when the account data supports it. */
+  shoot?: string;
+  hookLine?: string;
+  build?: string;
+  cta?: string;
 }
+
 
 export interface DnaInsight {
   title: string;
