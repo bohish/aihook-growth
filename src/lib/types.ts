@@ -155,7 +155,12 @@ export interface AnalysisReport {
   dna: DnaInsight[];
   recommendations: Recommendation[];
   plan: PlanDay[];
+  /** 2–3 content pillars this week focuses on, derived from the account. */
+  planFocus?: string[];
+  /** Detected niche label + note when the subject is not clear enough. */
+  contextNote?: string;
   generatedAt: string;
+
   /** Set when there are too few videos for a trustworthy score. */
   limitedData?: boolean;
 }
