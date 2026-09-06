@@ -26,60 +26,27 @@ export function ScoreCard({ report }: { report: AnalysisReport }) {
   const delta = report.scoreDelta;
 
   return (
-    <section className="panel grain-bg p-6 md:p-8">
-      <div className="flex flex-col gap-6 md:flex-row md:items-center">
-        <div className="flex items-center gap-5">
-          <ScoreRing value={score} />
-          <div>
-            <p className="text-xs text-muted-foreground">درجة الحساب</p>
-            <p className="mt-1 text-3xl font-bold">
-              {score}
-              <span className="text-base font-normal text-muted-foreground"> / 100</span>
-            </p>
-            <div className="mt-2 flex items-center gap-2">
-              <Badge variant="outline" className="border-primary/40 accent-text">
-                {band.labelAr}
-              </Badge>
-              <span
-                className={`inline-flex items-center gap-1 text-xs ${
-                  delta > 0 ? "text-success" : delta < 0 ? "text-destructive" : "text-muted-foreground"
-                }`}
-              >
-                {delta > 0 ? <TrendingUp className="size-3.5" /> : delta < 0 ? <TrendingDown className="size-3.5" /> : null}
-                {delta === 0 ? "مستقر مقارنة بالفترة السابقة" : `${delta > 0 ? "+" : ""}${delta} مقارنة بالفترة السابقة`}
-              </span>
-            </div>
-          </div>
+    <section className="panel">
+      <div className="grid md:grid-cols-[minmax(0,20rem)_1fr]">
+        <div className="border-b border-border p-6 md:border-b-0 md:border-l md:p-8">
+          <p className="text-[11px] uppercase tracking-[0.35em] text-muted-foreground">درجة الهوك</p>
+          <p className="mt-4 flex items-end gap-2 font-bold leading-none">
+            <span className="text-[5.5rem] tabular-nums tracking-tighter">{score}</span>
+            <span className="pb-3 text-lg font-normal text-muted-foreground">/ 100</span>
+          </p>
+          <p className="mt-4 border-t border-border pt-3 text-sm font-semibold">{band.labelAr}</p>
         </div>
-        <p className="max-w-xl text-sm leading-relaxed text-muted-foreground md:mr-auto">{summaryAr}</p>
+        <div className="flex flex-col justify-between gap-4 p-6 md:p-8">
+          <p className="max-w-xl text-sm leading-relaxed text-muted-foreground">{summaryAr}</p>
+          <p className="flex items-center gap-2 border-t border-border pt-3 text-xs text-muted-foreground">
+            {delta > 0 ? <TrendingUp className="size-3.5" /> : delta < 0 ? <TrendingDown className="size-3.5" /> : null}
+            {delta === 0
+              ? "الدرجة مستقرة مقارنة بالفترة السابقة"
+              : `${delta > 0 ? "+" : ""}${delta} نقطة مقارنة بالفترة السابقة`}
+          </p>
+        </div>
       </div>
     </section>
-  );
-}
-
-function ScoreRing({ value }: { value: number }) {
-  const size = 96;
-  const stroke = 9;
-  const r = (size - stroke) / 2;
-  const c = 2 * Math.PI * r;
-  const offset = c * (1 - Math.min(100, Math.max(0, value)) / 100);
-
-  return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="shrink-0" role="img" aria-label={`الدرجة ${value} من 100`}>
-      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--color-muted)" strokeWidth={stroke} />
-      <circle
-        cx={size / 2}
-        cy={size / 2}
-        r={r}
-        fill="none"
-        stroke="var(--color-primary)"
-        strokeWidth={stroke}
-        strokeLinecap="round"
-        strokeDasharray={c}
-        strokeDashoffset={offset}
-        transform={`rotate(-90 ${size / 2} ${size / 2})`}
-      />
-    </svg>
   );
 }
 
@@ -90,13 +57,13 @@ export function Subscores({ report }: { report: AnalysisReport }) {
     <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {report.scoring.subscores.map((s) => (
         <article key={s.key} className="panel p-5">
-          <div className="flex items-baseline justify-between">
-            <h3 className="text-sm font-semibold">{s.labelAr}</h3>
-            <span className="text-lg font-bold accent-text">{s.value}</span>
-          </div>
-          <p className="mt-1 text-[11px] text-muted-foreground">{s.labelEn}</p>
-          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted">
-            <div className="h-full rounded-full bg-primary" style={{ width: `${s.value}%` }} />
+          <p className="text-[11px] uppercase tracking-[0.25em] text-muted-foreground">{s.labelAr}</p>
+          <p className="mt-2 flex items-end gap-1 font-bold leading-none">
+            <span className="text-4xl tabular-nums tracking-tight">{s.value}</span>
+            <span className="pb-1 text-xs font-normal text-muted-foreground">/ 100</span>
+          </p>
+          <div className="mt-3 h-px overflow-hidden bg-muted">
+            <div className="h-full bg-primary" style={{ width: `${s.value}%` }} />
           </div>
           <p className="mt-3 text-xs leading-relaxed text-muted-foreground">{s.note}</p>
         </article>
@@ -113,11 +80,11 @@ export function KeyMetrics({ report }: { report: AnalysisReport }) {
     { label: "المتابعون", value: formatNumber(m.followers), icon: BadgeCheck },
     { label: "متوسط المشاهدات", value: formatNumber(m.avgViews), icon: Eye },
     { label: "وسيط المشاهدات", value: formatNumber(m.medianViews), icon: Activity },
-    { label: "متوسط معدل التفاعل", value: formatPercent(m.avgEngagementRate), icon: Heart },
+    { label: "متوسط التفاعل", value: formatPercent(m.avgEngagementRate), icon: Heart },
     { label: "معدل النشر أسبوعياً", value: String(m.postsPerWeek), icon: CalendarDays },
     { label: "اتجاه 7 أيام", value: formatSignedPercent(m.trend7), icon: TrendingUp, tone: m.trend7 },
     { label: "اتجاه 30 يوم", value: formatSignedPercent(m.trend30), icon: TrendingUp, tone: m.trend30 },
-    { label: "الاعتماد على أقوى 3 فيديوهات", value: formatPercent(m.viralDependency, 0), icon: Flame },
+    { label: "نصيب أقوى 3 فيديوهات من المشاهدات", value: formatPercent(m.viralDependency, 0), icon: Flame },
   ];
 
   return (
@@ -130,13 +97,7 @@ export function KeyMetrics({ report }: { report: AnalysisReport }) {
               <item.icon className="size-3.5" />
               <span className="text-[11px] leading-tight">{item.label}</span>
             </div>
-            <p
-              className={`mt-2 text-lg font-bold ${
-                item.tone == null ? "" : item.tone > 0 ? "text-success" : item.tone < 0 ? "text-destructive" : ""
-              }`}
-            >
-              {item.value}
-            </p>
+            <p className="mt-2 text-2xl font-bold tabular-nums tracking-tight">{item.value}</p>
           </article>
         ))}
       </div>
@@ -180,16 +141,8 @@ function VideoCard({ video, verdict, tone }: { video: VideoRecord; verdict: stri
           className="h-28 w-full object-cover"
         />
       ) : (
-        <div
-          className="relative flex h-28 items-end p-3"
-          style={{
-            background:
-              tone === "top"
-                ? "linear-gradient(135deg, color-mix(in oklab, var(--primary) 26%, var(--card)), var(--card))"
-                : "linear-gradient(135deg, color-mix(in oklab, var(--destructive) 20%, var(--card)), var(--card))",
-          }}
-        >
-          <span className="rounded-md bg-background/70 px-2 py-1 text-[10px] text-muted-foreground">
+        <div className="relative flex h-28 items-end border-b border-border bg-surface p-3">
+          <span className="border border-border bg-background px-2 py-1 text-[10px] text-muted-foreground">
             لا تتوفر صورة مصغّرة لهذا الفيديو
           </span>
         </div>
@@ -208,7 +161,7 @@ function VideoCard({ video, verdict, tone }: { video: VideoRecord; verdict: stri
             { icon: MessageCircle, value: formatNumber(video.comments) },
             { icon: Repeat2, value: formatNumber(video.shares) },
           ].map((s, i) => (
-            <div key={i} className="rounded-lg bg-surface/70 py-2">
+            <div key={i} className="border border-border bg-surface py-2">
               <s.icon className="mx-auto size-3.5 text-muted-foreground" />
               <p className="mt-1 text-xs font-medium">{s.value}</p>
             </div>
@@ -233,12 +186,8 @@ function VideoCard({ video, verdict, tone }: { video: VideoRecord; verdict: stri
           </Badge>
         </div>
 
-        <div
-          className={`mt-4 rounded-xl border p-3 ${
-            tone === "top" ? "border-success/30 bg-success/8" : "border-destructive/30 bg-destructive/8"
-          }`}
-        >
-          <p className="text-xs font-semibold">{tone === "top" ? "ليش نجح؟" : "ليش ضعُف؟"}</p>
+        <div className="mt-4 border border-border p-3">
+          <p className="text-xs font-semibold">{tone === "top" ? "ليش شدّ الانتباه؟" : "وش يحتاج تعديل؟"}</p>
           <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{verdict}</p>
         </div>
 
@@ -252,7 +201,7 @@ export function BestWorst({ report }: { report: AnalysisReport }) {
   return (
     <section className="grid gap-8">
       <div>
-        <h2 className="text-lg font-bold">أقوى 5 فيديوهات</h2>
+        <h2 className="text-lg font-bold">أقوى الهوكات</h2>
         <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {report.top.map((v) => (
             <VideoCard key={v.id} video={v} verdict={report.verdicts[v.id] ?? ""} tone="top" />
@@ -260,7 +209,7 @@ export function BestWorst({ report }: { report: AnalysisReport }) {
         </div>
       </div>
       <div>
-        <h2 className="text-lg font-bold">أضعف 5 فيديوهات</h2>
+        <h2 className="text-lg font-bold">هوكات تحتاج تعديل</h2>
         <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {report.bottom.map((v) => (
             <VideoCard key={v.id} video={v} verdict={report.verdicts[v.id] ?? ""} tone="bottom" />
@@ -278,7 +227,7 @@ const LEVEL_AR: Record<Level, string> = { high: "عالية", medium: "متوس�
 export function ContentDna({ insights }: { insights: DnaInsight[] }) {
   return (
     <section>
-      <h2 className="text-lg font-bold">بصمة المحتوى (Content DNA)</h2>
+      <h2 className="text-lg font-bold">نمطك الناجح</h2>
       <p className="mt-2 text-sm text-muted-foreground">
         أنماط مستخرجة من فيديوهاتك أنت، بمقارنة وسيط الأداء بين المجموعات — ليست نصائح عامة.
       </p>
@@ -289,7 +238,7 @@ export function ContentDna({ insights }: { insights: DnaInsight[] }) {
               <h3 className="text-sm font-semibold leading-snug">{d.title}</h3>
               {d.liftPct != null ? (
                 <span
-                  className={`shrink-0 text-sm font-bold ${d.liftPct >= 0 ? "text-success" : "text-destructive"}`}
+                  className="shrink-0 text-sm font-bold text-foreground"
                 >
                   {formatSignedPercent(d.liftPct)}
                 </span>
@@ -314,13 +263,22 @@ export function ContentDna({ insights }: { insights: DnaInsight[] }) {
 const METRIC_AR: Record<Recommendation["targetMetric"], string> = {
   views: "المشاهدات",
   engagement: "التفاعل",
-  consistency: "الاستمرارية",
+  consistency: "انتظام النشر",
 };
 
-export function Recommendations({ items, locked = 0 }: { items: Recommendation[]; locked?: number }) {
+export function Recommendations({
+  items,
+  locked = 0,
+  contextNote,
+}: {
+  items: Recommendation[];
+  locked?: number;
+  contextNote?: string | undefined;
+}) {
   return (
     <section>
-      <h2 className="text-lg font-bold">خطة العمل — 5 توصيات مرتبة</h2>
+      <h2 className="text-lg font-bold">الخطة التسويقية — رؤية الخبير</h2>
+      {contextNote ? <p className="mt-2 text-xs text-muted-foreground">{contextNote}</p> : null}
       <div className="mt-4 grid gap-4">
         {items.map((r, i) => {
           const isLocked = i >= items.length - locked;
@@ -334,7 +292,7 @@ export function Recommendations({ items, locked = 0 }: { items: Recommendation[]
                 <div className="mr-auto flex flex-wrap gap-1.5">
                   <Badge
                     variant="outline"
-                    className={r.impact === "high" ? "border-success/40 text-success" : "text-muted-foreground"}
+                    className="text-muted-foreground"
                   >
                     الأثر: {LEVEL_AR[r.impact]}
                   </Badge>
@@ -353,16 +311,44 @@ export function Recommendations({ items, locked = 0 }: { items: Recommendation[]
                   هذه التوصية متاحة في خطة Pro مع تفاصيل الدليل والخطوة المقترحة.
                 </p>
               ) : (
-                <div className="mt-4 grid gap-3 md:grid-cols-2">
-                  <div className="rounded-xl border border-border bg-surface/60 p-3">
-                    <p className="text-xs font-semibold">الدليل من حسابك</p>
-                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{r.evidence}</p>
+                <>
+                  <div className="mt-4 grid gap-3 md:grid-cols-2">
+                    <div className="border border-border bg-surface/60 p-3">
+                      <p className="text-xs font-semibold">ليش اخترناه من حسابك</p>
+                      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{r.evidence}</p>
+                    </div>
+                    <div className="border border-border bg-surface/60 p-3">
+                      <p className="text-xs font-semibold">الاتجاه المطلوب</p>
+                      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{r.action}</p>
+                    </div>
                   </div>
-                  <div className="rounded-xl border border-primary/30 bg-primary/8 p-3">
-                    <p className="text-xs font-semibold">الإجراء المقترح</p>
-                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{r.action}</p>
-                  </div>
-                </div>
+                  {r.hookLine ? (
+                    <div className="mt-3 border border-border p-3">
+                      <p className="text-xs font-semibold">جملة افتتاحية جاهزة</p>
+                      <p className="mt-1 text-sm leading-relaxed">{r.hookLine}</p>
+                    </div>
+                  ) : null}
+                  <dl className="mt-3 grid gap-3 md:grid-cols-3">
+                    {r.shoot ? (
+                      <div className="border border-border bg-surface/60 p-3">
+                        <dt className="text-xs font-semibold">وش نصوّر</dt>
+                        <dd className="mt-1 text-xs leading-relaxed text-muted-foreground">{r.shoot}</dd>
+                      </div>
+                    ) : null}
+                    {r.build ? (
+                      <div className="border border-border bg-surface/60 p-3">
+                        <dt className="text-xs font-semibold">طريقة البناء</dt>
+                        <dd className="mt-1 text-xs leading-relaxed text-muted-foreground">{r.build}</dd>
+                      </div>
+                    ) : null}
+                    {r.cta ? (
+                      <div className="border border-border bg-surface/60 p-3">
+                        <dt className="text-xs font-semibold">الدعوة للإجراء</dt>
+                        <dd className="mt-1 text-xs leading-relaxed text-muted-foreground">{r.cta}</dd>
+                      </div>
+                    ) : null}
+                  </dl>
+                </>
               )}
             </article>
           );
@@ -372,16 +358,23 @@ export function Recommendations({ items, locked = 0 }: { items: Recommendation[]
   );
 }
 
+
 /* ------------------------------- weekly plan ------------------------------ */
 
-export function WeeklyPlan({ days }: { days: PlanDay[] }) {
+export function WeeklyPlan({ days, focus = [] }: { days: PlanDay[]; focus?: string[] | undefined }) {
   return (
     <section>
-      <h2 className="text-lg font-bold">خطة المحتوى — 7 أيام</h2>
+      <h2 className="text-lg font-bold">التنفيذ الأسبوعي</h2>
+      {focus.length > 0 ? (
+        <p className="mt-3 border border-border bg-surface/60 p-3 text-sm leading-relaxed">
+          هذا الأسبوع نركز على: <span className="font-semibold">{focus.join(" · ")}</span>
+        </p>
+      ) : null}
       <p className="mt-2 text-sm text-muted-foreground">
-        كل يوم مبني على ما نجح فعلياً في حسابك، مع سبب الاختيار.
+        نكرر نفس الاتجاهات الأقوى في حسابك بصيغ مختلفة، مع سبب الاختيار في كل يوم.
       </p>
       <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+
         {days.map((d) => (
           <article key={d.dayAr} className="panel p-5">
             <div className="flex items-center gap-2">

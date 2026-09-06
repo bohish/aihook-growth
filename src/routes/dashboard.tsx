@@ -23,10 +23,10 @@ import type { AnalysisReport } from "@/lib/types";
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
     meta: [
-      { title: "لوحة تحليل الحساب — TikTok Growth AI" },
+      { title: "لوحة درجة الهوك — HOOK" },
       {
         name: "description",
-        content: "درجة الحساب، محاور الوصول والتفاعل والاستمرارية، أفضل وأضعف الفيديوهات، وخطة أسبوعية.",
+        content: "درجة الهوك، الوصول والتفاعل وانتظام النشر، أقوى الهوكات والهوكات التي تحتاج تعديل، وخطة أسبوعية.",
       },
       { property: "og:title", content: "لوحة تحليل حساب تيك توك" },
       { property: "og:description", content: "درجة الحساب ومقاييسه الأساسية مع توصيات مرتبة بالأثر." },
@@ -222,11 +222,12 @@ function Dashboard() {
 
           <Tabs defaultValue="metrics" className="mt-2">
             <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 bg-surface p-1">
-              <TabsTrigger value="metrics">المقاييس</TabsTrigger>
-              <TabsTrigger value="content">أفضل وأضعف</TabsTrigger>
-              <TabsTrigger value="dna">بصمة المحتوى</TabsTrigger>
-              <TabsTrigger value="actions">التوصيات</TabsTrigger>
+              <TabsTrigger value="metrics">نظرة عامة</TabsTrigger>
+              <TabsTrigger value="content">أقوى الهوكات</TabsTrigger>
+              <TabsTrigger value="dna">نمطك</TabsTrigger>
+              <TabsTrigger value="actions">الخطة التسويقية</TabsTrigger>
               <TabsTrigger value="plan">خطة الأسبوع</TabsTrigger>
+
             </TabsList>
 
             <TabsContent value="metrics" className="mt-6">
@@ -239,11 +240,12 @@ function Dashboard() {
               <ContentDna insights={report.dna} />
             </TabsContent>
             <TabsContent value="actions" className="mt-6">
-              <Recommendations items={report.recommendations} locked={lockedCount} />
+              <Recommendations items={report.recommendations} locked={lockedCount} contextNote={report.contextNote} />
             </TabsContent>
             <TabsContent value="plan" className="mt-6">
               {report.plan.length > 0 ? (
-                <WeeklyPlan days={report.plan} />
+                <WeeklyPlan days={report.plan} focus={report.planFocus} />
+
               ) : (
                 <div className="panel flex flex-col items-start gap-4 p-6">
                   <div className="flex items-center gap-2">

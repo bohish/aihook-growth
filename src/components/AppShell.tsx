@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Menu, Sparkles } from "lucide-react";
+import { Menu } from "lucide-react";
 import { useState, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 
 const NAV = [
   { to: "/", label: "الرئيسية" },
-  { to: "/dashboard", label: "لوحة التحليل" },
+  { to: "/dashboard", label: "التحليل" },
   { to: "/history", label: "السجل" },
   { to: "/pricing", label: "الأسعار" },
 ] as const;
@@ -18,16 +18,10 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 backdrop-blur-xl">
+      <header className="sticky top-0 z-40 border-b border-border bg-background">
         <div className="mx-auto flex h-16 w-full max-w-6xl items-center gap-3 px-4">
-          <Link to="/" className="flex items-center gap-2">
-            <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <Sparkles className="size-4" />
-            </span>
-            <span className="text-sm font-semibold leading-tight">
-              TikTok Growth AI
-              <span className="block text-[11px] font-normal text-muted-foreground">تحليل نمو الحساب</span>
-            </span>
+          <Link to="/" className="text-xl font-bold leading-none [direction:ltr]">
+            HOOK
           </Link>
 
           <nav className="mr-auto hidden items-center gap-1 md:flex">
@@ -35,7 +29,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               <Link
                 key={item.to}
                 to={item.to}
-                className="rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                className="border-b border-transparent px-3 py-2 text-sm text-muted-foreground transition-colors hover:border-foreground hover:text-foreground"
                 activeProps={{ className: "bg-secondary text-foreground" }}
                 activeOptions={{ exact: item.to === "/" }}
               >
@@ -61,7 +55,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               type="button"
               aria-label="القائمة"
               onClick={() => setOpen((v) => !v)}
-              className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-secondary md:hidden"
+              className="p-2 text-muted-foreground transition-colors hover:text-foreground md:hidden"
             >
               <Menu className="size-5" />
             </button>
@@ -69,19 +63,19 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
 
         {open ? (
-          <nav className="grid gap-1 border-t border-border/70 px-4 py-3 md:hidden">
+          <nav className="grid gap-1 border-t border-border px-4 py-3 md:hidden">
             {NAV.map((item) => (
               <Link
                 key={item.to}
                 to={item.to}
                 onClick={() => setOpen(false)}
-                className="rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-secondary hover:text-foreground"
+                className="border-b border-border px-3 py-2 text-sm text-muted-foreground hover:text-foreground"
               >
                 {item.label}
               </Link>
             ))}
             {!user ? (
-              <Link to="/auth" onClick={() => setOpen(false)} className="rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-secondary">
+               <Link to="/auth" onClick={() => setOpen(false)} className="border-b border-border px-3 py-2 text-sm text-muted-foreground hover:text-foreground">
                 دخول / إنشاء حساب
               </Link>
             ) : null}
@@ -91,9 +85,9 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       <main className="flex-1">{children}</main>
 
-      <footer className="border-t border-border/70 py-8">
+      <footer className="border-t border-border py-8">
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-4 text-xs text-muted-foreground sm:flex-row sm:items-center">
-          <p>© {new Date().getFullYear()} TikTok Growth AI — اسم مبدئي. غير مرتبط بشركة TikTok.</p>
+          <p>© {new Date().getFullYear()} HOOK — غير مرتبط بشركة TikTok.</p>
           <nav className="flex items-center gap-4">
             <Link to="/terms" className="transition-colors hover:text-foreground">
               شروط الاستخدام

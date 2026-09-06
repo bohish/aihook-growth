@@ -156,56 +156,128 @@ export type Database = {
         Row: {
           account_id: string | null
           analyzed_at: string | null
+          attention_trigger: string | null
+          audio_visual_match: string | null
+          avoid_this: string | null
+          best_moment: string | null
+          clarity_score: number | null
+          commercial_intent: string | null
           confidence: number | null
           created_at: string
+          cta_readiness: string | null
+          curiosity_gap: string | null
           error_message: string | null
+          hook_score: number | null
+          hook_structure_0_1s: string | null
+          hook_structure_1_3s: string | null
+          hook_structure_3_5s: string | null
           hook_summary: string | null
           hook_type: string | null
           id: string
+          onscreen_hook: string | null
           onscreen_text: string | null
+          pacing_score: number | null
+          pattern_interrupt: string | null
+          replicate_this: string | null
+          retention_risk: string | null
           share_url: string | null
+          spoken_hook: string | null
           spoken_text: string | null
           status: string
+          target_audience_signal: string | null
+          three_rewrites: Json
           updated_at: string
           user_id: string
+          value_promise: string | null
+          verdict: string | null
           video_id: string
           visual_description: string | null
+          visual_hook: string | null
+          weakest_moment: string | null
         }
         Insert: {
           account_id?: string | null
           analyzed_at?: string | null
+          attention_trigger?: string | null
+          audio_visual_match?: string | null
+          avoid_this?: string | null
+          best_moment?: string | null
+          clarity_score?: number | null
+          commercial_intent?: string | null
           confidence?: number | null
           created_at?: string
+          cta_readiness?: string | null
+          curiosity_gap?: string | null
           error_message?: string | null
+          hook_score?: number | null
+          hook_structure_0_1s?: string | null
+          hook_structure_1_3s?: string | null
+          hook_structure_3_5s?: string | null
           hook_summary?: string | null
           hook_type?: string | null
           id?: string
+          onscreen_hook?: string | null
           onscreen_text?: string | null
+          pacing_score?: number | null
+          pattern_interrupt?: string | null
+          replicate_this?: string | null
+          retention_risk?: string | null
           share_url?: string | null
+          spoken_hook?: string | null
           spoken_text?: string | null
           status?: string
+          target_audience_signal?: string | null
+          three_rewrites?: Json
           updated_at?: string
           user_id: string
+          value_promise?: string | null
+          verdict?: string | null
           video_id: string
           visual_description?: string | null
+          visual_hook?: string | null
+          weakest_moment?: string | null
         }
         Update: {
           account_id?: string | null
           analyzed_at?: string | null
+          attention_trigger?: string | null
+          audio_visual_match?: string | null
+          avoid_this?: string | null
+          best_moment?: string | null
+          clarity_score?: number | null
+          commercial_intent?: string | null
           confidence?: number | null
           created_at?: string
+          cta_readiness?: string | null
+          curiosity_gap?: string | null
           error_message?: string | null
+          hook_score?: number | null
+          hook_structure_0_1s?: string | null
+          hook_structure_1_3s?: string | null
+          hook_structure_3_5s?: string | null
           hook_summary?: string | null
           hook_type?: string | null
           id?: string
+          onscreen_hook?: string | null
           onscreen_text?: string | null
+          pacing_score?: number | null
+          pattern_interrupt?: string | null
+          replicate_this?: string | null
+          retention_risk?: string | null
           share_url?: string | null
+          spoken_hook?: string | null
           spoken_text?: string | null
           status?: string
+          target_audience_signal?: string | null
+          three_rewrites?: Json
           updated_at?: string
           user_id?: string
+          value_promise?: string | null
+          verdict?: string | null
           video_id?: string
           visual_description?: string | null
+          visual_hook?: string | null
+          weakest_moment?: string | null
         }
         Relationships: [
           {

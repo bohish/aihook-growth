@@ -79,10 +79,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "TikTok Growth AI — تحليل حساب تيك توك بالذكاء الاصطناعي" },
+      { title: "HOOK — تحليل هوك فيديوهات TikTok" },
       {
         name: "description",
-        content: "حلّل حسابك على تيك توك واعرف أسباب نجاح وتراجع فيديوهاتك مع خطة نمو أسبوعية.",
+        content: "حلّل أول خمس ثوانٍ من فيديوهات TikTok واعرف ما يجذب الانتباه وما يحتاج إلى تعديل.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -95,7 +95,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap",
       },
       { rel: "stylesheet", href: appCss },
-      { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "icon", href: "/favicon.svg", type: "image/svg+xml" },
     ],
   }),
   shellComponent: RootShell,
