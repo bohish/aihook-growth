@@ -208,9 +208,14 @@ export const getVideoHookAnalysis = createServerFn({ method: "POST" })
 
     const existingRow = existing as Record<string, unknown> | null;
 
-    if (existingRow && (existingRow["status"] === "completed" || (existingRow["status"] === "failed" && !data.force))) {
+    if (
+      existingRow &&
+      !data.force &&
+      (existingRow["status"] === "completed" || existingRow["status"] === "failed")
+    ) {
       return normalize(existingRow, data.video_id);
     }
+
 
     if (data.cache_only) return normalize(existingRow, data.video_id);
 
