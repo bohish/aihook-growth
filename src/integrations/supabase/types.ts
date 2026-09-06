@@ -152,6 +152,71 @@ export type Database = {
           },
         ]
       }
+      hook_analyses: {
+        Row: {
+          account_id: string | null
+          analyzed_at: string | null
+          confidence: number | null
+          created_at: string
+          error_message: string | null
+          hook_summary: string | null
+          hook_type: string | null
+          id: string
+          onscreen_text: string | null
+          share_url: string | null
+          spoken_text: string | null
+          status: string
+          updated_at: string
+          user_id: string
+          video_id: string
+          visual_description: string | null
+        }
+        Insert: {
+          account_id?: string | null
+          analyzed_at?: string | null
+          confidence?: number | null
+          created_at?: string
+          error_message?: string | null
+          hook_summary?: string | null
+          hook_type?: string | null
+          id?: string
+          onscreen_text?: string | null
+          share_url?: string | null
+          spoken_text?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+          video_id: string
+          visual_description?: string | null
+        }
+        Update: {
+          account_id?: string | null
+          analyzed_at?: string | null
+          confidence?: number | null
+          created_at?: string
+          error_message?: string | null
+          hook_summary?: string | null
+          hook_type?: string | null
+          id?: string
+          onscreen_text?: string | null
+          share_url?: string | null
+          spoken_text?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+          video_id?: string
+          visual_description?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hook_analyses_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "tiktok_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
