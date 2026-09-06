@@ -7,9 +7,9 @@ import { Button } from "@/components/ui/button";
 import { getVideoHookAnalysis, type StoredHookAnalysis } from "@/lib/hook-agent.functions";
 
 const VERDICT_AR: Record<string, { label: string; tone: string }> = {
-  continue: { label: "استمر", tone: "border-success/40 text-success" },
-  modify: { label: "عدّل", tone: "border-primary/40 accent-text" },
-  avoid: { label: "تجنّب", tone: "border-destructive/40 text-destructive" },
+  continue: { label: "استمر", tone: "border-border text-foreground" },
+  modify: { label: "عدّل", tone: "border-border text-foreground" },
+  avoid: { label: "تجنّب", tone: "border-border text-foreground" },
 };
 
 /** Detail rows: Arabic label + field key. Hidden when the agent returned nothing. */
@@ -38,7 +38,7 @@ const DETAILS: [string, keyof StoredHookAnalysis][] = [
 
 function ScorePill({ label, value }: { label: string; value: number }) {
   return (
-    <span className="rounded-lg border border-border/60 px-2 py-0.5 text-[10px] text-muted-foreground">
+    <span className="border border-border/60 px-2 py-0.5 text-[10px] text-muted-foreground">
       {label} <span className="font-semibold text-foreground">{Math.round(value)}</span>
       <span className="opacity-60">/100</span>
     </span>
@@ -90,7 +90,7 @@ export function HookAnalysisPanel({ videoId, shareUrl }: { videoId: string; shar
   const rows = data ? DETAILS.filter(([, key]) => typeof data[key] === "string" && data[key]) : [];
 
   return (
-    <div className="mt-3 rounded-xl border border-border/60 bg-surface/50 p-3">
+    <div className="mt-3 border border-border/60 bg-surface/50 p-3">
       <p className="flex items-center gap-1.5 text-xs font-semibold">
         <Sparkles className="size-3.5 text-primary" /> تحليل الهوك
       </p>
@@ -104,7 +104,7 @@ export function HookAnalysisPanel({ videoId, shareUrl }: { videoId: string; shar
           {/* summary line */}
           <div className="flex flex-wrap items-center gap-1.5">
             {data.hook_score !== null ? (
-              <span className="rounded-lg bg-primary/10 px-2 py-0.5 text-[11px] font-bold text-foreground">
+               <span className="border border-border px-2 py-0.5 text-[11px] font-bold text-foreground">
                 {Math.round(data.hook_score)}
                 <span className="text-[10px] font-normal opacity-60">/100</span>
               </span>
