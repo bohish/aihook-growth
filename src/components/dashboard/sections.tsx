@@ -15,6 +15,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { formatDateAr, formatNumber, formatPercent, formatSignedPercent } from "@/lib/metrics";
 import { scoreBand } from "@/lib/scoring";
+import { HookAnalysisPanel } from "@/components/dashboard/HookAnalysisPanel";
 import type { AnalysisReport, DnaInsight, Level, PlanDay, Recommendation, VideoRecord } from "@/lib/types";
 
 /* ------------------------------- score card ------------------------------- */
@@ -240,6 +241,8 @@ function VideoCard({ video, verdict, tone }: { video: VideoRecord; verdict: stri
           <p className="text-xs font-semibold">{tone === "top" ? "ليش نجح؟" : "ليش ضعُف؟"}</p>
           <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{verdict}</p>
         </div>
+
+        <HookAnalysisPanel videoId={video.id} shareUrl={video.shareUrl} />
       </div>
     </article>
   );
