@@ -215,7 +215,7 @@ export function buildRecommendations(m: Metrics, dna: DnaInsight[], videos: Vide
       impact: "high",
       confidence: cam.confidence,
       evidence: cam.detail,
-      action: "ابدأ كل مقطع بثانية واحدة لشخص يلبس/يلمس المنتج قبل أي مشهد للمنتج وحده.",
+      action: "ابدأ كل مقطع بثانية واحدة لشخص يظهر أمام الكاميرا قبل أي مشهد آخر.",
       targetMetric: "views",
     });
   }
@@ -253,7 +253,7 @@ export function buildRecommendations(m: Metrics, dna: DnaInsight[], videos: Vide
       impact: "medium",
       confidence: m.totalVideos >= 8 ? "high" : "medium",
       evidence: `وسيط معدل التفاعل ${formatPercent(m.medianEngagementRate)} وهو أقل من مستوى النمو الصحي (6%).`,
-      action: "اختم كل مقطع بسؤال اختيار بين خيارين (مقاس/لون/طلة) بدل «شاركوا رأيكم».",
+      action: "اختم كل مقطع بسؤال اختيار بين خيارين محددين بدل «شاركوا رأيكم».",
       targetMetric: "engagement",
     });
   }
@@ -278,7 +278,7 @@ export function buildRecommendations(m: Metrics, dna: DnaInsight[], videos: Vide
       impact: "medium",
       confidence: "medium",
       evidence: `${formatPercent(offerHeavy, 0)} من الفيديوهات تحتوي عرضاً مباشراً.`,
-      action: "اجعل النسبة 30% بيعي و70% قيمة (تنسيق، عناية، مقارنة أقمشة).",
+      action: "اجعل النسبة 30% محتوى بيعي و70% محتوى قيمة (شرح، مقارنة، كواليس).",
       targetMetric: "engagement",
     });
   }
@@ -310,73 +310,190 @@ export function buildRecommendations(m: Metrics, dna: DnaInsight[], videos: Vide
     .map((r, i) => ({ ...r, priority: i + 1 }));
 }
 
-export function buildWeeklyPlan(m: Metrics, dna: DnaInsight[], videos: VideoRecord[]): PlanDay[] {
+export function buildWeeklyPlan(m: Metrics, _dna: DnaInsight[], videos: VideoRecord[]): PlanDay[] {
+  if (videos.length === 0) return [];
+
   const days = ["السبت", "الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة"];
-  const best = [...videos].sort((a, b) => b.views - a.views)[0];
-  const camWins = (dna.find((d) => d.title.includes("شخص أمام الكاميرا"))?.liftPct ?? 0) > 0;
-  const shortWins = (dna.find((d) => d.title.includes("12–18"))?.liftPct ?? 0) > 0;
-  const duration = shortWins ? "12–18 ثانية" : "18–25 ثانية";
+  const sorted = [...videos].sort((a, b) => b.views - a.views);
+  const medViews = median(videos.map((v) => v.views));
+  const medEr = median(videos.map(engagementRate));
 
-  const base: Omit<PlanDay, "dayAr">[] = [
-    {
-      idea: "فكرة واحدة بثلاث زوايا تقديم",
-      hook: "«نفس الفكرة… ثلاث نتائج مختلفة»",
-      format: camWins ? "شخص أمام الكاميرا + تبديل سريع" : "لقطات قريبة + انتقالات",
-      cta: "أي طلة تختارينها؟ اكتبي 1 أو 2 أو 3",
-      targetDuration: duration,
-      why: `أعلى فيديو في حسابك (${fmt(best?.views ?? 0)} مشاهدة) كان من نفس عائلة المحتوى، وسؤال الاختيار يرفع التعليقات.`,
-    },
-    {
-      idea: "مشكلة شائعة والحل",
-      hook: "«تواجه هذه المشكلة كل مرة؟»",
-      format: "حديث مباشر + إثبات بصري",
-      cta: "احفظ المقطع للرجوع إليه",
-      targetDuration: duration,
-      why: "هوك المشكلة سجّل أفضل وسيط مشاهدات في حسابك مقارنة بالمقدمات العامة.",
-    },
-    {
-      idea: "مقارنة بين خيارين متقاربين",
-      hook: "«الفرق الحقيقي يظهر بعد التجربة»",
-      format: "مقارنة جانبية (Split screen)",
-      cta: "اكتب أي خيار تفضّل",
-      targetDuration: duration,
-      why: "المحتوى التعليمي في حسابك يحقق تفاعلاً أعلى من المحتوى البيعي المباشر.",
-    },
-    {
-      idea: "كواليس تنفيذ العمل",
-      hook: "«ما الذي يحدث قبل أن ترى النتيجة؟»",
-      format: "كواليس سريعة",
-      cta: "تابع للمزيد من الكواليس",
-      targetDuration: "18–25 ثانية",
-      why: "محتوى الكواليس يرفع الثقة ويخفض الاعتماد على المحتوى البيعي المتكرر.",
-    },
-    {
-      idea: "الأسئلة الأكثر تكراراً",
-      hook: "«أكثر سؤال يوصلنا كل يوم»",
-      format: camWins ? "حديث مباشر" : "نص على الشاشة + لقطات منتج",
-      cta: "اسأل في التعليقات وسنجيب في مقطع",
-      targetDuration: duration,
-      why: "الردود المباشرة تولّد تعليقات، ووسيط التفاعل الحالي أقل من المستهدف.",
-    },
-    {
-      idea: "إعادة إنتاج أفضل فيديو بهوك جديد",
-      hook: "«طلبتوا نعيدها… هذي النسخة المحدثة»",
-      format: "نفس بنية الفيديو الأقوى",
-      cta: "الرابط في البايو",
-      targetDuration: duration,
-      why: `الاعتماد على أقوى الفيديوهات يبلغ ${formatPercent(m.viralDependency, 0)}، وإعادة الصيغة تختبر إن كان النجاح قابلاً للتكرار.`,
-    },
-    {
-      idea: "عرض محدود بقيمة قبل السعر",
-      hook: "«قبل ما أقول السعر… شوفي التفصيلة»",
-      format: "استعراض منتج + عرض في النهاية",
-      cta: "العرض ينتهي الأحد",
-      targetDuration: "18–25 ثانية",
-      why: "تأخير العرض إلى نهاية المقطع يقلل الهبوط المبكر الذي ظهر في فيديوهاتك البيعية.",
-    },
-  ];
+  /** median views for a subset, only when the subset is large enough to trust. */
+  const groupMed = (subset: VideoRecord[]) =>
+    subset.length >= MIN_GROUP ? median(subset.map((v) => v.views)) : null;
 
-  return base.map((d, i) => ({ dayAr: days[i]!, ...d }));
+  const byKey = <T extends string>(pick: (v: VideoRecord) => T) => {
+    const map = new Map<T, VideoRecord[]>();
+    videos.forEach((v) => {
+      const k = pick(v);
+      map.set(k, [...(map.get(k) ?? []), v]);
+    });
+    return [...map.entries()]
+      .map(([key, vids]) => ({ key, vids, med: groupMed(vids) }))
+      .filter((g): g is { key: T; vids: VideoRecord[]; med: number } => g.med != null)
+      .sort((a, b) => b.med - a.med);
+  };
+
+  const hookGroups = byKey((v) => v.features.hookType);
+  const durGroups = byKey((v) => v.features.durationBucket);
+  const tagGroups = (() => {
+    const map = new Map<string, VideoRecord[]>();
+    videos.forEach((v) => v.features.tags.forEach((t) => map.set(t, [...(map.get(t) ?? []), v])));
+    return [...map.entries()]
+      .map(([key, vids]) => ({ key, vids, med: groupMed(vids) }))
+      .filter((g): g is { key: string; vids: VideoRecord[]; med: number } => g.med != null)
+      .sort((a, b) => b.med - a.med);
+  })();
+
+  const bestHook = hookGroups[0];
+  const weakHook = hookGroups.length >= 2 ? hookGroups[hookGroups.length - 1] : undefined;
+  const bestDur = durGroups[0];
+  const bestTag = tagGroups[0];
+  const weakTag = tagGroups.length >= 2 ? tagGroups[tagGroups.length - 1] : undefined;
+
+  const durLabel = (bucket: string) =>
+    bucket === "0-12" ? "أقل من 12 ثانية" : bucket === "12-18" ? "12–18 ثانية" : bucket === "18-30" ? "18–30 ثانية" : "أكثر من 30 ثانية";
+  const targetDuration = bestDur ? durLabel(bestDur.key) : "12–18 ثانية";
+  const hookLabel: Record<string, string> = {
+    problem: "بداية تطرح مشكلة",
+    curiosity: "بداية تشويق",
+    offer: "بداية بعرض",
+    generic: "بداية عامة",
+    story: "بداية بقصة",
+  };
+  const tagLabel: Record<string, string> = {
+    ugc: "محتوى واقعي بأسلوب المستخدم",
+    product_demo: "استعراض تفاصيل",
+    talking_head: "حديث مباشر للكاميرا",
+    trend: "ترند",
+    educational: "محتوى تعليمي",
+    offer: "محتوى عرض",
+    behind_scenes: "كواليس",
+  };
+
+  const items: Omit<PlanDay, "dayAr">[] = [];
+  const push = (d: Omit<PlanDay, "dayAr">) => {
+    if (items.length < 7) items.push(d);
+  };
+
+  // 1) Replicate the single strongest video's structure.
+  const top = sorted[0];
+  if (top) {
+    const lift = medViews > 0 ? Math.round(((top.views - medViews) / medViews) * 100) : 0;
+    push({
+      idea: "أعد إنتاج نمط الفيديو الأقوى بهوك مختلف",
+      hook: `ابدأ بنفس نوع البداية: ${hookLabel[top.features.hookType] ?? "بداية مشابهة"}`,
+      format: top.features.tags[0] ? (tagLabel[top.features.tags[0]] ?? top.features.tags[0]) : "نفس بنية الفيديو الأقوى",
+      cta: "نفس نهاية الفيديو الأقوى في حسابك",
+      targetDuration: durLabel(top.features.durationBucket),
+      why: `أقوى فيديو في حسابك حقّق ${fmt(top.views)} مشاهدة، أعلى من وسيط حسابك (${fmt(medViews)}) بـ ${Math.abs(lift)}%.`,
+    });
+  }
+
+  // 2) Strongest opening type.
+  if (bestHook && hookGroups.length >= 2) {
+    const other = hookGroups[1]!;
+    push({
+      idea: `اكتب البداية بنفس النوع الأقوى: ${hookLabel[bestHook.key] ?? bestHook.key}`,
+      hook: `${hookLabel[bestHook.key] ?? bestHook.key} في أول ثانيتين`,
+      format: "نفس أنماط حسابك الحالية",
+      cta: "اطلب تفاعلاً واحداً واضحاً",
+      targetDuration,
+      why: `وسيط المشاهدات ${fmt(bestHook.med)} لهذا النوع من البدايات عبر ${bestHook.vids.length} فيديو، مقابل ${fmt(other.med)} لـ${hookLabel[other.key] ?? other.key}.`,
+    });
+  }
+
+  // 3) Strongest content pattern.
+  if (bestTag && weakTag && bestTag.key !== weakTag.key) {
+    push({
+      idea: `كرّر نمطك الأقوى: ${tagLabel[bestTag.key] ?? bestTag.key}`,
+      hook: `افتح بأقوى لحظة في هذا النمط`,
+      format: tagLabel[bestTag.key] ?? bestTag.key,
+      cta: "اطلب حفظ المقطع أو متابعة السلسلة",
+      targetDuration,
+      why: `وسيط ${fmt(bestTag.med)} مشاهدة عبر ${bestTag.vids.length} فيديو لهذا النمط، مقابل ${fmt(weakTag.med)} لنمط ${tagLabel[weakTag.key] ?? weakTag.key}.`,
+    });
+  }
+
+  // 4) Best duration bucket.
+  if (bestDur && durGroups.length >= 2) {
+    const other = durGroups[1]!;
+    push({
+      idea: `التزم بالمدة الأفضل في حسابك: ${durLabel(bestDur.key)}`,
+      hook: "احذف أي مشهد قبل الهوك",
+      format: "نفس النمط الأقوى بمدة مضبوطة",
+      cta: "نهاية واحدة قصيرة",
+      targetDuration: durLabel(bestDur.key),
+      why: `وسيط المشاهدات ${fmt(bestDur.med)} لمقاطع ${durLabel(bestDur.key)} عبر ${bestDur.vids.length} فيديو، مقابل ${fmt(other.med)} لمقاطع ${durLabel(other.key)}.`,
+    });
+  }
+
+  // 5) Distribution: the video with the highest share ratio.
+  const shareLeader = [...videos].filter((v) => v.views > 0).sort((a, b) => b.shares / b.views - a.shares / a.views)[0];
+  if (shareLeader && shareLeader.shares > 0) {
+    push({
+      idea: "أعد استخدام الفكرة الأكثر قابلية للمشاركة",
+      hook: `ابدأ بنفس نوع البداية: ${hookLabel[shareLeader.features.hookType] ?? "بداية مشابهة"}`,
+      format: shareLeader.features.tags[0] ? (tagLabel[shareLeader.features.tags[0]] ?? shareLeader.features.tags[0]) : "نفس بنية الفيديو الأكثر مشاركة",
+      cta: "اطلب المشاركة مع شخص واحد",
+      targetDuration: durLabel(shareLeader.features.durationBucket),
+      why: `هذا الفيديو سجّل ${fmt(shareLeader.shares)} مشاركة على ${fmt(shareLeader.views)} مشاهدة، أعلى نسبة مشاركة في حسابك.`,
+    });
+  }
+
+  // 6) Engagement gap.
+  const erLeader = [...videos].sort((a, b) => engagementRate(b) - engagementRate(a))[0];
+  if (erLeader && medEr > 0) {
+    push({
+      idea: "أعد استخدام النهاية التي جاءت بأعلى تفاعل",
+      hook: `ابدأ بنفس نوع البداية: ${hookLabel[erLeader.features.hookType] ?? "بداية مشابهة"}`,
+      format: erLeader.features.tags[0] ? (tagLabel[erLeader.features.tags[0]] ?? erLeader.features.tags[0]) : "نفس بنية الفيديو الأعلى تفاعلاً",
+      cta: "سؤال واحد مباشر في النهاية",
+      targetDuration,
+      why: `أعلى فيديو تفاعلاً في حسابك سجّل ${formatPercent(engagementRate(erLeader))} مقابل وسيط ${formatPercent(medEr)}.`,
+    });
+  }
+
+  // 7) Avoid the weakest opening type, or fix cadence.
+  if (weakHook && bestHook && weakHook.key !== bestHook.key) {
+    push({
+      idea: `أوقف ${hookLabel[weakHook.key] ?? weakHook.key} واستبدلها بالنوع الأقوى`,
+      hook: `${hookLabel[bestHook.key] ?? bestHook.key} في أول ثانيتين`,
+      format: "نفس النمط الأقوى في حسابك",
+      cta: "تفاعل واحد واضح",
+      targetDuration,
+      why: `وسيط المشاهدات ${fmt(weakHook.med)} فقط لهذا النوع عبر ${weakHook.vids.length} فيديو، مقابل ${fmt(bestHook.med)} للنوع الأقوى.`,
+    });
+  }
+  if (m.postsPerWeek < 4 || m.longestGapDays > 7) {
+    push({
+      idea: "يوم إنتاج مجمّع لتثبيت النشر",
+      hook: "بدون نشر — تصوير فقط",
+      format: "تصوير دفعة واحدة من نمطك الأقوى",
+      cta: "—",
+      targetDuration,
+      why: `معدل النشر الحالي ${m.postsPerWeek} أسبوعياً وأطول انقطاع ${m.longestGapDays} يوم، وهذا أقل من أربع مرات أسبوعياً.`,
+    });
+  }
+
+  // Fill remaining slots only with pattern-backed repetition (no invented ideas).
+  let round = 2;
+  while (items.length < 7 && sorted.length > 0) {
+    const ref = sorted[(items.length + round) % Math.min(sorted.length, 5)]!;
+    const lift = medViews > 0 ? Math.round(((ref.views - medViews) / medViews) * 100) : 0;
+    push({
+      idea: "أعد إنتاج أحد أقوى فيديوهاتك بهوك مختلف",
+      hook: `ابدأ بنفس نوع البداية: ${hookLabel[ref.features.hookType] ?? "بداية مشابهة"}`,
+      format: ref.features.tags[0] ? (tagLabel[ref.features.tags[0]] ?? ref.features.tags[0]) : "نفس بنية الفيديو المرجعي",
+      cta: "تفاعل واحد واضح",
+      targetDuration: durLabel(ref.features.durationBucket),
+      why: `هذا الفيديو حقّق ${fmt(ref.views)} مشاهدة، ${lift >= 0 ? "أعلى" : "أقل"} من وسيط حسابك (${fmt(medViews)}) بـ ${Math.abs(lift)}%.`,
+    });
+    round += 1;
+    if (round > 20) break;
+  }
+
+  return items.slice(0, 7).map((d, i) => ({ dayAr: days[i]!, ...d }));
 }
 
 export function analyze(data: AccountData, metrics: Metrics, previousScore?: number): AnalysisReport {
