@@ -131,7 +131,7 @@ export function HookAnalysisPanel({ videoId, shareUrl }: { videoId: string; shar
           ) : null}
           {data.retention_risk ? (
             <p>
-              أكبر خطر: <span className="text-destructive">{data.retention_risk}</span>
+              أكبر خطر: <span className="text-foreground">{data.retention_risk}</span>
             </p>
           ) : null}
 
