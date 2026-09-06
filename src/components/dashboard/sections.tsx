@@ -273,7 +273,7 @@ export function Recommendations({
 }: {
   items: Recommendation[];
   locked?: number;
-  contextNote?: string;
+  contextNote?: string | undefined;
 }) {
   return (
     <section>
@@ -361,7 +361,7 @@ export function Recommendations({
 
 /* ------------------------------- weekly plan ------------------------------ */
 
-export function WeeklyPlan({ days, focus = [] }: { days: PlanDay[]; focus?: string[] }) {
+export function WeeklyPlan({ days, focus = [] }: { days: PlanDay[]; focus?: string[] | undefined }) {
   return (
     <section>
       <h2 className="text-lg font-bold">التنفيذ الأسبوعي</h2>

@@ -118,6 +118,7 @@ export function buildAccountContext(
       niche = key;
     }
   });
+  const detected = niche;
   if (bestHits < 2) niche = "unknown";
 
   // recurring words weighted by views
@@ -156,7 +157,7 @@ export function buildAccountContext(
 
   return {
     niche,
-    nicheLabel: niche === "unknown" ? "غير محدد" : NICHE_WORDS[niche].label,
+    nicheLabel: niche === "unknown" ? "غير محدد" : NICHE_WORDS[detected as Exclude<NicheKey, "unknown">].label,
     topics,
     entities,
     topTopic,

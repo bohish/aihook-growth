@@ -457,7 +457,7 @@ export function buildWeeklyPlanFocused(
     label: string;
     subject: string;
     hookType: string;
-    tag?: string;
+    tag?: string | undefined;
     why: string;
   }
   const pillars: Pillar[] = [];
