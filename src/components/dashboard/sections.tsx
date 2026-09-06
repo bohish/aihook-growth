@@ -26,7 +26,7 @@ export function ScoreCard({ report }: { report: AnalysisReport }) {
   const delta = report.scoreDelta;
 
   return (
-    <section className="panel grain-bg p-6 md:p-8">
+    <section className="panel p-6 md:p-8">
       <div className="flex flex-col gap-6 md:flex-row md:items-center">
         <div className="flex items-center gap-5">
           <ScoreRing value={score} />
@@ -92,11 +92,11 @@ export function Subscores({ report }: { report: AnalysisReport }) {
         <article key={s.key} className="panel p-5">
           <div className="flex items-baseline justify-between">
             <h3 className="text-sm font-semibold">{s.labelAr}</h3>
-            <span className="text-lg font-bold accent-text">{s.value}</span>
+              <span className="text-lg font-bold text-foreground">{s.value}</span>
           </div>
           <p className="mt-1 text-[11px] text-muted-foreground">{s.labelEn}</p>
-          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted">
-            <div className="h-full rounded-full bg-primary" style={{ width: `${s.value}%` }} />
+          <div className="mt-3 h-px overflow-hidden bg-muted">
+            <div className="h-full bg-primary" style={{ width: `${s.value}%` }} />
           </div>
           <p className="mt-3 text-xs leading-relaxed text-muted-foreground">{s.note}</p>
         </article>
@@ -180,16 +180,8 @@ function VideoCard({ video, verdict, tone }: { video: VideoRecord; verdict: stri
           className="h-28 w-full object-cover"
         />
       ) : (
-        <div
-          className="relative flex h-28 items-end p-3"
-          style={{
-            background:
-              tone === "top"
-                ? "linear-gradient(135deg, color-mix(in oklab, var(--primary) 26%, var(--card)), var(--card))"
-                : "linear-gradient(135deg, color-mix(in oklab, var(--destructive) 20%, var(--card)), var(--card))",
-          }}
-        >
-          <span className="rounded-md bg-background/70 px-2 py-1 text-[10px] text-muted-foreground">
+        <div className="relative flex h-28 items-end border-b border-border bg-surface p-3">
+          <span className="border border-border bg-background px-2 py-1 text-[10px] text-muted-foreground">
             لا تتوفر صورة مصغّرة لهذا الفيديو
           </span>
         </div>
@@ -208,7 +200,7 @@ function VideoCard({ video, verdict, tone }: { video: VideoRecord; verdict: stri
             { icon: MessageCircle, value: formatNumber(video.comments) },
             { icon: Repeat2, value: formatNumber(video.shares) },
           ].map((s, i) => (
-            <div key={i} className="rounded-lg bg-surface/70 py-2">
+            <div key={i} className="border border-border bg-surface py-2">
               <s.icon className="mx-auto size-3.5 text-muted-foreground" />
               <p className="mt-1 text-xs font-medium">{s.value}</p>
             </div>
@@ -233,11 +225,7 @@ function VideoCard({ video, verdict, tone }: { video: VideoRecord; verdict: stri
           </Badge>
         </div>
 
-        <div
-          className={`mt-4 rounded-xl border p-3 ${
-            tone === "top" ? "border-success/30 bg-success/8" : "border-destructive/30 bg-destructive/8"
-          }`}
-        >
+        <div className="mt-4 border border-border p-3">
           <p className="text-xs font-semibold">{tone === "top" ? "ليش نجح؟" : "ليش ضعُف؟"}</p>
           <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{verdict}</p>
         </div>
@@ -289,7 +277,7 @@ export function ContentDna({ insights }: { insights: DnaInsight[] }) {
               <h3 className="text-sm font-semibold leading-snug">{d.title}</h3>
               {d.liftPct != null ? (
                 <span
-                  className={`shrink-0 text-sm font-bold ${d.liftPct >= 0 ? "text-success" : "text-destructive"}`}
+                  className="shrink-0 text-sm font-bold text-foreground"
                 >
                   {formatSignedPercent(d.liftPct)}
                 </span>
@@ -334,7 +322,7 @@ export function Recommendations({ items, locked = 0 }: { items: Recommendation[]
                 <div className="mr-auto flex flex-wrap gap-1.5">
                   <Badge
                     variant="outline"
-                    className={r.impact === "high" ? "border-success/40 text-success" : "text-muted-foreground"}
+                    className="text-muted-foreground"
                   >
                     الأثر: {LEVEL_AR[r.impact]}
                   </Badge>
@@ -354,11 +342,11 @@ export function Recommendations({ items, locked = 0 }: { items: Recommendation[]
                 </p>
               ) : (
                 <div className="mt-4 grid gap-3 md:grid-cols-2">
-                  <div className="rounded-xl border border-border bg-surface/60 p-3">
+                  <div className="border border-border bg-surface/60 p-3">
                     <p className="text-xs font-semibold">الدليل من حسابك</p>
                     <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{r.evidence}</p>
                   </div>
-                  <div className="rounded-xl border border-primary/30 bg-primary/8 p-3">
+                  <div className="border border-border bg-surface/60 p-3">
                     <p className="text-xs font-semibold">الإجراء المقترح</p>
                     <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{r.action}</p>
                   </div>
