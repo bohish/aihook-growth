@@ -8,9 +8,9 @@ import {
   BestWorst,
   ContentDna,
   KeyMetrics,
+  NumericPerformance,
   Recommendations,
   ScoreCard,
-  Subscores,
   WeeklyPlan,
 } from "@/components/dashboard/sections";
 import { Button } from "@/components/ui/button";
@@ -194,10 +194,7 @@ function Dashboard() {
             ) : null}
             <div>
               <h1 className="text-xl font-bold sm:text-2xl">{report.account.displayName}</h1>
-              <p className="mt-2 max-w-2xl text-xs leading-relaxed text-muted-foreground">
-                بيانات حسابك مسحوبة عبر تكامل تيك توك الرسمي — آخر تحديث{" "}
-                {new Date(report.generatedAt).toLocaleString("ar-SA")}.
-              </p>
+              <p className="mt-1 text-xs text-muted-foreground">آخر تحديث {new Date(report.generatedAt).toLocaleString("ar-SA")}</p>
               {report.limitedData ? (
                 <p className="mt-2 text-xs text-warning">
                   عدد الفيديوهات المتاح قليل، فبعض المحاور تُحسب بثقة أقل.
@@ -218,7 +215,6 @@ function Dashboard() {
 
         <div className="mt-6 grid gap-6">
           <ScoreCard report={report} />
-          <Subscores report={report} />
 
           <Tabs defaultValue="metrics" className="mt-2">
             <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 bg-surface p-1">
@@ -231,7 +227,10 @@ function Dashboard() {
             </TabsList>
 
             <TabsContent value="metrics" className="mt-6">
-              <KeyMetrics report={report} />
+              <div className="grid gap-8">
+                <KeyMetrics report={report} />
+                <NumericPerformance report={report} />
+              </div>
             </TabsContent>
             <TabsContent value="content" className="mt-6">
               <BestWorst report={report} />

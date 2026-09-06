@@ -66,12 +66,21 @@ export interface AccountData {
 
 export interface Metrics {
   followers: number;
+  following: number;
+  accountLikes: number;
   totalVideos: number;
   totalViews: number;
+  totalLikes: number;
+  totalComments: number;
+  totalShares: number;
   avgViews: number;
   medianViews: number;
+  totalEngagementRate: number;
   avgEngagementRate: number; // 0..1
   medianEngagementRate: number;
+  likesPer1kViews: number;
+  commentsPer1kViews: number;
+  sharesPer1kViews: number;
   postsPerWeek: number;
   views7: number;
   views30: number;
@@ -85,6 +94,12 @@ export interface Metrics {
   viralDependency: number;
   longestGapDays: number;
   lastPostDaysAgo: number;
+  bestVideoViews: number;
+  highestEngagementRate: number;
+  highestCommentRate: number;
+  highestShareRate: number;
+  videosAboveAverage: number;
+  videosBelowAverage: number;
 }
 
 export type ScoreKey = "reach" | "engagement" | "consistency" | "efficiency";

@@ -78,33 +78,92 @@ export function KeyMetrics({ report }: { report: AnalysisReport }) {
   const m = report.metrics;
   const items = [
     { label: "المتابعون", value: formatNumber(m.followers), icon: BadgeCheck },
+    { label: "يتابع", value: formatNumber(m.following), icon: Activity },
+    { label: "إعجابات الحساب", value: formatNumber(m.accountLikes), icon: Heart },
+    { label: "إجمالي الفيديوهات", value: formatNumber(m.totalVideos), icon: CalendarDays },
+    { label: "المشاهدات", value: formatNumber(m.totalViews), icon: Eye },
     { label: "متوسط المشاهدات", value: formatNumber(m.avgViews), icon: Eye },
     { label: "وسيط المشاهدات", value: formatNumber(m.medianViews), icon: Activity },
-    { label: "متوسط التفاعل", value: formatPercent(m.avgEngagementRate), icon: Heart },
-    { label: "معدل النشر أسبوعياً", value: String(m.postsPerWeek), icon: CalendarDays },
-    { label: "اتجاه 7 أيام", value: formatSignedPercent(m.trend7), icon: TrendingUp, tone: m.trend7 },
-    { label: "اتجاه 30 يوم", value: formatSignedPercent(m.trend30), icon: TrendingUp, tone: m.trend30 },
-    { label: "نصيب أقوى 3 فيديوهات من المشاهدات", value: formatPercent(m.viralDependency, 0), icon: Flame },
+    { label: "التفاعل الكلي", value: formatPercent(m.totalEngagementRate), icon: Heart },
+    { label: "وسيط التفاعل", value: formatPercent(m.medianEngagementRate), icon: Heart },
+    { label: "إجمالي التعليقات", value: formatNumber(m.totalComments), icon: MessageCircle },
+    { label: "إجمالي المشاركات", value: formatNumber(m.totalShares), icon: Repeat2 },
+    { label: "النشر أسبوعياً", value: String(m.postsPerWeek), icon: CalendarDays },
   ];
 
   return (
     <section>
-      <h2 className="text-lg font-bold">المقاييس الأساسية</h2>
-      <div className="mt-4 grid gap-3 grid-cols-2 lg:grid-cols-4">
+      <div className="flex items-baseline justify-between gap-4">
+        <h2 className="text-lg font-bold">المؤشرات الرقمية</h2>
+        <span className="text-[11px] text-muted-foreground">من بيانات الحساب والفيديوهات المتاحة</span>
+      </div>
+      <div className="mt-4 grid grid-cols-2 gap-px overflow-hidden border border-border bg-border sm:grid-cols-3 lg:grid-cols-4">
         {items.map((item) => (
-          <article key={item.label} className="panel p-4">
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <item.icon className="size-3.5" />
+          <article key={item.label} className="bg-background p-4 sm:p-5">
+            <div className="flex items-center justify-between gap-2 text-muted-foreground">
               <span className="text-[11px] leading-tight">{item.label}</span>
+              <item.icon className="size-3.5" />
             </div>
-            <p className="mt-2 text-2xl font-bold tabular-nums tracking-tight">{item.value}</p>
+            <p className="mt-4 text-3xl font-bold tabular-nums tracking-tight sm:text-4xl">{item.value}</p>
           </article>
         ))}
       </div>
-      <p className="mt-3 text-xs text-muted-foreground">
-        الوسيط أهم من المتوسط: فرق كبير بينهما يعني أن نجاح حسابك يعتمد على مقاطع قليلة.
-      </p>
     </section>
+  );
+}
+
+function NumberBlock({ label, value, note }: { label: string; value: string; note?: string }) {
+  return (
+    <div className="border-r border-border pr-4 first:border-r-0 first:pr-0 sm:pr-5">
+      <p className="text-[11px] text-muted-foreground">{label}</p>
+      <p className="mt-2 text-2xl font-bold tabular-nums tracking-tight">{value}</p>
+      {note ? <p className="mt-1 text-[11px] text-muted-foreground">{note}</p> : null}
+    </div>
+  );
+}
+
+/** A compact, purely numeric view of the fields returned by TikTok. */
+export function NumericPerformance({ report }: { report: AnalysisReport }) {
+  const m = report.metrics;
+  return (
+    <div className="grid gap-4 lg:grid-cols-3">
+      <section className="panel p-5">
+        <h2 className="text-sm font-semibold">اتجاه المشاهدات</h2>
+        <div className="mt-5 grid grid-cols-3 gap-4">
+          <NumberBlock label="7 أيام" value={formatNumber(m.views7)} note={formatSignedPercent(m.trend7)} />
+          <NumberBlock label="30 يوم" value={formatNumber(m.views30)} note={formatSignedPercent(m.trend30)} />
+          <NumberBlock label="آخر نشر" value={`${m.lastPostDaysAgo} يوم`} />
+        </div>
+      </section>
+
+      <section className="panel p-5">
+        <h2 className="text-sm font-semibold">أداء التفاعل</h2>
+        <div className="mt-5 grid grid-cols-3 gap-4">
+          <NumberBlock label="إعجاب / 1K" value={m.likesPer1kViews.toFixed(1)} />
+          <NumberBlock label="تعليق / 1K" value={m.commentsPer1kViews.toFixed(1)} />
+          <NumberBlock label="مشاركة / 1K" value={m.sharesPer1kViews.toFixed(1)} />
+        </div>
+      </section>
+
+      <section className="panel p-5">
+        <h2 className="text-sm font-semibold">توزيع الأداء</h2>
+        <div className="mt-5 grid grid-cols-3 gap-4">
+          <NumberBlock label="أقوى 3" value={formatPercent(m.viralDependency, 0)} note="من المشاهدات" />
+          <NumberBlock label="فوق المتوسط" value={formatNumber(m.videosAboveAverage)} />
+          <NumberBlock label="تحت المتوسط" value={formatNumber(m.videosBelowAverage)} />
+        </div>
+      </section>
+
+      <section className="panel p-5 lg:col-span-3">
+        <h2 className="text-sm font-semibold">أعلى فيديوهاتك</h2>
+        <div className="mt-5 grid grid-cols-2 gap-5 sm:grid-cols-4">
+          <NumberBlock label="أعلى مشاهدات" value={formatNumber(m.bestVideoViews)} />
+          <NumberBlock label="أعلى تفاعل" value={formatPercent(m.highestEngagementRate)} />
+          <NumberBlock label="أعلى نسبة تعليقات" value={formatPercent(m.highestCommentRate)} />
+          <NumberBlock label="أعلى نسبة مشاركات" value={formatPercent(m.highestShareRate)} />
+        </div>
+      </section>
+    </div>
   );
 }
 

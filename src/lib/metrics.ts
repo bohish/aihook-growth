@@ -40,7 +40,11 @@ export function computeMetrics(data: AccountData, now = Date.now()): Metrics {
   );
   const views = videos.map((v) => v.views);
   const totalViews = views.reduce((a, b) => a + b, 0);
+  const totalLikes = videos.reduce((a, v) => a + v.likes, 0);
+  const totalComments = videos.reduce((a, v) => a + v.comments, 0);
+  const totalShares = videos.reduce((a, v) => a + v.shares, 0);
   const rates = videos.map(engagementRate);
+  const avgViews = Math.round(mean(views));
 
   const inWindow = (v: VideoRecord, fromDaysAgo: number, toDaysAgo: number) => {
     const age = (now - new Date(v.publishedAt).getTime()) / DAY_MS;
@@ -72,12 +76,21 @@ export function computeMetrics(data: AccountData, now = Date.now()): Metrics {
 
   return {
     followers: data.account.followerCount,
-    totalVideos: videos.length,
+    following: data.account.followingCount,
+    accountLikes: data.account.likesCount,
+    totalVideos: data.account.videoCount || videos.length,
     totalViews,
-    avgViews: Math.round(mean(views)),
+    totalLikes,
+    totalComments,
+    totalShares,
+    avgViews,
     medianViews: Math.round(median(views)),
+    totalEngagementRate: totalViews > 0 ? (totalLikes + totalComments + totalShares) / totalViews : 0,
     avgEngagementRate: mean(rates),
     medianEngagementRate: median(rates),
+    likesPer1kViews: totalViews > 0 ? (totalLikes / totalViews) * 1000 : 0,
+    commentsPer1kViews: totalViews > 0 ? (totalComments / totalViews) * 1000 : 0,
+    sharesPer1kViews: totalViews > 0 ? (totalShares / totalViews) * 1000 : 0,
     postsPerWeek: Number(postsPerWeek.toFixed(2)),
     views7: sumViews(window7),
     views30: sumViews(window30),
@@ -90,6 +103,12 @@ export function computeMetrics(data: AccountData, now = Date.now()): Metrics {
     viralDependency,
     longestGapDays: Math.round(longestGapDays),
     lastPostDaysAgo: timestamps.length ? Math.round(daysBetween(now, Math.max(...timestamps))) : 0,
+    bestVideoViews: Math.max(0, ...views),
+    highestEngagementRate: Math.max(0, ...rates),
+    highestCommentRate: Math.max(0, ...videos.map((v) => (v.views > 0 ? v.comments / v.views : 0))),
+    highestShareRate: Math.max(0, ...videos.map((v) => (v.views > 0 ? v.shares / v.views : 0))),
+    videosAboveAverage: videos.filter((v) => v.views > avgViews).length,
+    videosBelowAverage: videos.filter((v) => v.views < avgViews).length,
   };
 }
 
