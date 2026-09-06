@@ -48,13 +48,38 @@ export async function runAnalysis(): Promise<AnalysisReport> {
   }
   const data = result.data;
   const metrics = computeMetrics(data);
-  const report = analyze(data, metrics, priorPeriodScore(data));
+  const hookAnalyses = await fetchStoredHookAnalyses();
+  const report = analyze(data, metrics, priorPeriodScore(data), hookAnalyses);
   cacheReport(report);
   void persistReport(report).catch(() => {
     /* history persistence is best-effort; the analysis itself is local */
   });
   return report;
 }
+
+/**
+ * Reads hook analyses that already exist for this user. Read-only: it never
+ * triggers a new analysis, so no extra API cost is introduced.
+ */
+async function fetchStoredHookAnalyses(): Promise<StoredHookAnalysis[]> {
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) return [];
+  const { data, error } = await supabase
+    .from("hook_analyses")
+    .select("video_id, hook_type, hook_summary, spoken_text, replicate_this, hook_score")
+    .eq("status", "completed")
+    .limit(100);
+  if (error || !data) return [];
+  return data.map((r) => ({
+    videoId: r.video_id,
+    hookType: r.hook_type,
+    hookSummary: r.hook_summary,
+    spokenText: r.spoken_text,
+    replicateThis: r.replicate_this,
+    hookScore: r.hook_score,
+  }));
+}
+
 
 export function cacheReport(report: AnalysisReport) {
   if (typeof window === "undefined") return;

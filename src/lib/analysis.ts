@@ -9,6 +9,14 @@
  */
 import { engagementRate, formatPercent, median } from "./metrics";
 import { computeScore } from "./scoring";
+import {
+  NO_SUBJECT_NOTE,
+  buildAccountContext,
+  shortTopic,
+  subjectPhrase,
+  type AccountContext,
+  type StoredHookAnalysis,
+} from "./niche";
 import type {
   AccountData,
   AnalysisReport,
@@ -19,6 +27,7 @@ import type {
   Recommendation,
   VideoRecord,
 } from "./types";
+
 
 const MIN_GROUP = 3; // below this we do not claim a pattern
 
