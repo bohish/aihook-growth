@@ -225,8 +225,9 @@ function Dashboard() {
               <TabsTrigger value="metrics">نظرة عامة</TabsTrigger>
               <TabsTrigger value="content">أقوى الهوكات</TabsTrigger>
               <TabsTrigger value="dna">نمطك</TabsTrigger>
-              <TabsTrigger value="actions">التوصيات</TabsTrigger>
+              <TabsTrigger value="actions">الخطة التسويقية</TabsTrigger>
               <TabsTrigger value="plan">خطة الأسبوع</TabsTrigger>
+
             </TabsList>
 
             <TabsContent value="metrics" className="mt-6">

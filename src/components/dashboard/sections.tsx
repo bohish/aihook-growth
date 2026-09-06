@@ -361,14 +361,20 @@ export function Recommendations({
 
 /* ------------------------------- weekly plan ------------------------------ */
 
-export function WeeklyPlan({ days }: { days: PlanDay[] }) {
+export function WeeklyPlan({ days, focus = [] }: { days: PlanDay[]; focus?: string[] }) {
   return (
     <section>
-      <h2 className="text-lg font-bold">خطة المحتوى — 7 أيام</h2>
+      <h2 className="text-lg font-bold">التنفيذ الأسبوعي</h2>
+      {focus.length > 0 ? (
+        <p className="mt-3 border border-border bg-surface/60 p-3 text-sm leading-relaxed">
+          هذا الأسبوع نركز على: <span className="font-semibold">{focus.join(" · ")}</span>
+        </p>
+      ) : null}
       <p className="mt-2 text-sm text-muted-foreground">
-        كل يوم مشتق من أرقام حسابك وأنماط فيديوهاتك، مع سبب الاختيار.
+        نكرر نفس الاتجاهات الأقوى في حسابك بصيغ مختلفة، مع سبب الاختيار في كل يوم.
       </p>
       <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+
         {days.map((d) => (
           <article key={d.dayAr} className="panel p-5">
             <div className="flex items-center gap-2">
