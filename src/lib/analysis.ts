@@ -149,32 +149,31 @@ export function buildVerdicts(videos: VideoRecord[], all: VideoRecord[]): Record
     const erLift = medEr > 0 ? (er - medEr) / medEr : 0;
     const bits: string[] = [];
 
-    const viewPct = Math.abs(Math.round(viewLift * 100));
-    const erPct = Math.abs(Math.round(erLift * 100));
-    bits.push(
-      viewPct >= 1
-        ? `المشاهدات ${viewLift >= 0 ? "أعلى" : "أقل"} من وسيط الحساب بـ ${viewPct}%`
-        : "المشاهدات قريبة من وسيط الحساب",
-    );
-    if (erPct >= 1) {
-      bits.push(`والتفاعل ${erLift >= 0 ? "أعلى" : "أقل"} بـ ${erPct}%`);
-    } else {
-      bits.push("والتفاعل بمستوى وسيط الحساب");
+    // Simple, human buckets — exact numbers stay in the evidence sections.
+    if (viewLift > 2) bits.push("المشاهدات أعلى بكثير من مستوى حسابك المعتاد");
+    else if (viewLift > 0.5) bits.push("المشاهدات أعلى من المعتاد");
+    else if (viewLift >= -0.2) bits.push("الأداء قريب من المعتاد");
+    else bits.push("المشاهدات أقل من المعتاد");
+
+    if (erLift > 1) bits.push("التفاعل قوي");
+    else if (erLift > 0.2) bits.push("التفاعل جيد");
+    else if (erLift >= -0.2) bits.push("التفاعل عادي");
+    else bits.push("التفاعل ضعيف");
+
+    const shareRate = v.views > 0 ? v.shares / v.views : 0;
+    const medShareRate = median(all.map((x) => (x.views > 0 ? x.shares / x.views : 0)));
+    if (medShareRate > 0 && shareRate > medShareRate * 1.3) {
+      bits.push("المحتوى قابل للمشاركة أكثر من المعتاد");
     }
 
-
-    if (viewLift >= 0) {
-      if (v.features.hookType === "problem") bits.push("الهوك يبدأ بمشكلة واضحة يعيشها الجمهور");
-      if (v.features.durationBucket === "12-18") bits.push("المدة قصيرة بما يكفي لإكمال المشاهدة");
-      if (v.shares > v.comments) bits.push("نسبة المشاركات مرتفعة، وهي أقوى إشارة توزيع");
-    } else {
-      if (v.features.hookType === "generic") bits.push("المقدمة عامة ولا تعطي سبباً للبقاء");
-      if (v.durationSeconds > 30) bits.push("المدة طويلة نسبياً لنمط حسابك");
-      if (v.features.hasOffer && er < medEr) bits.push("الرسالة بيعية مباشرة بدون قيمة قبل العرض");
+    if (viewLift < -0.2) {
+      if (v.features.hookType === "generic") bits.push("البداية عامة ولا تعطي سبباً للبقاء");
+      else if (v.durationSeconds > 30) bits.push("المدة أطول من نمط حسابك");
     }
 
-    out[v.id] = `${bits.join("، ")}.`;
+    out[v.id] = `${bits.slice(0, 3).join("، ")}.`;
   });
+
 
   return out;
 }

@@ -208,9 +208,14 @@ export const getVideoHookAnalysis = createServerFn({ method: "POST" })
 
     const existingRow = existing as Record<string, unknown> | null;
 
-    if (existingRow && (existingRow["status"] === "completed" || (existingRow["status"] === "failed" && !data.force))) {
+    if (
+      existingRow &&
+      !data.force &&
+      (existingRow["status"] === "completed" || existingRow["status"] === "failed")
+    ) {
       return normalize(existingRow, data.video_id);
     }
+
 
     if (data.cache_only) return normalize(existingRow, data.video_id);
 
@@ -247,6 +252,11 @@ export const getVideoHookAnalysis = createServerFn({ method: "POST" })
             ...(data.share_url ? { share_url: data.share_url } : {}),
             output_language: "ar",
             locale: "ar-SA",
+            analysis_version: "marketing-v2",
+            ...(data.force ? { force: true } : {}),
+            instruction:
+              "Marketing Expert Analysis of the first 5 seconds: why the hook works or fails, link audio/visual/on-screen text, actionable takeaways. Not a raw vision/OCR dump; ignore sponsor logos, HUD and irrelevant on-screen text.",
+
           },
         }),
       });
