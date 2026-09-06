@@ -94,17 +94,46 @@ export const analyzeHook = createServerFn({ method: "POST" })
 
 /* ------------------------- cached per-video analysis ---------------------- */
 
+/** Text fields returned by the agent (nullable = not provided, never invented). */
+const TEXT_FIELDS = [
+  "spoken_text",
+  "onscreen_text",
+  "visual_description",
+  "hook_summary",
+  "hook_type",
+  "attention_trigger",
+  "hook_structure_0_1s",
+  "hook_structure_1_3s",
+  "hook_structure_3_5s",
+  "spoken_hook",
+  "visual_hook",
+  "onscreen_hook",
+  "curiosity_gap",
+  "value_promise",
+  "pattern_interrupt",
+  "audio_visual_match",
+  "target_audience_signal",
+  "commercial_intent",
+  "cta_readiness",
+  "retention_risk",
+  "best_moment",
+  "weakest_moment",
+  "replicate_this",
+  "avoid_this",
+  "verdict",
+] as const;
+
+const SCORE_FIELDS = ["hook_score", "clarity_score", "pacing_score"] as const;
+
 export type StoredHookAnalysis = {
   status: "pending" | "completed" | "failed";
   video_id: string;
-  spoken_text: string | null;
-  onscreen_text: string | null;
-  visual_description: string | null;
-  hook_summary: string | null;
-  hook_type: string | null;
   confidence: number | null;
   analyzed_at: string | null;
   error_message: string | null;
+  three_rewrites: string[];
+} & { [K in (typeof TEXT_FIELDS)[number]]: string | null } & {
+  [K in (typeof SCORE_FIELDS)[number]]: number | null;
 };
 
 const videoInput = z.object({
@@ -119,6 +148,47 @@ function pickStr(src: Record<string, unknown>, key: string): string | null {
   return typeof v === "string" && v.trim() ? v : null;
 }
 
+function pickNum(src: Record<string, unknown>, key: string): number | null {
+  const v = src[key];
+  if (typeof v === "number" && Number.isFinite(v)) return v;
+  if (typeof v === "string" && v.trim() !== "" && !Number.isNaN(Number(v))) return Number(v);
+  return null;
+}
+
+const SELECT_COLS = [
+  "status",
+  "video_id",
+  "confidence",
+  "analyzed_at",
+  "error_message",
+  "three_rewrites",
+  ...TEXT_FIELDS,
+  ...SCORE_FIELDS,
+].join(", ");
+
+function emptyRow(videoId: string): StoredHookAnalysis {
+  const row = {
+    status: "pending" as const,
+    video_id: videoId,
+    confidence: null,
+    analyzed_at: null,
+    error_message: null,
+    three_rewrites: [] as string[],
+  } as StoredHookAnalysis;
+  for (const k of TEXT_FIELDS) row[k] = null;
+  for (const k of SCORE_FIELDS) row[k] = null;
+  return row;
+}
+
+function normalize(row: Record<string, unknown> | null, videoId: string): StoredHookAnalysis {
+  const out = emptyRow(videoId);
+  if (!row) return out;
+  const merged = { ...out, ...row } as StoredHookAnalysis;
+  const rw = row["three_rewrites"];
+  merged.three_rewrites = Array.isArray(rw) ? rw.filter((x): x is string => typeof x === "string" && x.trim() !== "") : [];
+  return merged;
+}
+
 /**
  * Cache-first hook analysis for a single TikTok video.
  * Returns the stored row when completed; otherwise calls the external agent
@@ -129,38 +199,24 @@ export const getVideoHookAnalysis = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => videoInput.parse(data))
   .handler(async ({ data, context }): Promise<StoredHookAnalysis> => {
     const table = context.supabase.from("hook_analyses");
-    const base = {
-      status: "pending" as const,
-      video_id: data.video_id,
-      spoken_text: null,
-      onscreen_text: null,
-      visual_description: null,
-      hook_summary: null,
-      hook_type: null,
-      confidence: null,
-      analyzed_at: null,
-      error_message: null,
-    };
 
     const { data: existing } = await table
-      .select(
-        "status, video_id, spoken_text, onscreen_text, visual_description, hook_summary, hook_type, confidence, analyzed_at, error_message",
-      )
+      .select(SELECT_COLS)
       .eq("user_id", context.userId)
       .eq("video_id", data.video_id)
       .maybeSingle();
 
-    if (existing && (existing.status === "completed" || (existing.status === "failed" && !data.force))) {
-      return existing as StoredHookAnalysis;
+    const existingRow = existing as Record<string, unknown> | null;
+
+    if (existingRow && (existingRow["status"] === "completed" || (existingRow["status"] === "failed" && !data.force))) {
+      return normalize(existingRow, data.video_id);
     }
 
-    if (data.cache_only) return existing ? (existing as StoredHookAnalysis) : { ...base, status: "pending" };
-
-    if (data.cache_only) return existing ? (existing as StoredHookAnalysis) : { ...base, status: "pending" };
+    if (data.cache_only) return normalize(existingRow, data.video_id);
 
     const url = process.env["HOOK_PROCESSOR_URL"];
     const secret = process.env["HOOK_SHARED_SECRET"];
-    const save = async (row: Partial<StoredHookAnalysis>) => {
+    const save = async (row: Record<string, unknown>) => {
       await table.upsert(
         {
           user_id: context.userId,
@@ -172,11 +228,12 @@ export const getVideoHookAnalysis = createServerFn({ method: "POST" })
       );
     };
 
-    if (!url || !secret) {
-      const failed = { ...base, status: "failed" as const, error_message: "الوكيل غير مضبوط بعد" };
-      await save({ status: "failed", error_message: failed.error_message });
-      return failed;
-    }
+    const failWith = async (message: string): Promise<StoredHookAnalysis> => {
+      await save({ status: "failed", error_message: message });
+      return { ...emptyRow(data.video_id), status: "failed", error_message: message };
+    };
+
+    if (!url || !secret) return failWith("الوكيل غير مضبوط بعد");
 
     try {
       const response = await fetch(url, {
@@ -191,35 +248,27 @@ export const getVideoHookAnalysis = createServerFn({ method: "POST" })
           },
         }),
       });
-      if (!response.ok) {
-        const message = `فشل الوكيل الخارجي (HTTP ${response.status})`;
-        await save({ status: "failed", error_message: message });
-        return { ...base, status: "failed", error_message: message };
-      }
+      if (!response.ok) return failWith(`فشل الوكيل الخارجي (HTTP ${response.status})`);
+
       const parsed = (await response.json()) as Record<string, unknown>;
       const src = (parsed["analysis"] ?? parsed["result"] ?? parsed) as Record<string, unknown>;
-      const confidenceRaw = src["confidence"];
-      const row = {
-        status: "completed" as const,
-        spoken_text: pickStr(src, "spoken_text"),
-        onscreen_text: pickStr(src, "onscreen_text"),
-        visual_description: pickStr(src, "visual_description"),
-        hook_summary: pickStr(src, "hook_summary"),
-        hook_type: pickStr(src, "hook_type"),
-        confidence:
-          typeof confidenceRaw === "number"
-            ? confidenceRaw
-            : typeof confidenceRaw === "string" && confidenceRaw.trim() !== "" && !Number.isNaN(Number(confidenceRaw))
-              ? Number(confidenceRaw)
-              : null,
+
+      const row: Record<string, unknown> = {
+        status: "completed",
         analyzed_at: new Date().toISOString(),
         error_message: null,
+        confidence: pickNum(src, "confidence"),
       };
+      for (const k of TEXT_FIELDS) row[k] = pickStr(src, k);
+      for (const k of SCORE_FIELDS) row[k] = pickNum(src, k);
+      const rewrites = src["three_rewrites"];
+      row["three_rewrites"] = Array.isArray(rewrites)
+        ? rewrites.filter((x): x is string => typeof x === "string" && x.trim() !== "").slice(0, 3)
+        : [];
+
       await save(row);
-      return { ...base, ...row, video_id: data.video_id };
+      return normalize({ ...row, video_id: data.video_id }, data.video_id);
     } catch {
-      const message = "تعذّر الوصول إلى الوكيل الخارجي";
-      await save({ status: "failed", error_message: message });
-      return { ...base, status: "failed", error_message: message };
+      return failWith("تعذّر الوصول إلى الوكيل الخارجي");
     }
   });
