@@ -25,33 +25,33 @@ export const SignupEmail = ({
   recipient,
   confirmationUrl,
 }: SignupEmailProps) => (
-  <Html lang="en" dir="ltr">
+  <Html lang="ar" dir="rtl">
     <Head>
       <style>{darkModeCss}</style>
     </Head>
-    <Preview>Confirm your email for {siteName}</Preview>
+    <Preview>أكّد بريدك الإلكتروني للدخول إلى {siteName}</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Heading style={h1}>Confirm your email</Heading>
+        <Heading style={h1}>أكّد بريدك الإلكتروني</Heading>
         <Text style={text}>
-          Thanks for signing up for{' '}
+          شكراً لإنشائك حساباً في{' '}
           <Link href={siteUrl} style={link}>
             <strong>{siteName}</strong>
           </Link>
-          !
+          .
         </Text>
         <Text style={text}>
-          Please confirm your email address (
-          <Link href={`mailto:${recipient}`} style={link}>
+          أكّد بريدك (
+          <Link href={`mailto:${recipient}`} style={link} dir="ltr">
             {recipient}
           </Link>
-          ) by clicking the button below:
+          ) بالضغط على الزر أدناه:
         </Text>
         <Button className="dm-btn" style={button} href={confirmationUrl}>
-          Verify Email
+          تأكيد البريد
         </Button>
         <Text style={footer}>
-          If you didn't create an account, you can safely ignore this email.
+          إذا لم تنشئ هذا الحساب، يمكنك تجاهل هذه الرسالة بأمان.
         </Text>
       </Container>
     </Body>
@@ -60,7 +60,7 @@ export const SignupEmail = ({
 
 export default SignupEmail
 
-const main = { backgroundColor: '#ffffff', fontFamily: 'Arial, sans-serif' }
+const main = { backgroundColor: '#ffffff', fontFamily: 'Arial, Helvetica, sans-serif' }
 const container = { padding: '20px 25px' }
 const h1 = {
   fontSize: '22px',
@@ -71,7 +71,7 @@ const h1 = {
 const text = {
   fontSize: '14px',
   color: '#55575d',
-  lineHeight: '1.5',
+  lineHeight: '1.7',
   margin: '0 0 25px',
 }
 const link = { color: 'inherit', textDecoration: 'underline' }
