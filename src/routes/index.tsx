@@ -50,6 +50,58 @@ function Landing() {
           </div>
         </div>
       </section>
+
+      <section dir="ltr" className="border-b border-border text-left">
+        <div className="mx-auto w-full max-w-6xl px-4 py-16">
+          <h2 className="text-2xl font-bold">HOOK</h2>
+          <p className="mt-3 max-w-xl text-base text-muted-foreground">
+            TikTok analytics platform for creators and businesses.
+          </p>
+
+          <div className="mt-12 grid gap-10 md:grid-cols-3">
+            <div>
+              <h3 className="text-sm font-semibold uppercase tracking-wide">What HOOK does</h3>
+              <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
+                <li>Analyze TikTok account performance</li>
+                <li>Analyze video performance</li>
+                <li>Identify strong hooks</li>
+                <li>Content recommendations</li>
+                <li>Weekly marketing plans</li>
+              </ul>
+            </div>
+
+            <div>
+              <h3 className="text-sm font-semibold uppercase tracking-wide">How it works</h3>
+              <ol className="mt-4 space-y-2 text-sm text-muted-foreground">
+                <li>1. Connect your TikTok account</li>
+                <li>2. We analyze the data you authorized</li>
+                <li>3. You receive insights and recommendations</li>
+              </ol>
+            </div>
+
+            <div>
+              <h3 className="text-sm font-semibold uppercase tracking-wide">About HOOK</h3>
+              <p className="mt-4 text-sm text-muted-foreground">
+                HOOK is a digital analytics product based in Saudi Arabia.
+              </p>
+              <p className="mt-4 text-sm text-muted-foreground">
+                Contact:{" "}
+                <a href="mailto:contact@aihook.store" className="text-foreground underline">
+                  contact@aihook.store
+                </a>
+              </p>
+              <p className="mt-4 flex gap-4 text-sm">
+                <Link to="/privacy" className="text-foreground underline">
+                  Privacy Policy
+                </Link>
+                <Link to="/terms" className="text-foreground underline">
+                  Terms of Service
+                </Link>
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
     </AppShell>
   );
 }
