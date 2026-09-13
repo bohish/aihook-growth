@@ -58,12 +58,12 @@ const TONE: Record<ConnectionStatus, { icon: typeof XCircle; tone: string }> = {
 };
 
 const REASON_AR: Record<string, string> = {
-  invalid_state: "فشل التحقق من طلب الربط (state غير صالح). ابدأ الربط من جديد.",
-  missing_code: "لم يُرجع تيك توك رمز التفويض. أعد المحاولة.",
-  permission_denied: "تم رفض الصلاحيات في صفحة تيك توك. أعد الربط ووافق على الصلاحيات الثلاث.",
-  missing_credentials: "بيانات تطبيق تيك توك غير مهيأة على الخادم بعد.",
-  api_error: "تعذّر إكمال الربط بسبب خطأ من واجهة تيك توك.",
-  expired: "انتهت صلاحية طلب الربط. ابدأ من جديد.",
+  invalid_state: "فشل التحقق من طلب الربط، ابدأ الربط من جديد",
+  missing_code: "لم يُرجع TikTok رمز التفويض، أعد المحاولة",
+  permission_denied: "تم رفض الصلاحيات في صفحة TikTok، أعد الربط ووافق على الصلاحيات الثلاث",
+  missing_credentials: "بيانات تطبيق TikTok غير مهيأة على الخادم بعد",
+  api_error: "تعذّر إكمال الربط بسبب خطأ من واجهة TikTok",
+  expired: "انتهت صلاحية طلب الربط، ابدأ من جديد",
 };
 
 function ConnectPage() {

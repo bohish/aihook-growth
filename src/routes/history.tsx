@@ -21,13 +21,6 @@ export const Route = createFileRoute("/history")({
   component: HistoryPage,
 });
 
-const SUB_LABELS: Record<string, string> = {
-  reach: "الوصول",
-  engagement: "التفاعل",
-  consistency: "الاستمرارية",
-  efficiency: "كفاءة المحتوى",
-};
-
 function HistoryPage() {
   const { pick, locale, t } = useLanguage();
   const subLabels: Record<string, string> = { reach: pick("الوصول", "Reach"), engagement: pick("التفاعل", "Engagement"), consistency: pick("الاستمرارية", "Consistency"), efficiency: pick("كفاءة المحتوى", "Content efficiency") };

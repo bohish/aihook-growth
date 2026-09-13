@@ -86,6 +86,25 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     }
   }, [language]);
 
+  useEffect(() => {
+    const clean = (root: ParentNode) => {
+      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+      let node = walker.nextNode();
+      while (node) {
+        const parent = node.parentElement;
+        const text = node.textContent ?? "";
+        if (text.includes(".") && !parent?.closest("a, code, pre") && !/\d\.\d/.test(text)) {
+          node.textContent = text.replaceAll(".", "");
+        }
+        node = walker.nextNode();
+      }
+    };
+    clean(document.body);
+    const observer = new MutationObserver((entries) => entries.forEach((entry) => clean(entry.target)));
+    observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+    return () => observer.disconnect();
+  }, []);
+
   const value = useMemo<LanguageContextValue>(() => ({
     language,
     locale: language === "ar" ? "ar-SA" : "en-US",

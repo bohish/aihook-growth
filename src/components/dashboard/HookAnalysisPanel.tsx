@@ -14,27 +14,14 @@ const VERDICT_AR: Record<string, { label: string; tone: string }> = {
 };
 
 /** Detail rows: Arabic label + field key. Hidden when the agent returned nothing. */
-const DETAILS: [string, keyof StoredHookAnalysis][] = [
-  ["الثانية 0-1", "hook_structure_0_1s"],
-  ["الثانية 1-3", "hook_structure_1_3s"],
-  ["الثانية 3-5", "hook_structure_3_5s"],
-  ["مثير الانتباه", "attention_trigger"],
-  ["الهوك المنطوق", "spoken_hook"],
-  ["الهوك البصري", "visual_hook"],
-  ["النص على الشاشة", "onscreen_hook"],
-  ["فجوة الفضول", "curiosity_gap"],
-  ["وعد القيمة", "value_promise"],
-  ["كسر النمط", "pattern_interrupt"],
-  ["تطابق الصوت والصورة", "audio_visual_match"],
-  ["الجمهور المستهدف", "target_audience_signal"],
-  ["النية التجارية", "commercial_intent"],
-  ["جاهزية الـCTA", "cta_readiness"],
-  ["أضعف لحظة", "weakest_moment"],
-  ["كرّر هذا", "replicate_this"],
-  ["تجنّب هذا", "avoid_this"],
-  ["الكلام", "spoken_text"],
-  ["نص الشاشة", "onscreen_text"],
-  ["المشهد", "visual_description"],
+const DETAILS: [string, string, keyof StoredHookAnalysis][] = [
+  ["الثانية 0-1", "Seconds 0–1", "hook_structure_0_1s"], ["الثانية 1-3", "Seconds 1–3", "hook_structure_1_3s"], ["الثانية 3-5", "Seconds 3–5", "hook_structure_3_5s"],
+  ["مثير الانتباه", "Attention trigger", "attention_trigger"], ["الهوك المنطوق", "Spoken hook", "spoken_hook"], ["الهوك البصري", "Visual hook", "visual_hook"],
+  ["النص على الشاشة", "On-screen hook", "onscreen_hook"], ["فجوة الفضول", "Curiosity gap", "curiosity_gap"], ["وعد القيمة", "Value promise", "value_promise"],
+  ["كسر النمط", "Pattern interrupt", "pattern_interrupt"], ["تطابق الصوت والصورة", "Audio-visual match", "audio_visual_match"], ["الجمهور المستهدف", "Target audience", "target_audience_signal"],
+  ["النية التجارية", "Commercial intent", "commercial_intent"], ["جاهزية الدعوة للإجراء", "CTA readiness", "cta_readiness"], ["أضعف لحظة", "Weakest moment", "weakest_moment"],
+  ["كرّر هذا", "Replicate this", "replicate_this"], ["تجنّب هذا", "Avoid this", "avoid_this"], ["الكلام", "Speech", "spoken_text"],
+  ["نص الشاشة", "On-screen text", "onscreen_text"], ["المشهد", "Scene", "visual_description"],
 ];
 
 function ScorePill({ label, value }: { label: string; value: number }) {
@@ -51,7 +38,7 @@ function ScorePill({ label, value }: { label: string; value: number }) {
  * calls the external agent when the user asks for it (one request at a time).
  */
 export function HookAnalysisPanel({ videoId, shareUrl }: { videoId: string; shareUrl: string | null }) {
-  const { pick } = useLanguage();
+  const { language, pick } = useLanguage();
   const run = useServerFn(getVideoHookAnalysis);
   const [data, setData] = useState<StoredHookAnalysis | null>(null);
   const [busy, setBusy] = useState(false);
@@ -89,7 +76,7 @@ export function HookAnalysisPanel({ videoId, shareUrl }: { videoId: string; shar
   };
 
   const verdict = data?.verdict ? VERDICT_AR[data.verdict.toLowerCase()] : undefined;
-  const rows = data ? DETAILS.filter(([, key]) => typeof data[key] === "string" && data[key]) : [];
+  const rows = data ? DETAILS.filter(([, , key]) => typeof data[key] === "string" && data[key]) : [];
 
   return (
     <div className="mt-3 border border-border/60 bg-surface/50 p-3">
@@ -150,9 +137,9 @@ export function HookAnalysisPanel({ videoId, shareUrl }: { videoId: string; shar
 
           {open ? (
             <div className="space-y-1 border-t border-border/50 pt-2">
-              {rows.map(([label, key]) => (
+              {rows.map(([labelAr, labelEn, key]) => (
                 <p key={key as string}>
-                  {label}: <span className="text-foreground">{data[key] as string}</span>
+                  {language === "ar" ? labelAr : labelEn}: <span className="text-foreground">{data[key] as string}</span>
                 </p>
               ))}
               {data.three_rewrites.length > 0 ? (

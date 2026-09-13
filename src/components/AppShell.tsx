@@ -25,7 +25,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             HOOK
           </Link>
 
-          <nav className="mr-auto hidden items-center gap-1 md:flex">
+          <nav className="ms-auto hidden items-center gap-1 md:flex">
             {nav.map((item) => (
               <Link
                 key={item.to}
@@ -39,7 +39,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             ))}
           </nav>
 
-          <div className="mr-auto flex items-center gap-2 md:mr-0">
+          <div className="ms-auto flex items-center gap-2 md:ms-0">
             {user ? (
               <Button variant="ghost" size="sm" onClick={() => void signOut()}>
                 {t("signOut")}
@@ -100,7 +100,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               {t("privacy")}
             </Link>
           </nav>
-          <p className="sm:mr-auto">
+          <p className="sm:ms-auto">
             {t("footerNote")}
           </p>
         </div>
