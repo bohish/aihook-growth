@@ -17,10 +17,12 @@ import { formatDateAr, formatNumber, formatPercent, formatSignedPercent } from "
 import { scoreBand } from "@/lib/scoring";
 import { HookAnalysisPanel } from "@/components/dashboard/HookAnalysisPanel";
 import type { AnalysisReport, DnaInsight, Level, PlanDay, Recommendation, VideoRecord } from "@/lib/types";
+import { useLanguage } from "@/lib/i18n";
 
 /* ------------------------------- score card ------------------------------- */
 
 export function ScoreCard({ report }: { report: AnalysisReport }) {
+  const { pick } = useLanguage();
   const { score, summaryAr } = report.scoring;
   const band = scoreBand(score);
   const delta = report.scoreDelta;
@@ -29,20 +31,20 @@ export function ScoreCard({ report }: { report: AnalysisReport }) {
     <section className="panel">
       <div className="grid md:grid-cols-[minmax(0,20rem)_1fr]">
         <div className="border-b border-border p-6 md:border-b-0 md:border-l md:p-8">
-          <p className="text-[11px] uppercase tracking-[0.35em] text-muted-foreground">درجة الهوك</p>
+           <p className="text-[11px] uppercase tracking-[0.35em] text-muted-foreground">{pick("درجة الهوك", "Hook score")}</p>
           <p className="mt-4 flex items-end gap-2 font-bold leading-none">
             <span className="text-[5.5rem] tabular-nums tracking-tighter">{score}</span>
             <span className="pb-3 text-lg font-normal text-muted-foreground">/ 100</span>
           </p>
-          <p className="mt-4 border-t border-border pt-3 text-sm font-semibold">{band.labelAr}</p>
+           <p className="mt-4 border-t border-border pt-3 text-sm font-semibold">{pick(band.labelAr, score >= 70 ? "Strong" : score >= 45 ? "Average" : "Needs work")}</p>
         </div>
         <div className="flex flex-col justify-between gap-4 p-6 md:p-8">
           <p className="max-w-xl text-sm leading-relaxed text-muted-foreground">{summaryAr}</p>
           <p className="flex items-center gap-2 border-t border-border pt-3 text-xs text-muted-foreground">
             {delta > 0 ? <TrendingUp className="size-3.5" /> : delta < 0 ? <TrendingDown className="size-3.5" /> : null}
             {delta === 0
-              ? "الدرجة مستقرة مقارنة بالفترة السابقة"
-              : `${delta > 0 ? "+" : ""}${delta} نقطة مقارنة بالفترة السابقة`}
+              ? pick("الدرجة مستقرة مقارنة بالفترة السابقة", "Score is stable compared with the previous period")
+              : `${delta > 0 ? "+" : ""}${delta} ${pick("نقطة مقارنة بالفترة السابقة", "points compared with the previous period")}`}
           </p>
         </div>
       </div>
@@ -75,27 +77,28 @@ export function Subscores({ report }: { report: AnalysisReport }) {
 /* --------------------------------- metrics -------------------------------- */
 
 export function KeyMetrics({ report }: { report: AnalysisReport }) {
+  const { pick } = useLanguage();
   const m = report.metrics;
   const items = [
-    { label: "المتابعون", value: formatNumber(m.followers), icon: BadgeCheck },
-    { label: "يتابع", value: formatNumber(m.following), icon: Activity },
-    { label: "إعجابات الحساب", value: formatNumber(m.accountLikes), icon: Heart },
-    { label: "إجمالي الفيديوهات", value: formatNumber(m.totalVideos), icon: CalendarDays },
-    { label: "المشاهدات", value: formatNumber(m.totalViews), icon: Eye },
-    { label: "متوسط المشاهدات", value: formatNumber(m.avgViews), icon: Eye },
-    { label: "وسيط المشاهدات", value: formatNumber(m.medianViews), icon: Activity },
-    { label: "التفاعل الكلي", value: formatPercent(m.totalEngagementRate), icon: Heart },
-    { label: "وسيط التفاعل", value: formatPercent(m.medianEngagementRate), icon: Heart },
-    { label: "إجمالي التعليقات", value: formatNumber(m.totalComments), icon: MessageCircle },
-    { label: "إجمالي المشاركات", value: formatNumber(m.totalShares), icon: Repeat2 },
-    { label: "النشر أسبوعياً", value: String(m.postsPerWeek), icon: CalendarDays },
+    { label: pick("المتابعون", "Followers"), value: formatNumber(m.followers), icon: BadgeCheck },
+    { label: pick("يتابع", "Following"), value: formatNumber(m.following), icon: Activity },
+    { label: pick("إعجابات الحساب", "Account likes"), value: formatNumber(m.accountLikes), icon: Heart },
+    { label: pick("إجمالي الفيديوهات", "Total videos"), value: formatNumber(m.totalVideos), icon: CalendarDays },
+    { label: pick("المشاهدات", "Views"), value: formatNumber(m.totalViews), icon: Eye },
+    { label: pick("متوسط المشاهدات", "Average views"), value: formatNumber(m.avgViews), icon: Eye },
+    { label: pick("وسيط المشاهدات", "Median views"), value: formatNumber(m.medianViews), icon: Activity },
+    { label: pick("التفاعل الكلي", "Total engagement"), value: formatPercent(m.totalEngagementRate), icon: Heart },
+    { label: pick("وسيط التفاعل", "Median engagement"), value: formatPercent(m.medianEngagementRate), icon: Heart },
+    { label: pick("إجمالي التعليقات", "Total comments"), value: formatNumber(m.totalComments), icon: MessageCircle },
+    { label: pick("إجمالي المشاركات", "Total shares"), value: formatNumber(m.totalShares), icon: Repeat2 },
+    { label: pick("النشر أسبوعياً", "Posts per week"), value: String(m.postsPerWeek), icon: CalendarDays },
   ];
 
   return (
     <section>
       <div className="flex items-baseline justify-between gap-4">
-        <h2 className="text-lg font-bold">المؤشرات الرقمية</h2>
-        <span className="text-[11px] text-muted-foreground">من بيانات الحساب والفيديوهات المتاحة</span>
+         <h2 className="text-lg font-bold">{pick("المؤشرات الرقمية", "Key metrics")}</h2>
+         <span className="text-[11px] text-muted-foreground">{pick("من بيانات الحساب والفيديوهات المتاحة", "From available account and video data")}</span>
       </div>
       <div className="mt-4 grid grid-cols-2 gap-px overflow-hidden border border-border bg-border sm:grid-cols-3 lg:grid-cols-4">
         {items.map((item) => (
@@ -124,43 +127,44 @@ function NumberBlock({ label, value, note }: { label: string; value: string; not
 
 /** A compact, purely numeric view of the fields returned by TikTok. */
 export function NumericPerformance({ report }: { report: AnalysisReport }) {
+  const { pick } = useLanguage();
   const m = report.metrics;
   return (
     <div className="grid gap-4 lg:grid-cols-3">
       <section className="panel p-5">
-        <h2 className="text-sm font-semibold">اتجاه المشاهدات</h2>
+        <h2 className="text-sm font-semibold">{pick("اتجاه المشاهدات", "View trend")}</h2>
         <div className="mt-5 grid grid-cols-3 gap-4">
-          <NumberBlock label="7 أيام" value={formatNumber(m.views7)} note={formatSignedPercent(m.trend7)} />
-          <NumberBlock label="30 يوم" value={formatNumber(m.views30)} note={formatSignedPercent(m.trend30)} />
-          <NumberBlock label="آخر نشر" value={`${m.lastPostDaysAgo} يوم`} />
+          <NumberBlock label={pick("7 أيام", "7 days")} value={formatNumber(m.views7)} note={formatSignedPercent(m.trend7)} />
+          <NumberBlock label={pick("30 يوم", "30 days")} value={formatNumber(m.views30)} note={formatSignedPercent(m.trend30)} />
+          <NumberBlock label={pick("آخر نشر", "Last post")} value={`${m.lastPostDaysAgo} ${pick("يوم", "days")}`} />
         </div>
       </section>
 
       <section className="panel p-5">
-        <h2 className="text-sm font-semibold">أداء التفاعل</h2>
+        <h2 className="text-sm font-semibold">{pick("أداء التفاعل", "Engagement performance")}</h2>
         <div className="mt-5 grid grid-cols-3 gap-4">
-          <NumberBlock label="إعجاب / 1K" value={m.likesPer1kViews.toFixed(1)} />
-          <NumberBlock label="تعليق / 1K" value={m.commentsPer1kViews.toFixed(1)} />
-          <NumberBlock label="مشاركة / 1K" value={m.sharesPer1kViews.toFixed(1)} />
+          <NumberBlock label={pick("إعجاب / 1K", "Likes / 1K")} value={m.likesPer1kViews.toFixed(1)} />
+          <NumberBlock label={pick("تعليق / 1K", "Comments / 1K")} value={m.commentsPer1kViews.toFixed(1)} />
+          <NumberBlock label={pick("مشاركة / 1K", "Shares / 1K")} value={m.sharesPer1kViews.toFixed(1)} />
         </div>
       </section>
 
       <section className="panel p-5">
-        <h2 className="text-sm font-semibold">توزيع الأداء</h2>
+        <h2 className="text-sm font-semibold">{pick("توزيع الأداء", "Performance distribution")}</h2>
         <div className="mt-5 grid grid-cols-3 gap-4">
-          <NumberBlock label="أقوى 3" value={formatPercent(m.viralDependency, 0)} note="من المشاهدات" />
-          <NumberBlock label="فوق المتوسط" value={formatNumber(m.videosAboveAverage)} />
-          <NumberBlock label="تحت المتوسط" value={formatNumber(m.videosBelowAverage)} />
+          <NumberBlock label={pick("أقوى 3", "Top 3")} value={formatPercent(m.viralDependency, 0)} note={pick("من المشاهدات", "of views")} />
+          <NumberBlock label={pick("فوق المتوسط", "Above average")} value={formatNumber(m.videosAboveAverage)} />
+          <NumberBlock label={pick("تحت المتوسط", "Below average")} value={formatNumber(m.videosBelowAverage)} />
         </div>
       </section>
 
       <section className="panel p-5 lg:col-span-3">
-        <h2 className="text-sm font-semibold">أعلى فيديوهاتك</h2>
+        <h2 className="text-sm font-semibold">{pick("أعلى فيديوهاتك", "Your top videos")}</h2>
         <div className="mt-5 grid grid-cols-2 gap-5 sm:grid-cols-4">
-          <NumberBlock label="أعلى مشاهدات" value={formatNumber(m.bestVideoViews)} />
-          <NumberBlock label="أعلى تفاعل" value={formatPercent(m.highestEngagementRate)} />
-          <NumberBlock label="أعلى نسبة تعليقات" value={formatPercent(m.highestCommentRate)} />
-          <NumberBlock label="أعلى نسبة مشاركات" value={formatPercent(m.highestShareRate)} />
+          <NumberBlock label={pick("أعلى مشاهدات", "Most views")} value={formatNumber(m.bestVideoViews)} />
+          <NumberBlock label={pick("أعلى تفاعل", "Highest engagement")} value={formatPercent(m.highestEngagementRate)} />
+          <NumberBlock label={pick("أعلى نسبة تعليقات", "Highest comment rate")} value={formatPercent(m.highestCommentRate)} />
+          <NumberBlock label={pick("أعلى نسبة مشاركات", "Highest share rate")} value={formatPercent(m.highestShareRate)} />
         </div>
       </section>
     </div>
@@ -188,6 +192,7 @@ const HOOK_LABELS: Record<string, string> = {
 };
 
 function VideoCard({ video, verdict, tone }: { video: VideoRecord; verdict: string; tone: "top" | "bottom" }) {
+  const { pick } = useLanguage();
   const er = video.views > 0 ? (video.likes + video.comments + video.shares) / video.views : 0;
 
   return (
@@ -202,7 +207,7 @@ function VideoCard({ video, verdict, tone }: { video: VideoRecord; verdict: stri
       ) : (
         <div className="relative flex h-28 items-end border-b border-border bg-surface p-3">
           <span className="border border-border bg-background px-2 py-1 text-[10px] text-muted-foreground">
-            لا تتوفر صورة مصغّرة لهذا الفيديو
+             {pick("لا تتوفر صورة مصغّرة لهذا الفيديو", "No thumbnail is available for this video")}
           </span>
         </div>
       )}
@@ -210,7 +215,7 @@ function VideoCard({ video, verdict, tone }: { video: VideoRecord; verdict: stri
       <div className="p-4">
         <h3 className="text-sm font-semibold leading-snug">{video.caption}</h3>
         <p className="mt-1 text-[11px] text-muted-foreground">
-          {formatDateAr(video.publishedAt)} · {video.durationSeconds} ثانية
+           {formatDateAr(video.publishedAt)} · {video.durationSeconds} {pick("ثانية", "seconds")}
         </p>
 
         <div className="mt-3 grid grid-cols-4 gap-2 text-center">
@@ -228,7 +233,7 @@ function VideoCard({ video, verdict, tone }: { video: VideoRecord; verdict: stri
         </div>
 
         <p className="mt-3 text-xs text-muted-foreground">
-          معدل التفاعل: <span className="font-medium text-foreground">{formatPercent(er)}</span>
+           {pick("معدل التفاعل", "Engagement rate")}: <span className="font-medium text-foreground">{formatPercent(er)}</span>
         </p>
 
         <div className="mt-3 flex flex-wrap gap-1.5">
@@ -241,12 +246,12 @@ function VideoCard({ video, verdict, tone }: { video: VideoRecord; verdict: stri
             {HOOK_LABELS[video.features.hookType]}
           </Badge>
           <Badge variant="outline" className="text-[10px] font-normal">
-            {video.durationSeconds} ثانية
+             {video.durationSeconds} {pick("ثانية", "seconds")}
           </Badge>
         </div>
 
         <div className="mt-4 border border-border p-3">
-          <p className="text-xs font-semibold">{tone === "top" ? "ليش شدّ الانتباه؟" : "وش يحتاج تعديل؟"}</p>
+           <p className="text-xs font-semibold">{tone === "top" ? pick("لماذا شدّ الانتباه؟", "Why it earned attention") : pick("ما الذي يحتاج تعديلاً؟", "What needs improvement")}</p>
           <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{verdict}</p>
         </div>
 
@@ -257,10 +262,11 @@ function VideoCard({ video, verdict, tone }: { video: VideoRecord; verdict: stri
 }
 
 export function BestWorst({ report }: { report: AnalysisReport }) {
+  const { pick } = useLanguage();
   return (
     <section className="grid gap-8">
       <div>
-        <h2 className="text-lg font-bold">أقوى الهوكات</h2>
+         <h2 className="text-lg font-bold">{pick("أقوى الهوكات", "Strongest hooks")}</h2>
         <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {report.top.map((v) => (
             <VideoCard key={v.id} video={v} verdict={report.verdicts[v.id] ?? ""} tone="top" />
@@ -268,7 +274,7 @@ export function BestWorst({ report }: { report: AnalysisReport }) {
         </div>
       </div>
       <div>
-        <h2 className="text-lg font-bold">هوكات تحتاج تعديل</h2>
+         <h2 className="text-lg font-bold">{pick("هوكات تحتاج تعديل", "Hooks needing improvement")}</h2>
         <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {report.bottom.map((v) => (
             <VideoCard key={v.id} video={v} verdict={report.verdicts[v.id] ?? ""} tone="bottom" />
@@ -284,11 +290,12 @@ export function BestWorst({ report }: { report: AnalysisReport }) {
 const LEVEL_AR: Record<Level, string> = { high: "عالية", medium: "متوسطة", low: "منخفضة" };
 
 export function ContentDna({ insights }: { insights: DnaInsight[] }) {
+  const { pick } = useLanguage();
   return (
     <section>
-      <h2 className="text-lg font-bold">نمطك الناجح</h2>
+       <h2 className="text-lg font-bold">{pick("نمطك الناجح", "Your winning pattern")}</h2>
       <p className="mt-2 text-sm text-muted-foreground">
-        أنماط مستخرجة من فيديوهاتك أنت، بمقارنة وسيط الأداء بين المجموعات — ليست نصائح عامة.
+         {pick("أنماط مستخرجة من فيديوهاتك بمقارنة الأداء بين المجموعات — وليست نصائح عامة", "Patterns derived from your videos by comparing performance across groups — not generic advice")}
       </p>
       <div className="mt-4 grid gap-4 md:grid-cols-2">
         {insights.map((d) => (
@@ -306,9 +313,9 @@ export function ContentDna({ insights }: { insights: DnaInsight[] }) {
             <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{d.detail}</p>
             <div className="mt-3 flex items-center gap-2 text-[11px] text-muted-foreground">
               <Badge variant="secondary" className="text-[10px] font-normal">
-                ثقة {LEVEL_AR[d.confidence]}
+                 {pick("ثقة", "Confidence")} {pick(LEVEL_AR[d.confidence], d.confidence)}
               </Badge>
-              <span>حجم العيّنة: {d.sampleSize} فيديو</span>
+               <span>{pick("حجم العيّنة", "Sample size")}: {d.sampleSize} {pick("فيديو", "videos")}</span>
             </div>
           </article>
         ))}
@@ -334,9 +341,10 @@ export function Recommendations({
   locked?: number;
   contextNote?: string | undefined;
 }) {
+  const { pick } = useLanguage();
   return (
     <section>
-      <h2 className="text-lg font-bold">الخطة التسويقية — رؤية الخبير</h2>
+       <h2 className="text-lg font-bold">{pick("الخطة التسويقية — رؤية الخبير", "Marketing plan — Expert view")}</h2>
       {contextNote ? <p className="mt-2 text-xs text-muted-foreground">{contextNote}</p> : null}
       <div className="mt-4 grid gap-4">
         {items.map((r, i) => {
@@ -348,61 +356,61 @@ export function Recommendations({
                   {r.priority}
                 </span>
                 <h3 className="text-sm font-semibold">{r.title}</h3>
-                <div className="mr-auto flex flex-wrap gap-1.5">
+                 <div className="ms-auto flex flex-wrap gap-1.5">
                   <Badge
                     variant="outline"
                     className="text-muted-foreground"
                   >
-                    الأثر: {LEVEL_AR[r.impact]}
+                     {pick("الأثر", "Impact")}: {pick(LEVEL_AR[r.impact], r.impact)}
                   </Badge>
                   <Badge variant="secondary" className="font-normal">
-                    الثقة: {LEVEL_AR[r.confidence]}
+                     {pick("الثقة", "Confidence")}: {pick(LEVEL_AR[r.confidence], r.confidence)}
                   </Badge>
                   <Badge variant="secondary" className="font-normal">
                     <Target className="mr-1 size-3" />
-                    {METRIC_AR[r.targetMetric]}
+                     {pick(METRIC_AR[r.targetMetric], r.targetMetric)}
                   </Badge>
                 </div>
               </div>
 
               {isLocked ? (
                 <p className="mt-4 text-xs text-muted-foreground">
-                  هذه التوصية متاحة في خطة Pro مع تفاصيل الدليل والخطوة المقترحة.
+                   {pick("هذه التوصية متاحة في خطة Pro مع تفاصيل الدليل والخطوة المقترحة", "This recommendation is available in Pro with evidence and the suggested action")}
                 </p>
               ) : (
                 <>
                   <div className="mt-4 grid gap-3 md:grid-cols-2">
                     <div className="border border-border bg-surface/60 p-3">
-                      <p className="text-xs font-semibold">ليش اخترناه من حسابك</p>
+                       <p className="text-xs font-semibold">{pick("لماذا اخترناه من حسابك", "Why we selected it")}</p>
                       <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{r.evidence}</p>
                     </div>
                     <div className="border border-border bg-surface/60 p-3">
-                      <p className="text-xs font-semibold">الاتجاه المطلوب</p>
+                       <p className="text-xs font-semibold">{pick("الاتجاه المطلوب", "Recommended direction")}</p>
                       <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{r.action}</p>
                     </div>
                   </div>
                   {r.hookLine ? (
                     <div className="mt-3 border border-border p-3">
-                      <p className="text-xs font-semibold">جملة افتتاحية جاهزة</p>
+                       <p className="text-xs font-semibold">{pick("جملة افتتاحية جاهزة", "Ready opening line")}</p>
                       <p className="mt-1 text-sm leading-relaxed">{r.hookLine}</p>
                     </div>
                   ) : null}
                   <dl className="mt-3 grid gap-3 md:grid-cols-3">
                     {r.shoot ? (
                       <div className="border border-border bg-surface/60 p-3">
-                        <dt className="text-xs font-semibold">وش نصوّر</dt>
+                         <dt className="text-xs font-semibold">{pick("ماذا نصوّر", "What to shoot")}</dt>
                         <dd className="mt-1 text-xs leading-relaxed text-muted-foreground">{r.shoot}</dd>
                       </div>
                     ) : null}
                     {r.build ? (
                       <div className="border border-border bg-surface/60 p-3">
-                        <dt className="text-xs font-semibold">طريقة البناء</dt>
+                         <dt className="text-xs font-semibold">{pick("طريقة البناء", "Structure")}</dt>
                         <dd className="mt-1 text-xs leading-relaxed text-muted-foreground">{r.build}</dd>
                       </div>
                     ) : null}
                     {r.cta ? (
                       <div className="border border-border bg-surface/60 p-3">
-                        <dt className="text-xs font-semibold">الدعوة للإجراء</dt>
+                         <dt className="text-xs font-semibold">{pick("الدعوة للإجراء", "Call to action")}</dt>
                         <dd className="mt-1 text-xs leading-relaxed text-muted-foreground">{r.cta}</dd>
                       </div>
                     ) : null}
@@ -421,16 +429,17 @@ export function Recommendations({
 /* ------------------------------- weekly plan ------------------------------ */
 
 export function WeeklyPlan({ days, focus = [] }: { days: PlanDay[]; focus?: string[] | undefined }) {
+  const { pick } = useLanguage();
   return (
     <section>
-      <h2 className="text-lg font-bold">التنفيذ الأسبوعي</h2>
+       <h2 className="text-lg font-bold">{pick("التنفيذ الأسبوعي", "Weekly execution")}</h2>
       {focus.length > 0 ? (
         <p className="mt-3 border border-border bg-surface/60 p-3 text-sm leading-relaxed">
-          هذا الأسبوع نركز على: <span className="font-semibold">{focus.join(" · ")}</span>
+           {pick("هذا الأسبوع نركز على", "This week we focus on")}: <span className="font-semibold">{focus.join(" · ")}</span>
         </p>
       ) : null}
       <p className="mt-2 text-sm text-muted-foreground">
-        نكرر نفس الاتجاهات الأقوى في حسابك بصيغ مختلفة، مع سبب الاختيار في كل يوم.
+         {pick("نكرر أقوى اتجاهات حسابك بصيغ مختلفة مع سبب الاختيار لكل يوم", "We repeat your strongest directions in varied formats with a reason for each day")}
       </p>
       <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
 
@@ -443,15 +452,15 @@ export function WeeklyPlan({ days, focus = [] }: { days: PlanDay[]; focus?: stri
             <h3 className="mt-3 text-sm font-semibold leading-snug">{d.idea}</h3>
             <dl className="mt-3 grid gap-2 text-xs">
               <div>
-                <dt className="text-muted-foreground">الهوك</dt>
+                 <dt className="text-muted-foreground">{pick("الهوك", "Hook")}</dt>
                 <dd className="mt-0.5">{d.hook}</dd>
               </div>
               <div>
-                <dt className="text-muted-foreground">الصيغة</dt>
+                 <dt className="text-muted-foreground">{pick("الصيغة", "Format")}</dt>
                 <dd className="mt-0.5">{d.format}</dd>
               </div>
               <div>
-                <dt className="text-muted-foreground">الدعوة للإجراء</dt>
+                 <dt className="text-muted-foreground">{pick("الدعوة للإجراء", "Call to action")}</dt>
                 <dd className="mt-0.5">{d.cta}</dd>
               </div>
             </dl>

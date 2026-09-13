@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { fetchHistory } from "@/lib/report";
+import { useLanguage } from "@/lib/i18n";
 
 export const Route = createFileRoute("/history")({
   head: () => ({
@@ -20,14 +21,9 @@ export const Route = createFileRoute("/history")({
   component: HistoryPage,
 });
 
-const SUB_LABELS: Record<string, string> = {
-  reach: "الوصول",
-  engagement: "التفاعل",
-  consistency: "الاستمرارية",
-  efficiency: "كفاءة المحتوى",
-};
-
 function HistoryPage() {
+  const { pick, locale, t } = useLanguage();
+  const subLabels: Record<string, string> = { reach: pick("الوصول", "Reach"), engagement: pick("التفاعل", "Engagement"), consistency: pick("الاستمرارية", "Consistency"), efficiency: pick("كفاءة المحتوى", "Content efficiency") };
   const { user, loading } = useAuth();
   const { data, isLoading } = useQuery({
     queryKey: ["history", user?.id],
@@ -40,36 +36,36 @@ function HistoryPage() {
       <div className="mx-auto w-full max-w-4xl px-4 py-10">
         <div className="flex items-center gap-2">
           <HistoryIcon className="size-5 accent-text" />
-          <h1 className="text-xl font-bold sm:text-2xl">سجل التقارير</h1>
+          <h1 className="text-xl font-bold sm:text-2xl">{pick("سجل التقارير", "Report history")}</h1>
         </div>
         <p className="mt-2 text-sm text-muted-foreground">
-          كل تحليل يُحفظ كلقطة (snapshot) حتى تقارن الدرجة والمقاييس عبر الوقت.
+          {pick("كل تحليل يُحفظ كلقطة لتقارن الدرجة والمقاييس عبر الوقت", "Every analysis is saved as a snapshot for comparing scores and metrics over time")}
         </p>
 
         {loading ? (
           <div className="mt-10 flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="size-4 animate-spin" /> جاري التحميل…
+            <Loader2 className="size-4 animate-spin" /> {t("loading")}
           </div>
         ) : !user ? (
           <div className="panel mt-8 p-6">
-            <h2 className="text-base font-semibold">السجل يحتاج حساباً</h2>
+            <h2 className="text-base font-semibold">{pick("السجل يحتاج حساباً", "History requires an account")}</h2>
             <p className="mt-2 text-sm text-muted-foreground">
-              أنشئ حساباً مجانياً وسنحفظ كل تحليل تشغّله تلقائياً.
+              {pick("أنشئ حساباً مجانياً وسنحفظ كل تحليل تلقائياً", "Create a free account and every analysis will be saved automatically")}
             </p>
             <Button asChild className="mt-4">
-              <Link to="/auth">إنشاء حساب</Link>
+              <Link to="/auth">{pick("إنشاء حساب", "Create account")}</Link>
             </Button>
           </div>
         ) : isLoading ? (
           <div className="mt-10 flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="size-4 animate-spin" /> جاري تحميل السجل…
+            <Loader2 className="size-4 animate-spin" /> {pick("جاري تحميل السجل…", "Loading history…")}
           </div>
         ) : !data || data.length === 0 ? (
           <div className="panel mt-8 p-6">
-            <h2 className="text-base font-semibold">لا يوجد تقارير بعد</h2>
-            <p className="mt-2 text-sm text-muted-foreground">شغّل أول تحليل وسيظهر هنا مباشرة.</p>
+            <h2 className="text-base font-semibold">{pick("لا توجد تقارير بعد", "No reports yet")}</h2>
+            <p className="mt-2 text-sm text-muted-foreground">{pick("شغّل أول تحليل وسيظهر هنا مباشرة", "Run your first analysis and it will appear here")}</p>
             <Button asChild className="mt-4">
-              <Link to="/analyzing">حلّل حسابي</Link>
+              <Link to="/analyzing">{t("analyzeAccount")}</Link>
             </Button>
           </div>
         ) : (
@@ -86,10 +82,10 @@ function HistoryPage() {
                       }`}
                     >
                       {delta > 0 ? <TrendingUp className="size-3.5" /> : delta < 0 ? <TrendingDown className="size-3.5" /> : null}
-                      {delta === 0 ? "بدون تغيير" : `${delta > 0 ? "+" : ""}${delta}`}
+                      {delta === 0 ? pick("بدون تغيير", "No change") : `${delta > 0 ? "+" : ""}${delta}`}
                     </span>
                     <span className="mr-auto text-xs text-muted-foreground" dir="ltr">
-                      {new Date(row.created_at).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}
+                      {new Date(row.created_at).toLocaleString(locale, { dateStyle: "medium", timeStyle: "short" })}
                     </span>
                   </div>
                   {row.summary ? (
@@ -98,7 +94,7 @@ function HistoryPage() {
                   <div className="mt-3 flex flex-wrap gap-1.5">
                     {Object.entries(row.subscores ?? {}).map(([key, value]) => (
                       <Badge key={key} variant="secondary" className="font-normal">
-                        {SUB_LABELS[key] ?? key}: {value}
+                        {subLabels[key] ?? key}: {value}
                       </Badge>
                     ))}
                   </div>

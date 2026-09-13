@@ -35,3 +35,22 @@ export const CONNECTION_LABELS_AR: Record<string, string> = {
   permission_denied: "صلاحية مرفوضة",
   api_error: "خطأ في واجهة تيك توك",
 };
+
+export const TIKTOK_PERMISSIONS_EN = [
+  { title: "Basic account information (user info basic)", detail: "Display name, image, bio, and profile link to show your account in the app" },
+  { title: "Account statistics (user info stats)", detail: "Followers, following, likes, and video count to calculate reach and engagement" },
+  { title: "Your video list and public metrics (video list)", detail: "Description, duration, publish date, views, likes, comments, and shares for your videos only" },
+];
+
+export const TIKTOK_NOT_REQUESTED_EN = [
+  "We never ask for your username or password — sign-in happens on TikTok",
+  "We do not request follower data or personal information",
+  "We do not infer gender or location, or show demographic estimates",
+  "These permissions do not provide watch time, completion rate, or traffic sources, so we do not show them",
+  "We do not publish or delete content from your account",
+];
+
+export const CONNECTION_LABELS_EN: Record<string, string> = {
+  disconnected: "Not connected", connecting: "Connecting…", connected: "Connected", expired: "Connection expired",
+  missing_credentials: "Integration not configured", permission_denied: "Permission denied", api_error: "TikTok API error",
+};

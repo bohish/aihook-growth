@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { AppShell } from "@/components/AppShell";
+import { useLanguage } from "@/lib/i18n";
 
 export const Route = createFileRoute("/privacy")({
   head: () => ({
@@ -24,21 +25,20 @@ export const Route = createFileRoute("/privacy")({
 });
 
 function Ar({ children }: { children: React.ReactNode }) {
-  return <div dir="rtl" className="space-y-3 text-right">{children}</div>;
+  const { language } = useLanguage();
+  return language === "ar" ? <div className="space-y-3">{children}</div> : null;
 }
 
 function En({ children }: { children: React.ReactNode }) {
-  return (
-    <div dir="ltr" className="space-y-3 rounded-xl border border-border/60 bg-secondary/30 p-4 text-left text-sm text-muted-foreground">
-      {children}
-    </div>
-  );
+  const { language } = useLanguage();
+  return language === "en" ? <div className="space-y-3">{children}</div> : null;
 }
 
 function Section({ title, ar, en }: { title: string; ar: React.ReactNode; en: React.ReactNode }) {
+  const { language } = useLanguage();
   return (
     <section className="space-y-4">
-      <h2 className="text-lg font-semibold text-foreground">{title}</h2>
+      <h2 className="text-lg font-semibold text-foreground">{title.split(" · ")[language === "ar" ? 0 : 1]}</h2>
       <Ar>{ar}</Ar>
       <En>{en}</En>
     </section>
@@ -46,13 +46,14 @@ function Section({ title, ar, en }: { title: string; ar: React.ReactNode; en: Re
 }
 
 function PrivacyPage() {
+  const { pick } = useLanguage();
   return (
     <AppShell>
       <div className="mx-auto w-full max-w-3xl px-4 py-12">
         <header className="mb-10 text-center">
-          <h1 className="text-3xl font-bold text-foreground">سياسة الخصوصية · Privacy Policy</h1>
+          <h1 className="text-3xl font-bold text-foreground">{pick("سياسة الخصوصية", "Privacy Policy")}</h1>
           <p className="mt-3 text-sm text-muted-foreground">
-            آخر تحديث: سبتمبر 2026 · Last updated: September 2026
+            {pick("آخر تحديث: سبتمبر 2026", "Last updated: September 2026")}
           </p>
         </header>
 

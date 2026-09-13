@@ -5,6 +5,7 @@ import { toast } from "sonner";
 
 import { AppShell } from "@/components/AppShell";
 import { AnalysisUnavailableError, runAnalysis } from "@/lib/report";
+import { useLanguage } from "@/lib/i18n";
 
 export const Route = createFileRoute("/analyzing")({
   head: () => ({
@@ -18,14 +19,9 @@ export const Route = createFileRoute("/analyzing")({
   component: AnalyzingPage,
 });
 
-const STAGES = [
-  "نجمع بيانات الحساب",
-  "نقارن أداء الفيديوهات",
-  "نحلل نمط المحتوى",
-  "نبني خطة التحسين",
-];
-
 function AnalyzingPage() {
+  const { pick } = useLanguage();
+  const stages = [pick("نجمع بيانات الحساب", "Collecting account data"), pick("نقارن أداء الفيديوهات", "Comparing video performance"), pick("نحلل نمط المحتوى", "Analyzing content patterns"), pick("نبني خطة التحسين", "Building your improvement plan")];
   const navigate = useNavigate();
   const [stage, setStage] = useState(0);
   const started = useRef(false);
@@ -53,27 +49,27 @@ function AnalyzingPage() {
         const message =
           error instanceof AnalysisUnavailableError
             ? error.message
-            : "تعذّر إكمال التحليل، حاول مرة أخرى";
+            : pick("تعذّر إكمال التحليل، حاول مرة أخرى", "Analysis could not be completed, try again");
         toast.error(message);
         void navigate({ to: "/connect" });
       });
 
     return () => timers.forEach(window.clearTimeout);
-  }, [navigate]);
+  }, [navigate, pick]);
 
   return (
     <AppShell>
       <div className="mx-auto flex min-h-[70vh] w-full max-w-xl flex-col justify-center px-4 py-12">
         <div className="panel p-6 md:p-8">
           <div className="flex items-center justify-between gap-3">
-            <h1 className="text-lg font-bold sm:text-xl">جاري تحليل الحساب</h1>
+            <h1 className="text-lg font-bold sm:text-xl">{pick("جاري تحليل الحساب", "Analyzing your account")}</h1>
           </div>
           <p className="mt-2 text-sm text-muted-foreground">
-            كل المقاييس تُحسب من بيانات حسابك المسحوبة من تيك توك مباشرة.
+            {pick("كل المقاييس تُحسب من بيانات حسابك المسحوبة من تيك توك مباشرة", "Every metric is calculated directly from your TikTok account data")}
           </p>
 
           <ol className="mt-7 grid gap-3">
-            {STAGES.map((label, i) => {
+            {stages.map((label, i) => {
               const done = stage > i;
               const active = stage === i;
               return (

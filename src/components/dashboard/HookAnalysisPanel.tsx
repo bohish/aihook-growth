@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getVideoHookAnalysis, type StoredHookAnalysis } from "@/lib/hook-agent.functions";
+import { useLanguage } from "@/lib/i18n";
 
 const VERDICT_AR: Record<string, { label: string; tone: string }> = {
   continue: { label: "استمر", tone: "border-border text-foreground" },
@@ -13,27 +14,14 @@ const VERDICT_AR: Record<string, { label: string; tone: string }> = {
 };
 
 /** Detail rows: Arabic label + field key. Hidden when the agent returned nothing. */
-const DETAILS: [string, keyof StoredHookAnalysis][] = [
-  ["الثانية 0-1", "hook_structure_0_1s"],
-  ["الثانية 1-3", "hook_structure_1_3s"],
-  ["الثانية 3-5", "hook_structure_3_5s"],
-  ["مثير الانتباه", "attention_trigger"],
-  ["الهوك المنطوق", "spoken_hook"],
-  ["الهوك البصري", "visual_hook"],
-  ["النص على الشاشة", "onscreen_hook"],
-  ["فجوة الفضول", "curiosity_gap"],
-  ["وعد القيمة", "value_promise"],
-  ["كسر النمط", "pattern_interrupt"],
-  ["تطابق الصوت والصورة", "audio_visual_match"],
-  ["الجمهور المستهدف", "target_audience_signal"],
-  ["النية التجارية", "commercial_intent"],
-  ["جاهزية الـCTA", "cta_readiness"],
-  ["أضعف لحظة", "weakest_moment"],
-  ["كرّر هذا", "replicate_this"],
-  ["تجنّب هذا", "avoid_this"],
-  ["الكلام", "spoken_text"],
-  ["نص الشاشة", "onscreen_text"],
-  ["المشهد", "visual_description"],
+const DETAILS: [string, string, keyof StoredHookAnalysis][] = [
+  ["الثانية 0-1", "Seconds 0–1", "hook_structure_0_1s"], ["الثانية 1-3", "Seconds 1–3", "hook_structure_1_3s"], ["الثانية 3-5", "Seconds 3–5", "hook_structure_3_5s"],
+  ["مثير الانتباه", "Attention trigger", "attention_trigger"], ["الهوك المنطوق", "Spoken hook", "spoken_hook"], ["الهوك البصري", "Visual hook", "visual_hook"],
+  ["النص على الشاشة", "On-screen hook", "onscreen_hook"], ["فجوة الفضول", "Curiosity gap", "curiosity_gap"], ["وعد القيمة", "Value promise", "value_promise"],
+  ["كسر النمط", "Pattern interrupt", "pattern_interrupt"], ["تطابق الصوت والصورة", "Audio-visual match", "audio_visual_match"], ["الجمهور المستهدف", "Target audience", "target_audience_signal"],
+  ["النية التجارية", "Commercial intent", "commercial_intent"], ["جاهزية الدعوة للإجراء", "CTA readiness", "cta_readiness"], ["أضعف لحظة", "Weakest moment", "weakest_moment"],
+  ["كرّر هذا", "Replicate this", "replicate_this"], ["تجنّب هذا", "Avoid this", "avoid_this"], ["الكلام", "Speech", "spoken_text"],
+  ["نص الشاشة", "On-screen text", "onscreen_text"], ["المشهد", "Scene", "visual_description"],
 ];
 
 function ScorePill({ label, value }: { label: string; value: number }) {
@@ -50,6 +38,7 @@ function ScorePill({ label, value }: { label: string; value: number }) {
  * calls the external agent when the user asks for it (one request at a time).
  */
 export function HookAnalysisPanel({ videoId, shareUrl }: { videoId: string; shareUrl: string | null }) {
+  const { language, pick } = useLanguage();
   const run = useServerFn(getVideoHookAnalysis);
   const [data, setData] = useState<StoredHookAnalysis | null>(null);
   const [busy, setBusy] = useState(false);
@@ -78,8 +67,8 @@ export function HookAnalysisPanel({ videoId, shareUrl }: { videoId: string; shar
     } catch {
       setData((prev) =>
         prev
-          ? { ...prev, status: "failed", error_message: "تعذّر تنفيذ التحليل" }
-          : ({ status: "failed", video_id: videoId, error_message: "تعذّر تنفيذ التحليل" } as StoredHookAnalysis),
+           ? { ...prev, status: "failed", error_message: pick("تعذّر تنفيذ التحليل", "Analysis could not be completed") }
+           : ({ status: "failed", video_id: videoId, error_message: pick("تعذّر تنفيذ التحليل", "Analysis could not be completed") } as StoredHookAnalysis),
       );
     } finally {
       setBusy(false);
@@ -87,17 +76,17 @@ export function HookAnalysisPanel({ videoId, shareUrl }: { videoId: string; shar
   };
 
   const verdict = data?.verdict ? VERDICT_AR[data.verdict.toLowerCase()] : undefined;
-  const rows = data ? DETAILS.filter(([, key]) => typeof data[key] === "string" && data[key]) : [];
+  const rows = data ? DETAILS.filter(([, , key]) => typeof data[key] === "string" && data[key]) : [];
 
   return (
     <div className="mt-3 border border-border/60 bg-surface/50 p-3">
       <p className="flex items-center gap-1.5 text-xs font-semibold">
-        <Sparkles className="size-3.5 text-primary" /> تحليل الهوك
+         <Sparkles className="size-3.5 text-primary" /> {pick("تحليل الهوك", "Hook analysis")}
       </p>
 
       {busy ? (
         <p className="mt-2 flex items-center gap-2 text-[11px] text-muted-foreground">
-          <Loader2 className="size-3.5 animate-spin" /> جاري تحليل أول 5 ثوانٍ…
+           <Loader2 className="size-3.5 animate-spin" /> {pick("جاري تحليل أول 5 ثوانٍ…", "Analyzing the first 5 seconds…")}
         </p>
       ) : data?.status === "completed" ? (
         <div className="mt-2 space-y-2 text-[11px] leading-relaxed text-muted-foreground">
@@ -119,19 +108,19 @@ export function HookAnalysisPanel({ videoId, shareUrl }: { videoId: string; shar
                 {verdict.label}
               </Badge>
             ) : null}
-            {data.clarity_score !== null ? <ScorePill label="الوضوح" value={data.clarity_score} /> : null}
-            {data.pacing_score !== null ? <ScorePill label="الإيقاع" value={data.pacing_score} /> : null}
+             {data.clarity_score !== null ? <ScorePill label={pick("الوضوح", "Clarity")} value={data.clarity_score} /> : null}
+             {data.pacing_score !== null ? <ScorePill label={pick("الإيقاع", "Pacing")} value={data.pacing_score} /> : null}
           </div>
 
           {data.hook_summary ? <p className="text-foreground">{data.hook_summary}</p> : null}
           {data.best_moment ? (
             <p>
-              أقوى نقطة: <span className="text-foreground">{data.best_moment}</span>
+               {pick("أقوى نقطة", "Best moment")}: <span className="text-foreground">{data.best_moment}</span>
             </p>
           ) : null}
           {data.retention_risk ? (
             <p>
-              أكبر خطر: <span className="text-foreground">{data.retention_risk}</span>
+               {pick("أكبر خطر", "Biggest risk")}: <span className="text-foreground">{data.retention_risk}</span>
             </p>
           ) : null}
 
@@ -142,20 +131,20 @@ export function HookAnalysisPanel({ videoId, shareUrl }: { videoId: string; shar
               className="flex items-center gap-1 text-[11px] font-medium accent-text"
             >
               <ChevronDown className={`size-3 transition-transform ${open ? "rotate-180" : ""}`} />
-              {open ? "إخفاء التفاصيل" : "عرض التفاصيل"}
+               {open ? pick("إخفاء التفاصيل", "Hide details") : pick("عرض التفاصيل", "Show details")}
             </button>
           ) : null}
 
           {open ? (
             <div className="space-y-1 border-t border-border/50 pt-2">
-              {rows.map(([label, key]) => (
+              {rows.map(([labelAr, labelEn, key]) => (
                 <p key={key as string}>
-                  {label}: <span className="text-foreground">{data[key] as string}</span>
+                  {language === "ar" ? labelAr : labelEn}: <span className="text-foreground">{data[key] as string}</span>
                 </p>
               ))}
               {data.three_rewrites.length > 0 ? (
                 <div className="pt-1">
-                  <p className="font-medium text-foreground">بدايات بديلة أقوى:</p>
+                   <p className="font-medium text-foreground">{pick("بدايات بديلة أقوى", "Stronger alternative openings")}:</p>
                   <ol className="mt-1 list-decimal space-y-0.5 pe-4">
                     {data.three_rewrites.map((r, i) => (
                       <li key={i}>{r}</li>
@@ -163,25 +152,25 @@ export function HookAnalysisPanel({ videoId, shareUrl }: { videoId: string; shar
                   </ol>
                 </div>
               ) : null}
-              {data.confidence !== null ? <p>الثقة: {Math.round(data.confidence * 100) / 100}</p> : null}
+               {data.confidence !== null ? <p>{pick("الثقة", "Confidence")}: {Math.round(data.confidence * 100) / 100}</p> : null}
             </div>
           ) : null}
 
           <Button size="sm" variant="ghost" className="h-7 px-2 text-[11px]" onClick={() => void analyze(true)}>
-            <RefreshCw className="size-3" /> إعادة التحليل من جديد
+             <RefreshCw className="size-3" /> {pick("إعادة التحليل من جديد", "Run analysis again")}
           </Button>
 
         </div>
       ) : data?.status === "failed" ? (
         <div className="mt-2 text-[11px]">
-          <p className="text-destructive">{data.error_message ?? "فشل تحليل الهوك"}</p>
+           <p className="text-destructive">{data.error_message?.replaceAll(".", "") ?? pick("فشل تحليل الهوك", "Hook analysis failed")}</p>
           <Button size="sm" variant="outline" className="mt-2 h-7 px-2 text-[11px]" onClick={() => void analyze(true)}>
-            <RefreshCw className="size-3" /> إعادة المحاولة
+             <RefreshCw className="size-3" /> {pick("إعادة المحاولة", "Try again")}
           </Button>
         </div>
       ) : (
         <Button size="sm" variant="outline" className="mt-2 h-7 px-2 text-[11px]" onClick={() => void analyze(false)}>
-          تحليل الهوك
+           {pick("تحليل الهوك", "Analyze hook")}
         </Button>
       )}
     </div>

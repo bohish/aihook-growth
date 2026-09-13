@@ -12,6 +12,7 @@ import {
   type HookAgentResult,
   type HookAgentStatus,
 } from "@/lib/hook-agent.functions";
+import { useLanguage } from "@/lib/i18n";
 
 export const Route = createFileRoute("/internal/hook-agent")({
   head: () => ({
@@ -26,6 +27,7 @@ export const Route = createFileRoute("/internal/hook-agent")({
 });
 
 function HookAgentPage() {
+  const { pick } = useLanguage();
   const statusFn = useServerFn(getHookAgentStatus);
   const runFn = useServerFn(analyzeHook);
   const [status, setStatus] = useState<HookAgentStatus | null>(null);
@@ -44,7 +46,7 @@ function HookAgentPage() {
     try {
       setResult(await runFn({ data: { hook } }));
     } catch {
-      setResult({ ok: false, error: "تعذّر تنفيذ التحليل" });
+      setResult({ ok: false, error: pick("تعذّر تنفيذ التحليل", "Analysis could not be completed") });
     } finally {
       setBusy(false);
     }
@@ -53,23 +55,23 @@ function HookAgentPage() {
   return (
     <AppShell>
       <div className="mx-auto w-full max-w-3xl px-4 py-10">
-        <h1 className="text-xl font-bold sm:text-2xl">وكيل تحليل الهوك</h1>
+        <h1 className="text-xl font-bold sm:text-2xl">{pick("وكيل تحليل الهوك", "Hook Analysis Agent")}</h1>
 
         {status === null ? (
           <p className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="size-4 animate-spin" /> نتحقق من حالة الربط…
+            <Loader2 className="size-4 animate-spin" /> {pick("نتحقق من حالة الربط…", "Checking connection…")}
           </p>
         ) : status.configured ? (
           <p className="mt-4 flex items-center gap-2 text-sm text-success">
-            <CheckCircle2 className="size-4" /> الربط مع الوكيل الخارجي جاهز
+            <CheckCircle2 className="size-4" /> {pick("الربط مع الوكيل الخارجي جاهز", "External agent connection is ready")}
           </p>
         ) : (
           <div className="panel mt-4 p-5">
             <p className="flex items-center gap-2 text-sm font-semibold text-warning">
-              <AlertTriangle className="size-4" /> الوكيل غير مضبوط
+              <AlertTriangle className="size-4" /> {pick("الوكيل غير مضبوط", "Agent is not configured")}
             </p>
             <p className="mt-2 text-sm text-muted-foreground">
-              أضف القيم التالية في إعدادات المشروع (الأسرار) ثم أعد المحاولة:
+              {pick("أضف القيم التالية في إعدادات المشروع ثم أعد المحاولة", "Add these values in Project Settings, then try again")}:
             </p>
             <ul className="mt-2 list-disc pr-5 text-sm text-muted-foreground">
               {status.missing.map((m) => (
@@ -83,7 +85,7 @@ function HookAgentPage() {
           <Textarea
             value={hook}
             onChange={(e) => setHook(e.target.value)}
-            placeholder="اكتب نص الهوك المراد تحليله…"
+            placeholder={pick("اكتب نص الهوك المراد تحليله…", "Enter the hook text to analyze…")}
             className="min-h-28"
           />
           <Button
@@ -92,7 +94,7 @@ function HookAgentPage() {
             disabled={busy || hook.trim().length < 3 || !status?.configured}
           >
             {busy ? <Loader2 className="size-4 animate-spin" /> : null}
-            تحليل الهوك
+            {pick("تحليل الهوك", "Analyze hook")}
           </Button>
         </div>
 
