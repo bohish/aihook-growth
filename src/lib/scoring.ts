@@ -133,7 +133,7 @@ function buildSummary(score: number, m: Metrics): string {
           ? "حسابك يحتاج تعديلات جوهرية في المحتوى والانتظام"
           : "حسابك في مرحلة مبكرة ويحتاج أساس محتوى ثابت";
 
-  return `${band}. ${trendText}. أضعف محور حالياً: ${weakest.name}.`;
+  return `${band}، ${trendText}، أضعف محور حالياً: ${weakest.name}`;
 }
 
 /** Recomputes only the total so history rows can be compared. */

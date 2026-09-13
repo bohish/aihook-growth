@@ -394,4 +394,4 @@ export function subjectPhrase(ctx: AccountContext): string {
 }
 
 export const NO_SUBJECT_NOTE =
-  "ما عندي دليل كافي لتحديد موضوع أدق، فاعتمدنا على الأنماط المؤكدة من فيديوهاتك.";
+  "ما عندي دليل كافي لتحديد موضوع أدق، فاعتمدنا على الأنماط المؤكدة من فيديوهاتك";

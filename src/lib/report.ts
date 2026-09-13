@@ -46,7 +46,7 @@ export class AnalysisUnavailableError extends Error {
 export async function runAnalysis(): Promise<AnalysisReport> {
   const result = await fetchTikTokAccountData();
   if (!result.ok || !result.data) {
-    throw new AnalysisUnavailableError(result.status, result.message ?? "تعذّر جلب بيانات الحساب.");
+    throw new AnalysisUnavailableError(result.status, (result.message ?? "تعذّر جلب بيانات الحساب").replaceAll(".", ""));
   }
   const data = result.data;
   const metrics = computeMetrics(data);

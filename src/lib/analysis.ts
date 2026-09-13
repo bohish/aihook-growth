@@ -184,7 +184,7 @@ export function buildVerdicts(videos: VideoRecord[], all: VideoRecord[]): Record
       else if (v.durationSeconds > 30) bits.push("المدة أطول من نمط حسابك");
     }
 
-    out[v.id] = `${bits.slice(0, 3).join("، ")}.`;
+    out[v.id] = bits.slice(0, 3).join("، ");
   });
 
   return out;
@@ -224,17 +224,17 @@ function hookLineFor(hookType: string, subject: string, ctx: AccountContext): st
   const s = subject;
   switch (hookType) {
     case "problem":
-      return `«أغلب الناس يغلطون في ${s}… وهذا الفرق.»`;
+      return `«أغلب الناس يغلطون في ${s}… وهذا الفرق»`;
     case "curiosity":
-      return `«ما توقعت إن ${s} يطلع بهذا الشكل.»`;
+      return `«ما توقعت إن ${s} يطلع بهذا الشكل»`;
     case "story":
-      return `«خلني أحكي لك وش صار معي في ${s}.»`;
+      return `«خلني أحكي لك وش صار معي في ${s}»`;
     case "offer":
-      return `«لو تفكر في ${s}، شوف هذا قبل أي شي.»`;
+      return `«لو تفكر في ${s}، شوف هذا قبل أي شي»`;
     default:
       return ctx.niche === "gaming"
-        ? `«مين أفضل خيار في ${s}؟ خليني أحسمها لك.»`
-        : `«خلّينا نجيب على السؤال الأكثر تكراراً عن ${s}.»`;
+        ? `«مين أفضل خيار في ${s}؟ خليني أحسمها لك»`
+        : `«خلّينا نجيب على السؤال الأكثر تكراراً عن ${s}»`;
   }
 }
 
@@ -583,7 +583,7 @@ export function analyze(
     plan: plan.days,
     planFocus: plan.focus,
     contextNote: ctx.hasSubjectEvidence
-      ? `مجال الحساب حسب محتواك: ${ctx.nicheLabel}.`
+      ? `مجال الحساب حسب محتواك: ${ctx.nicheLabel}`
       : NO_SUBJECT_NOTE,
     generatedAt: new Date().toISOString(),
   };
