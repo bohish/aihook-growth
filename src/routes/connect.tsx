@@ -16,7 +16,8 @@ import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useConnection } from "@/hooks/useConnection";
-import { CONNECTION_LABELS_AR, TIKTOK_NOT_REQUESTED_AR, TIKTOK_PERMISSIONS_AR } from "@/lib/tiktok-copy";
+import { CONNECTION_LABELS_AR, CONNECTION_LABELS_EN, TIKTOK_NOT_REQUESTED_AR, TIKTOK_NOT_REQUESTED_EN, TIKTOK_PERMISSIONS_AR, TIKTOK_PERMISSIONS_EN } from "@/lib/tiktok-copy";
+import { useLanguage } from "@/lib/i18n";
 import { disconnectTikTok, startTikTokOAuth } from "@/lib/tiktok.functions";
 import type { ConnectionStatus } from "@/lib/types";
 
@@ -66,6 +67,7 @@ const REASON_AR: Record<string, string> = {
 };
 
 function ConnectPage() {
+  const { language, pick } = useLanguage();
   const navigate = useNavigate();
   const search = Route.useSearch();
   const { user } = useAuth();
@@ -82,9 +84,9 @@ function ConnectPage() {
           : reason === "missing_credentials"
             ? "missing_credentials"
             : "api_error";
-      setOverride({ status, message: REASON_AR[reason] ?? "تعذّر إكمال الربط." });
+       setOverride({ status, message: REASON_AR[reason] ?? pick("تعذّر إكمال الربط", "Connection could not be completed") });
     }
-  }, [search.state, search.reason]);
+   }, [search.state, search.reason, pick]);
 
   const state = override ?? connection;
   const status = state.status;
@@ -105,10 +107,10 @@ function ConnectPage() {
         return;
       }
       setOverride({ status: result.status, message: result.message });
-      toast.error(result.message ?? "تعذّر بدء الربط");
+       toast.error((result.message ?? pick("تعذّر بدء الربط", "Connection could not start")).replaceAll(".", ""));
     } catch {
-      setOverride({ status: "api_error", message: "تعذّر بدء عملية الربط." });
-      toast.error("تعذّر بدء عملية الربط");
+       setOverride({ status: "api_error", message: pick("تعذّر بدء عملية الربط", "Connection could not start") });
+       toast.error(pick("تعذّر بدء عملية الربط", "Connection could not start"));
     } finally {
       setBusy(false);
     }
@@ -120,9 +122,9 @@ function ConnectPage() {
       await disconnectTikTok();
       setOverride(null);
       await refetch();
-      toast.success("تم فصل الحساب");
+       toast.success(pick("تم فصل الحساب", "Account disconnected"));
     } catch {
-      toast.error("تعذّر فصل الحساب");
+       toast.error(pick("تعذّر فصل الحساب", "Account could not be disconnected"));
     } finally {
       setBusy(false);
     }
@@ -133,18 +135,17 @@ function ConnectPage() {
       <div className="mx-auto w-full max-w-3xl px-4 py-12">
         <div className="panel p-6 md:p-8">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h1 className="text-xl font-bold sm:text-2xl">ربط حساب TikTok</h1>
+             <h1 className="text-xl font-bold sm:text-2xl">{pick("ربط حساب TikTok", "Connect TikTok account")}</h1>
             <span className={`inline-flex items-center gap-2 text-sm ${ui.tone}`}>
               <ui.icon
                 className={`size-4 ${status === "connecting" || isLoading ? "animate-spin" : ""}`}
               />
-              {CONNECTION_LABELS_AR[status]}
+               {(language === "ar" ? CONNECTION_LABELS_AR : CONNECTION_LABELS_EN)[status]}
             </span>
           </div>
 
           <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-            سيتم تحويلك إلى صفحة تسجيل الدخول الرسمية من TikTok. لا نطلب اسم المستخدم ولا كلمة
-            المرور، ويُخزّن التوكن مشفّراً على الخادم فقط ولا يظهر في المتصفح.
+             {pick("سيتم تحويلك إلى صفحة TikTok الرسمية، ولا نطلب اسم المستخدم أو كلمة المرور، ويُخزّن التوكن مشفّراً على الخادم فقط", "You will be redirected to TikTok's official page, and we never ask for your username or password, while tokens remain encrypted on the server")}
           </p>
 
           {message ? (
@@ -161,15 +162,13 @@ function ConnectPage() {
 
           {status === "missing_credentials" ? (
             <div className="mt-4 rounded-xl border border-warning/40 bg-warning/8 p-4 text-xs leading-relaxed text-warning">
-              الربط الرسمي يحتاج إضافة <span dir="ltr">TIKTOK_CLIENT_KEY</span> و
-              <span dir="ltr"> TIKTOK_CLIENT_SECRET</span> في إعدادات المشروع ← الأسرار. لا يوجد
-              وضع بديل: التحليل يعمل على بيانات حقيقية فقط.
+               {pick("الربط الرسمي يحتاج إضافة", "Official connection requires")} <span dir="ltr">TIKTOK_CLIENT_KEY</span> {pick("و", "and")} <span dir="ltr">TIKTOK_CLIENT_SECRET</span> {pick("في إعدادات المشروع ← الأسرار، والتحليل يعمل على بيانات حقيقية فقط", "in Project Settings → Secrets, and analysis uses real data only")}
             </div>
           ) : null}
 
-          <h2 className="mt-8 text-sm font-semibold">الصلاحيات المطلوبة</h2>
+           <h2 className="mt-8 text-sm font-semibold">{pick("الصلاحيات المطلوبة", "Required permissions")}</h2>
           <ul className="mt-3 grid gap-3">
-            {TIKTOK_PERMISSIONS_AR.map((p) => (
+             {(language === "ar" ? TIKTOK_PERMISSIONS_AR : TIKTOK_PERMISSIONS_EN).map((p) => (
               <li key={p.title} className="flex gap-3 rounded-xl border border-border bg-surface/60 p-4">
                 <ShieldCheck className="mt-0.5 size-4 shrink-0 accent-text" />
                 <div>
@@ -180,9 +179,9 @@ function ConnectPage() {
             ))}
           </ul>
 
-          <h2 className="mt-8 text-sm font-semibold">ما لا نطلبه ولا نعرضه</h2>
+           <h2 className="mt-8 text-sm font-semibold">{pick("ما لا نطلبه ولا نعرضه", "What we do not request or show")}</h2>
           <ul className="mt-3 grid gap-2">
-            {TIKTOK_NOT_REQUESTED_AR.map((t) => (
+             {(language === "ar" ? TIKTOK_NOT_REQUESTED_AR : TIKTOK_NOT_REQUESTED_EN).map((t) => (
               <li key={t} className="flex items-center gap-2 text-xs text-muted-foreground">
                 <Lock className="size-3.5 shrink-0" />
                 {t}
@@ -197,12 +196,12 @@ function ConnectPage() {
               onClick={() => void connect()}
             >
               {busy ? <Loader2 className="size-4 animate-spin" /> : null}
-              {status === "connected" || status === "expired" ? "إعادة ربط الحساب" : "ربط حساب TikTok"}
+               {status === "connected" || status === "expired" ? pick("إعادة ربط الحساب", "Reconnect account") : pick("ربط حساب TikTok", "Connect TikTok account")}
             </Button>
             {status === "connected" ? (
               <>
                 <Button asChild variant="outline" className="h-12 flex-1 text-base">
-                  <Link to="/analyzing">تحليل حسابي الآن</Link>
+                   <Link to="/analyzing">{pick("تحليل حسابي الآن", "Analyze my account now")}</Link>
                 </Button>
                 <Button
                   variant="outline"
@@ -210,7 +209,7 @@ function ConnectPage() {
                   disabled={busy}
                   onClick={() => void disconnect()}
                 >
-                  فصل الحساب
+                   {pick("فصل الحساب", "Disconnect")}
                 </Button>
               </>
             ) : null}
@@ -218,11 +217,11 @@ function ConnectPage() {
 
           {!user ? (
             <p className="mt-6 text-xs text-muted-foreground">
-              يلزم{" "}
+               {pick("يلزم", "You need to")} {" "}
               <Link to="/auth" className="accent-text underline-offset-4 hover:underline">
-                تسجيل الدخول
+                 {pick("تسجيل الدخول", "sign in")}
               </Link>{" "}
-              أولاً حتى نربط حساب تيك توك بحسابك ونحفظ التحليلات بشكل آمن.
+               {pick("أولاً لربط حساب TikTok وحفظ التحليلات بأمان", "first to connect TikTok and save analyses securely")}
             </p>
           ) : null}
         </div>
