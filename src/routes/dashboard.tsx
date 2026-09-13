@@ -19,6 +19,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useConnection } from "@/hooks/useConnection";
 import { AnalysisUnavailableError, readCachedReport, runAnalysis } from "@/lib/report";
 import type { AnalysisReport } from "@/lib/types";
+import { useLanguage } from "@/lib/i18n";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
@@ -63,6 +64,7 @@ function EmptyState({
 }
 
 function Dashboard() {
+  const { pick, locale } = useLanguage();
   const { user } = useAuth();
   const { connection, isLoading: connLoading } = useConnection();
   const [report, setReport] = useState<AnalysisReport | null>(null);
@@ -86,21 +88,21 @@ function Dashboard() {
       })
       .catch((error: unknown) => {
         setProblem(
-          error instanceof AnalysisUnavailableError ? error.message : "تعذّر تحميل التحليل من تيك توك.",
+           error instanceof AnalysisUnavailableError ? error.message.replaceAll(".", "") : pick("تعذّر تحميل التحليل من TikTok", "TikTok analysis could not be loaded"),
         );
       })
       .finally(() => setBusy(false));
-  }, [connected]);
+   }, [connected, pick]);
 
   const refresh = async () => {
     setBusy(true);
     try {
       setReport(await runAnalysis());
       setProblem(null);
-      toast.success("تم تحديث التحليل من تيك توك");
+       toast.success(pick("تم تحديث التحليل من TikTok", "TikTok analysis updated"));
     } catch (error) {
       const message =
-        error instanceof AnalysisUnavailableError ? error.message : "تعذّر تحديث التحليل";
+         error instanceof AnalysisUnavailableError ? error.message.replaceAll(".", "") : pick("تعذّر تحديث التحليل", "Analysis could not be updated");
       setProblem(message);
       toast.error(message);
     } finally {
@@ -111,9 +113,9 @@ function Dashboard() {
   if (!user) {
     return (
       <EmptyState
-        title="سجّل الدخول لعرض تحليل حسابك"
-        body="نربط تحليلك بحسابك حتى نحفظ السجل ونقارن الدرجة عبر الوقت."
-        cta={{ to: "/auth", label: "تسجيل الدخول" }}
+         title={pick("سجّل الدخول لعرض تحليل حسابك", "Sign in to view your account analysis")}
+         body={pick("نربط التحليل بحسابك لحفظ السجل ومقارنة الدرجة عبر الوقت", "We link analysis to your account to save history and compare scores over time")}
+         cta={{ to: "/auth", label: pick("تسجيل الدخول", "Sign in") }}
       />
     );
   }
@@ -123,7 +125,7 @@ function Dashboard() {
       <AppShell>
         <div className="flex min-h-[60vh] items-center justify-center gap-2 text-sm text-muted-foreground">
           <Loader2 className="size-4 animate-spin" />
-          نتحقق من حالة الربط…
+           {pick("نتحقق من حالة الربط…", "Checking connection…")}
         </div>
       </AppShell>
     );
@@ -132,12 +134,12 @@ function Dashboard() {
   if (!connected) {
     return (
       <EmptyState
-        title="اربط حساب تيك توك لبدء التحليل"
+         title={pick("اربط حساب TikTok لبدء التحليل", "Connect TikTok to start analysis")}
         body={
           connection.message ??
-          "لا توجد بيانات لعرضها قبل الربط. التحليل يعمل على حسابك الحقيقي فقط، ولا نعرض أي أرقام افتراضية."
+           pick("لا توجد بيانات قبل الربط، فالتحليل يعمل على حسابك الحقيقي فقط ولا يعرض أرقاماً افتراضية", "There is no data before connection because analysis uses your real account only and shows no placeholder numbers")
         }
-        cta={{ to: "/connect", label: "ربط حساب TikTok" }}
+         cta={{ to: "/connect", label: pick("ربط حساب TikTok", "Connect TikTok") }}
       />
     );
   }
@@ -151,22 +153,22 @@ function Dashboard() {
               <span className="flex size-10 items-center justify-center rounded-xl bg-destructive/12 text-destructive">
                 <AlertTriangle className="size-5" />
               </span>
-              <h1 className="mt-5 text-xl font-bold">التحليل غير متاح حالياً</h1>
+               <h1 className="mt-5 text-xl font-bold">{pick("التحليل غير متاح حالياً", "Analysis is currently unavailable")}</h1>
               <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{problem}</p>
               <div className="mt-6 flex flex-wrap gap-3">
                 <Button onClick={() => void refresh()} disabled={busy}>
                   {busy ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
-                  إعادة المحاولة
+                   {pick("إعادة المحاولة", "Try again")}
                 </Button>
                 <Button asChild variant="outline">
-                  <Link to="/connect">إدارة الربط</Link>
+                   <Link to="/connect">{pick("إدارة الربط", "Manage connection")}</Link>
                 </Button>
               </div>
             </div>
           ) : (
             <div className="flex min-h-[40vh] items-center justify-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="size-4 animate-spin" />
-              نجلب بيانات حسابك من تيك توك…
+               {pick("نجلب بيانات حسابك من TikTok…", "Fetching your TikTok account data…")}
             </div>
           )}
         </div>
@@ -194,10 +196,10 @@ function Dashboard() {
             ) : null}
             <div>
               <h1 className="text-xl font-bold sm:text-2xl">{report.account.displayName}</h1>
-              <p className="mt-1 text-xs text-muted-foreground">آخر تحديث {new Date(report.generatedAt).toLocaleString("ar-SA")}</p>
+               <p className="mt-1 text-xs text-muted-foreground">{pick("آخر تحديث", "Last updated")} {new Date(report.generatedAt).toLocaleString(locale)}</p>
               {report.limitedData ? (
                 <p className="mt-2 text-xs text-warning">
-                  عدد الفيديوهات المتاح قليل، فبعض المحاور تُحسب بثقة أقل.
+                   {pick("عدد الفيديوهات المتاح قليل، لذلك تُحسب بعض المحاور بثقة أقل", "Few videos are available, so some dimensions have lower confidence")}
                 </p>
               ) : null}
             </div>
@@ -205,10 +207,10 @@ function Dashboard() {
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" onClick={() => void refresh()} disabled={busy}>
               {busy ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
-              تحديث
+               {pick("تحديث", "Refresh")}
             </Button>
             <Button asChild size="sm" variant="outline">
-              <Link to="/connect">إدارة الربط</Link>
+               <Link to="/connect">{pick("إدارة الربط", "Manage connection")}</Link>
             </Button>
           </div>
         </header>
@@ -218,11 +220,11 @@ function Dashboard() {
 
           <Tabs defaultValue="metrics" className="mt-2">
             <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 bg-surface p-1">
-              <TabsTrigger value="metrics">نظرة عامة</TabsTrigger>
-              <TabsTrigger value="content">أقوى الهوكات</TabsTrigger>
-              <TabsTrigger value="dna">نمطك</TabsTrigger>
-              <TabsTrigger value="actions">الخطة التسويقية</TabsTrigger>
-              <TabsTrigger value="plan">خطة الأسبوع</TabsTrigger>
+               <TabsTrigger value="metrics">{pick("نظرة عامة", "Overview")}</TabsTrigger>
+               <TabsTrigger value="content">{pick("أقوى الهوكات", "Strongest hooks")}</TabsTrigger>
+               <TabsTrigger value="dna">{pick("نمطك", "Your pattern")}</TabsTrigger>
+               <TabsTrigger value="actions">{pick("الخطة التسويقية", "Marketing plan")}</TabsTrigger>
+               <TabsTrigger value="plan">{pick("خطة الأسبوع", "Weekly plan")}</TabsTrigger>
 
             </TabsList>
 
@@ -249,10 +251,10 @@ function Dashboard() {
                 <div className="panel flex flex-col items-start gap-4 p-6">
                   <div className="flex items-center gap-2">
                     <Sparkles className="size-4 accent-text" />
-                    <h2 className="text-base font-semibold">لا تكفي البيانات لبناء خطة أسبوعية</h2>
+                     <h2 className="text-base font-semibold">{pick("لا تكفي البيانات لبناء خطة أسبوعية", "Not enough data for a weekly plan")}</h2>
                   </div>
                   <p className="max-w-xl text-sm leading-relaxed text-muted-foreground">
-                    انشر عدداً أكبر من الفيديوهات ثم أعد التحليل لبناء خطة مبنية على أداء حسابك.
+                     {pick("انشر فيديوهات أكثر ثم أعد التحليل لبناء خطة من أداء حسابك", "Publish more videos, then rerun analysis to build a plan from your performance")}
                   </p>
                 </div>
               )}

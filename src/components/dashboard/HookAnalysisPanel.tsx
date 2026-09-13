@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getVideoHookAnalysis, type StoredHookAnalysis } from "@/lib/hook-agent.functions";
+import { useLanguage } from "@/lib/i18n";
 
 const VERDICT_AR: Record<string, { label: string; tone: string }> = {
   continue: { label: "استمر", tone: "border-border text-foreground" },
@@ -50,6 +51,7 @@ function ScorePill({ label, value }: { label: string; value: number }) {
  * calls the external agent when the user asks for it (one request at a time).
  */
 export function HookAnalysisPanel({ videoId, shareUrl }: { videoId: string; shareUrl: string | null }) {
+  const { pick } = useLanguage();
   const run = useServerFn(getVideoHookAnalysis);
   const [data, setData] = useState<StoredHookAnalysis | null>(null);
   const [busy, setBusy] = useState(false);
@@ -78,8 +80,8 @@ export function HookAnalysisPanel({ videoId, shareUrl }: { videoId: string; shar
     } catch {
       setData((prev) =>
         prev
-          ? { ...prev, status: "failed", error_message: "تعذّر تنفيذ التحليل" }
-          : ({ status: "failed", video_id: videoId, error_message: "تعذّر تنفيذ التحليل" } as StoredHookAnalysis),
+           ? { ...prev, status: "failed", error_message: pick("تعذّر تنفيذ التحليل", "Analysis could not be completed") }
+           : ({ status: "failed", video_id: videoId, error_message: pick("تعذّر تنفيذ التحليل", "Analysis could not be completed") } as StoredHookAnalysis),
       );
     } finally {
       setBusy(false);
@@ -92,12 +94,12 @@ export function HookAnalysisPanel({ videoId, shareUrl }: { videoId: string; shar
   return (
     <div className="mt-3 border border-border/60 bg-surface/50 p-3">
       <p className="flex items-center gap-1.5 text-xs font-semibold">
-        <Sparkles className="size-3.5 text-primary" /> تحليل الهوك
+         <Sparkles className="size-3.5 text-primary" /> {pick("تحليل الهوك", "Hook analysis")}
       </p>
 
       {busy ? (
         <p className="mt-2 flex items-center gap-2 text-[11px] text-muted-foreground">
-          <Loader2 className="size-3.5 animate-spin" /> جاري تحليل أول 5 ثوانٍ…
+           <Loader2 className="size-3.5 animate-spin" /> {pick("جاري تحليل أول 5 ثوانٍ…", "Analyzing the first 5 seconds…")}
         </p>
       ) : data?.status === "completed" ? (
         <div className="mt-2 space-y-2 text-[11px] leading-relaxed text-muted-foreground">
@@ -119,19 +121,19 @@ export function HookAnalysisPanel({ videoId, shareUrl }: { videoId: string; shar
                 {verdict.label}
               </Badge>
             ) : null}
-            {data.clarity_score !== null ? <ScorePill label="الوضوح" value={data.clarity_score} /> : null}
-            {data.pacing_score !== null ? <ScorePill label="الإيقاع" value={data.pacing_score} /> : null}
+             {data.clarity_score !== null ? <ScorePill label={pick("الوضوح", "Clarity")} value={data.clarity_score} /> : null}
+             {data.pacing_score !== null ? <ScorePill label={pick("الإيقاع", "Pacing")} value={data.pacing_score} /> : null}
           </div>
 
           {data.hook_summary ? <p className="text-foreground">{data.hook_summary}</p> : null}
           {data.best_moment ? (
             <p>
-              أقوى نقطة: <span className="text-foreground">{data.best_moment}</span>
+               {pick("أقوى نقطة", "Best moment")}: <span className="text-foreground">{data.best_moment}</span>
             </p>
           ) : null}
           {data.retention_risk ? (
             <p>
-              أكبر خطر: <span className="text-foreground">{data.retention_risk}</span>
+               {pick("أكبر خطر", "Biggest risk")}: <span className="text-foreground">{data.retention_risk}</span>
             </p>
           ) : null}
 
@@ -142,7 +144,7 @@ export function HookAnalysisPanel({ videoId, shareUrl }: { videoId: string; shar
               className="flex items-center gap-1 text-[11px] font-medium accent-text"
             >
               <ChevronDown className={`size-3 transition-transform ${open ? "rotate-180" : ""}`} />
-              {open ? "إخفاء التفاصيل" : "عرض التفاصيل"}
+               {open ? pick("إخفاء التفاصيل", "Hide details") : pick("عرض التفاصيل", "Show details")}
             </button>
           ) : null}
 
@@ -155,7 +157,7 @@ export function HookAnalysisPanel({ videoId, shareUrl }: { videoId: string; shar
               ))}
               {data.three_rewrites.length > 0 ? (
                 <div className="pt-1">
-                  <p className="font-medium text-foreground">بدايات بديلة أقوى:</p>
+                   <p className="font-medium text-foreground">{pick("بدايات بديلة أقوى", "Stronger alternative openings")}:</p>
                   <ol className="mt-1 list-decimal space-y-0.5 pe-4">
                     {data.three_rewrites.map((r, i) => (
                       <li key={i}>{r}</li>
@@ -163,25 +165,25 @@ export function HookAnalysisPanel({ videoId, shareUrl }: { videoId: string; shar
                   </ol>
                 </div>
               ) : null}
-              {data.confidence !== null ? <p>الثقة: {Math.round(data.confidence * 100) / 100}</p> : null}
+               {data.confidence !== null ? <p>{pick("الثقة", "Confidence")}: {Math.round(data.confidence * 100) / 100}</p> : null}
             </div>
           ) : null}
 
           <Button size="sm" variant="ghost" className="h-7 px-2 text-[11px]" onClick={() => void analyze(true)}>
-            <RefreshCw className="size-3" /> إعادة التحليل من جديد
+             <RefreshCw className="size-3" /> {pick("إعادة التحليل من جديد", "Run analysis again")}
           </Button>
 
         </div>
       ) : data?.status === "failed" ? (
         <div className="mt-2 text-[11px]">
-          <p className="text-destructive">{data.error_message ?? "فشل تحليل الهوك"}</p>
+           <p className="text-destructive">{data.error_message?.replaceAll(".", "") ?? pick("فشل تحليل الهوك", "Hook analysis failed")}</p>
           <Button size="sm" variant="outline" className="mt-2 h-7 px-2 text-[11px]" onClick={() => void analyze(true)}>
-            <RefreshCw className="size-3" /> إعادة المحاولة
+             <RefreshCw className="size-3" /> {pick("إعادة المحاولة", "Try again")}
           </Button>
         </div>
       ) : (
         <Button size="sm" variant="outline" className="mt-2 h-7 px-2 text-[11px]" onClick={() => void analyze(false)}>
-          تحليل الهوك
+           {pick("تحليل الهوك", "Analyze hook")}
         </Button>
       )}
     </div>
