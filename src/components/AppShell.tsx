@@ -4,17 +4,18 @@ import { useState, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-
-const NAV = [
-  { to: "/", label: "الرئيسية" },
-  { to: "/dashboard", label: "التحليل" },
-  { to: "/history", label: "السجل" },
-  { to: "/pricing", label: "الأسعار" },
-] as const;
+import { useLanguage } from "@/lib/i18n";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
   const { user, signOut } = useAuth();
+  const { language, setLanguage, t } = useLanguage();
+  const nav = [
+    { to: "/" as const, label: t("navHome") },
+    { to: "/dashboard" as const, label: t("navAnalysis") },
+    { to: "/history" as const, label: t("navHistory") },
+    { to: "/pricing" as const, label: t("navPricing") },
+  ];
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -25,7 +26,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </Link>
 
           <nav className="mr-auto hidden items-center gap-1 md:flex">
-            {NAV.map((item) => (
+            {nav.map((item) => (
               <Link
                 key={item.to}
                 to={item.to}
@@ -41,19 +42,22 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div className="mr-auto flex items-center gap-2 md:mr-0">
             {user ? (
               <Button variant="ghost" size="sm" onClick={() => void signOut()}>
-                خروج
+                {t("signOut")}
               </Button>
             ) : (
               <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
-                <Link to="/auth">دخول</Link>
+                <Link to="/auth">{t("signIn")}</Link>
               </Button>
             )}
             <Button asChild size="sm">
-              <Link to="/connect">حلّل حسابي</Link>
+              <Link to="/connect">{t("analyzeAccount")}</Link>
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setLanguage(language === "ar" ? "en" : "ar")} aria-label={language === "ar" ? "English" : "العربية"}>
+              {language === "ar" ? "EN" : "AR"}
             </Button>
             <button
               type="button"
-              aria-label="القائمة"
+              aria-label={t("menu")}
               onClick={() => setOpen((v) => !v)}
               className="p-2 text-muted-foreground transition-colors hover:text-foreground md:hidden"
             >
@@ -64,7 +68,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
         {open ? (
           <nav className="grid gap-1 border-t border-border px-4 py-3 md:hidden">
-            {NAV.map((item) => (
+            {nav.map((item) => (
               <Link
                 key={item.to}
                 to={item.to}
@@ -76,7 +80,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             ))}
             {!user ? (
                <Link to="/auth" onClick={() => setOpen(false)} className="border-b border-border px-3 py-2 text-sm text-muted-foreground hover:text-foreground">
-                دخول / إنشاء حساب
+                {language === "ar" ? "دخول / إنشاء حساب" : "Sign in / Create account"}
               </Link>
             ) : null}
           </nav>
@@ -87,17 +91,17 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       <footer className="border-t border-border py-8">
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-4 text-xs text-muted-foreground sm:flex-row sm:items-center">
-          <p>© {new Date().getFullYear()} HOOK — غير مرتبط بشركة TikTok.</p>
+          <p>© {new Date().getFullYear()} HOOK — {t("footer")}</p>
           <nav className="flex items-center gap-4">
             <Link to="/terms" className="transition-colors hover:text-foreground">
-              شروط الاستخدام
+              {t("terms")}
             </Link>
             <Link to="/privacy" className="transition-colors hover:text-foreground">
-              سياسة الخصوصية
+              {t("privacy")}
             </Link>
           </nav>
           <p className="sm:mr-auto">
-            التحليل يعتمد على بيانات حسابك فقط، ولا يتضمن أي تقديرات ديموغرافية.
+            {t("footerNote")}
           </p>
         </div>
       </footer>
