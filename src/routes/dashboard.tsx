@@ -216,7 +216,9 @@ function Dashboard() {
         </header>
 
         <div className="mt-6 grid gap-6">
+          <BusinessCreatorCard />
           <ScoreCard report={report} />
+
 
           <Tabs defaultValue="metrics" className="mt-2">
             <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 bg-surface p-1">
