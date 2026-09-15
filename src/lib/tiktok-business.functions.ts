@@ -82,7 +82,7 @@ export const getBusinessCreatorData = createServerFn({ method: "GET" })
         status: "connected",
         scopes: result.data.scopes,
         creator: result.data.creator,
-        audience: result.data.audience,
+        audience: result.data.audience as Record<string, AudienceValue>,
         videoCount: result.data.videoCount,
       };
     } catch {
