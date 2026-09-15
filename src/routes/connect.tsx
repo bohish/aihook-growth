@@ -219,6 +219,7 @@ function ConnectPage() {
               {busy ? <Loader2 className="size-4 animate-spin" /> : null}
                {status === "connected" || status === "expired" ? pick("إعادة ربط الحساب", "Reconnect account") : pick("ربط حساب TikTok", "Connect TikTok account")}
             </Button>
+            {false ? (
             <Button
               variant="outline"
               className="h-12 flex-1 text-base"
@@ -227,6 +228,7 @@ function ConnectPage() {
             >
               {pick("ربط TikTok for Business", "Connect TikTok for Business")}
             </Button>
+            ) : null}
             {status === "connected" ? (
               <>
                 <Button asChild variant="outline" className="h-12 flex-1 text-base">
