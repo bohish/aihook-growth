@@ -46,13 +46,19 @@ export const startTikTokBusinessOAuth = createServerFn({ method: "POST" })
     return { ok: true, authorizationUrl: url.toString() };
   });
 
+export type AudienceValue =
+  | string
+  | number
+  | Array<string | number | Record<string, string | number>>
+  | Record<string, string | number>;
+
 export interface BusinessCreatorResult {
   ok: boolean;
   status: "not_connected" | "connected" | "denied" | "api_error";
   message?: string;
   scopes?: string[];
   creator?: Record<string, string | number>;
-  audience?: Record<string, unknown>;
+  audience?: Record<string, AudienceValue>;
   videoCount?: number | null;
 }
 
