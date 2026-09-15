@@ -214,7 +214,7 @@ function ConnectPage() {
             <Button
               className="h-12 flex-1 text-base"
               disabled={busy || status === "missing_credentials"}
-              onClick={() => void connect()}
+              onClick={() => void connectBusiness()}
             >
               {busy ? <Loader2 className="size-4 animate-spin" /> : null}
                {status === "connected" || status === "expired" ? pick("إعادة ربط الحساب", "Reconnect account") : pick("ربط حساب TikTok", "Connect TikTok account")}
