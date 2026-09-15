@@ -37,7 +37,7 @@ export const startTikTokBusinessOAuth = createServerFn({ method: "POST" })
       "Set-Cookie",
       `${store.OAUTH_COOKIE}=${cookieValue}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=900`,
     );
-    const url = new URL("https://ads.tiktok.com/marketing_api/auth");
+    const url = new URL("https://www.tiktok.com/v2/auth/authorize/");
     url.searchParams.set("app_id", appId);
     url.searchParams.set("state", state);
     url.searchParams.set("redirect_uri", TIKTOK_BUSINESS_REDIRECT_URI);
