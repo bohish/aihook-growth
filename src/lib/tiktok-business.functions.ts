@@ -7,8 +7,7 @@ import { getRequest, setResponseHeader } from "@tanstack/react-start/server";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-export const TIKTOK_BUSINESS_REDIRECT_URI =
-  "https://aihook.store/api/public/tiktok-business/callback";
+export const TIKTOK_BUSINESS_REDIRECT_URI = "https://aihook.store/api/public/tiktok-business/callback";
 
 /** Scopes approved for this app. */
 export const TIKTOK_BUSINESS_SCOPES = [
@@ -38,11 +37,12 @@ export const startTikTokBusinessOAuth = createServerFn({ method: "POST" })
       "Set-Cookie",
       `${store.OAUTH_COOKIE}=${cookieValue}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=900`,
     );
-    const url = new URL("https://business-api.tiktok.com/portal/auth");
-    url.searchParams.set("app_id", appId);
+    const url = new URL("https://www.tiktok.com/v2/auth/authorize/");
+    url.searchParams.set("client_key", appId);
     url.searchParams.set("state", state);
     url.searchParams.set("redirect_uri", TIKTOK_BUSINESS_REDIRECT_URI);
     url.searchParams.set("scope", TIKTOK_BUSINESS_SCOPES.join(","));
+    url.searchParams.set("response_type", "code");
     return { ok: true, authorizationUrl: url.toString() };
   });
 
@@ -52,6 +52,7 @@ export interface BusinessCreatorResult {
   message?: string;
   scopes?: string[];
   creator?: Record<string, string | number>;
+  audience?: Record<string, unknown>;
   videoCount?: number | null;
 }
 
@@ -75,6 +76,7 @@ export const getBusinessCreatorData = createServerFn({ method: "GET" })
         status: "connected",
         scopes: result.data.scopes,
         creator: result.data.creator,
+        audience: result.data.audience,
         videoCount: result.data.videoCount,
       };
     } catch {
