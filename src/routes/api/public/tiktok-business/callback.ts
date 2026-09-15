@@ -41,19 +41,17 @@ export const Route = createFileRoute("/api/public/tiktok-business/callback")({
         }
 
         try {
-          const response = await fetch(
-            "https://business-api.tiktok.com/open_api/v1.3/tt_user/oauth2/token/",
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                app_id: appId,
-                secret,
-                auth_code: code,
-                grant_type: "authorization_code",
-              }),
-            },
-          );
+          const response = await fetch("https://business-api.tiktok.com/open_api/v1.3/tt_user/oauth2/token/", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              client_id: appId,
+              client_secret: secret,
+              auth_code: code,
+              grant_type: "authorization_code",
+              redirect_uri: "https://aihook.store/api/public/tiktok-business/callback",
+            }),
+          });
           const payload = (await response.json()) as {
             code?: number;
             message?: string;
