@@ -163,7 +163,7 @@ function BusinessCreatorCard() {
               <div className="mt-4 border-t border-border pt-4">
                 <p className="text-xs font-semibold">{pick("الجمهور", "Audience")}</p>
                 <dl className="mt-2 grid gap-2">
-                  {audienceEntries.map(([labels, value], i) => (
+                  {audienceEntries.map(({ labels, value }, i) => (
                     <div key={i} className="flex flex-wrap gap-2 text-xs">
                       <dt className="text-muted-foreground">{pick(labels[0], labels[1])}:</dt>
                       <dd className="font-medium">{fmt(value)}</dd>
