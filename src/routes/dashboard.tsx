@@ -63,6 +63,77 @@ function EmptyState({
   );
 }
 
+/** TikTok for Business creator card. Shows only fields TikTok actually returned. */
+function BusinessCreatorCard() {
+  const { pick, locale } = useLanguage();
+  const [state, setState] = useState<BusinessCreatorResult | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    void getBusinessCreatorData()
+      .then((r) => {
+        if (alive) setState(r);
+      })
+      .catch(() => {
+        if (alive) setState({ ok: false, status: "api_error" });
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  if (!state || state.status === "not_connected") return null;
+
+  const LABELS: Record<string, [string, string]> = {
+    display_name: ["الاسم", "Name"],
+    username: ["المعرّف", "Username"],
+    follower_count: ["المتابعون", "Followers"],
+    following_count: ["يتابع", "Following"],
+    likes_count: ["الإعجابات", "Likes"],
+    video_count: ["الفيديوهات", "Videos"],
+  };
+
+  const entries = Object.entries(state.creator ?? {}).filter(([k]) => k in LABELS);
+
+  return (
+    <div className="panel p-5">
+      <h2 className="text-sm font-semibold">{pick("TikTok for Business", "TikTok for Business")}</h2>
+      {state.ok && entries.length > 0 ? (
+        <>
+          <dl className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
+            {entries.map(([key, value]) => (
+              <div key={key}>
+                <dt className="text-xs text-muted-foreground">
+                  {pick(LABELS[key]![0], LABELS[key]![1])}
+                </dt>
+                <dd className="mt-1 text-sm font-medium">
+                  {typeof value === "number" ? value.toLocaleString(locale) : value}
+                </dd>
+              </div>
+            ))}
+          </dl>
+          {state.videoCount !== null && state.videoCount !== undefined ? (
+            <p className="mt-4 text-xs text-muted-foreground">
+              {pick("فيديوهات مصرّح بها", "Authorized videos")}: {state.videoCount.toLocaleString(locale)}
+            </p>
+          ) : null}
+        </>
+      ) : (
+        <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+          {state.status === "denied"
+            ? pick(
+                "الربط موجود لكن TikTok لم يسمح بقراءة بيانات المُنشئ حتى الآن، فلا تُعرض أي أرقام",
+                "The connection exists, but TikTok has not authorized creator data yet, so no numbers are shown",
+              )
+            : pick("تعذّر قراءة بيانات TikTok for Business حالياً", "TikTok for Business data is unavailable right now")}
+        </p>
+      )}
+    </div>
+  );
+}
+
+
+
 function Dashboard() {
   const { pick, locale } = useLanguage();
   const { user } = useAuth();
