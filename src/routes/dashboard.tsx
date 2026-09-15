@@ -95,33 +95,6 @@ function BusinessCreatorCard() {
   };
 
   const entries = Object.entries(state.creator ?? {}).filter(([k]) => k in LABELS);
-  const audienceEntries = Object.entries(state.audience ?? {});
-  const audienceLabel = (key: string) => {
-    if (key.includes("gender")) return pick("الجنس", "Gender");
-    if (key.includes("age")) return pick("العمر", "Age");
-    if (key.includes("country")) return pick("الدول", "Countries");
-    if (key.includes("region")) return pick("المناطق", "Regions");
-    return pick("المدن", "Cities");
-  };
-  const audienceValue = (value: unknown) => {
-    if (Array.isArray(value))
-      return value
-        .map((item) =>
-          item && typeof item === "object"
-            ? Object.values(item as Record<string, unknown>)
-                .filter((part) => typeof part === "string" || typeof part === "number")
-                .join(" — ")
-            : String(item ?? ""),
-        )
-        .filter(Boolean)
-        .join("، ");
-    if (value && typeof value === "object")
-      return Object.entries(value as Record<string, unknown>)
-        .filter(([, part]) => typeof part === "string" || typeof part === "number")
-        .map(([label, part]) => `${label}: ${String(part)}`)
-        .join("، ");
-    return "";
-  };
 
   return (
     <div className="panel p-5">
@@ -131,7 +104,9 @@ function BusinessCreatorCard() {
           <dl className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
             {entries.map(([key, value]) => (
               <div key={key}>
-                <dt className="text-xs text-muted-foreground">{pick(LABELS[key]![0], LABELS[key]![1])}</dt>
+                <dt className="text-xs text-muted-foreground">
+                  {pick(LABELS[key]![0], LABELS[key]![1])}
+                </dt>
                 <dd className="mt-1 text-sm font-medium">
                   {typeof value === "number" ? value.toLocaleString(locale) : value}
                 </dd>
@@ -143,19 +118,6 @@ function BusinessCreatorCard() {
               {pick("فيديوهات مصرّح بها", "Authorized videos")}: {state.videoCount.toLocaleString(locale)}
             </p>
           ) : null}
-          {audienceEntries.length > 0 ? (
-            <div className="mt-5 border-t border-border pt-4">
-              <h3 className="text-sm font-semibold">{pick("توزيع الجمهور", "Audience breakdown")}</h3>
-              <dl className="mt-3 grid gap-4 sm:grid-cols-2">
-                {audienceEntries.map(([key, value]) => (
-                  <div key={key}>
-                    <dt className="text-xs text-muted-foreground">{audienceLabel(key)}</dt>
-                    <dd className="mt-1 text-sm font-medium">{audienceValue(value)}</dd>
-                  </div>
-                ))}
-              </dl>
-            </div>
-          ) : null}
         </>
       ) : (
         <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
@@ -164,15 +126,14 @@ function BusinessCreatorCard() {
                 "الربط موجود لكن TikTok لم يسمح بقراءة بيانات المُنشئ حتى الآن، فلا تُعرض أي أرقام",
                 "The connection exists, but TikTok has not authorized creator data yet, so no numbers are shown",
               )
-            : pick(
-                "تعذّر قراءة بيانات TikTok for Business حالياً",
-                "TikTok for Business data is unavailable right now",
-              )}
+            : pick("تعذّر قراءة بيانات TikTok for Business حالياً", "TikTok for Business data is unavailable right now")}
         </p>
       )}
     </div>
   );
 }
+
+
 
 function Dashboard() {
   const { pick, locale } = useLanguage();
@@ -199,25 +160,21 @@ function Dashboard() {
       })
       .catch((error: unknown) => {
         setProblem(
-          error instanceof AnalysisUnavailableError
-            ? error.message.replaceAll(".", "")
-            : pick("تعذّر تحميل التحليل من TikTok", "TikTok analysis could not be loaded"),
+           error instanceof AnalysisUnavailableError ? error.message.replaceAll(".", "") : pick("تعذّر تحميل التحليل من TikTok", "TikTok analysis could not be loaded"),
         );
       })
       .finally(() => setBusy(false));
-  }, [connected, pick]);
+   }, [connected, pick]);
 
   const refresh = async () => {
     setBusy(true);
     try {
       setReport(await runAnalysis());
       setProblem(null);
-      toast.success(pick("تم تحديث التحليل من TikTok", "TikTok analysis updated"));
+       toast.success(pick("تم تحديث التحليل من TikTok", "TikTok analysis updated"));
     } catch (error) {
       const message =
-        error instanceof AnalysisUnavailableError
-          ? error.message.replaceAll(".", "")
-          : pick("تعذّر تحديث التحليل", "Analysis could not be updated");
+         error instanceof AnalysisUnavailableError ? error.message.replaceAll(".", "") : pick("تعذّر تحديث التحليل", "Analysis could not be updated");
       setProblem(message);
       toast.error(message);
     } finally {
@@ -228,12 +185,9 @@ function Dashboard() {
   if (!user) {
     return (
       <EmptyState
-        title={pick("سجّل الدخول لعرض تحليل حسابك", "Sign in to view your account analysis")}
-        body={pick(
-          "نربط التحليل بحسابك لحفظ السجل ومقارنة الدرجة عبر الوقت",
-          "We link analysis to your account to save history and compare scores over time",
-        )}
-        cta={{ to: "/auth", label: pick("تسجيل الدخول", "Sign in") }}
+         title={pick("سجّل الدخول لعرض تحليل حسابك", "Sign in to view your account analysis")}
+         body={pick("نربط التحليل بحسابك لحفظ السجل ومقارنة الدرجة عبر الوقت", "We link analysis to your account to save history and compare scores over time")}
+         cta={{ to: "/auth", label: pick("تسجيل الدخول", "Sign in") }}
       />
     );
   }
@@ -243,7 +197,7 @@ function Dashboard() {
       <AppShell>
         <div className="flex min-h-[60vh] items-center justify-center gap-2 text-sm text-muted-foreground">
           <Loader2 className="size-4 animate-spin" />
-          {pick("نتحقق من حالة الربط…", "Checking connection…")}
+           {pick("نتحقق من حالة الربط…", "Checking connection…")}
         </div>
       </AppShell>
     );
@@ -252,15 +206,12 @@ function Dashboard() {
   if (!connected) {
     return (
       <EmptyState
-        title={pick("اربط حساب TikTok لبدء التحليل", "Connect TikTok to start analysis")}
+         title={pick("اربط حساب TikTok لبدء التحليل", "Connect TikTok to start analysis")}
         body={
           connection.message ??
-          pick(
-            "لا توجد بيانات قبل الربط، فالتحليل يعمل على حسابك الحقيقي فقط ولا يعرض أرقاماً افتراضية",
-            "There is no data before connection because analysis uses your real account only and shows no placeholder numbers",
-          )
+           pick("لا توجد بيانات قبل الربط، فالتحليل يعمل على حسابك الحقيقي فقط ولا يعرض أرقاماً افتراضية", "There is no data before connection because analysis uses your real account only and shows no placeholder numbers")
         }
-        cta={{ to: "/connect", label: pick("ربط حساب TikTok", "Connect TikTok") }}
+         cta={{ to: "/connect", label: pick("ربط حساب TikTok", "Connect TikTok") }}
       />
     );
   }
@@ -274,24 +225,22 @@ function Dashboard() {
               <span className="flex size-10 items-center justify-center rounded-xl bg-destructive/12 text-destructive">
                 <AlertTriangle className="size-5" />
               </span>
-              <h1 className="mt-5 text-xl font-bold">
-                {pick("التحليل غير متاح حالياً", "Analysis is currently unavailable")}
-              </h1>
+               <h1 className="mt-5 text-xl font-bold">{pick("التحليل غير متاح حالياً", "Analysis is currently unavailable")}</h1>
               <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{problem}</p>
               <div className="mt-6 flex flex-wrap gap-3">
                 <Button onClick={() => void refresh()} disabled={busy}>
                   {busy ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
-                  {pick("إعادة المحاولة", "Try again")}
+                   {pick("إعادة المحاولة", "Try again")}
                 </Button>
                 <Button asChild variant="outline">
-                  <Link to="/connect">{pick("إدارة الربط", "Manage connection")}</Link>
+                   <Link to="/connect">{pick("إدارة الربط", "Manage connection")}</Link>
                 </Button>
               </div>
             </div>
           ) : (
             <div className="flex min-h-[40vh] items-center justify-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="size-4 animate-spin" />
-              {pick("نجلب بيانات حسابك من TikTok…", "Fetching your TikTok account data…")}
+               {pick("نجلب بيانات حسابك من TikTok…", "Fetching your TikTok account data…")}
             </div>
           )}
         </div>
@@ -319,15 +268,10 @@ function Dashboard() {
             ) : null}
             <div>
               <h1 className="text-xl font-bold sm:text-2xl">{report.account.displayName}</h1>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {pick("آخر تحديث", "Last updated")} {new Date(report.generatedAt).toLocaleString(locale)}
-              </p>
+               <p className="mt-1 text-xs text-muted-foreground">{pick("آخر تحديث", "Last updated")} {new Date(report.generatedAt).toLocaleString(locale)}</p>
               {report.limitedData ? (
                 <p className="mt-2 text-xs text-warning">
-                  {pick(
-                    "عدد الفيديوهات المتاح قليل، لذلك تُحسب بعض المحاور بثقة أقل",
-                    "Few videos are available, so some dimensions have lower confidence",
-                  )}
+                   {pick("عدد الفيديوهات المتاح قليل، لذلك تُحسب بعض المحاور بثقة أقل", "Few videos are available, so some dimensions have lower confidence")}
                 </p>
               ) : null}
             </div>
@@ -335,10 +279,10 @@ function Dashboard() {
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" onClick={() => void refresh()} disabled={busy}>
               {busy ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
-              {pick("تحديث", "Refresh")}
+               {pick("تحديث", "Refresh")}
             </Button>
             <Button asChild size="sm" variant="outline">
-              <Link to="/connect">{pick("إدارة الربط", "Manage connection")}</Link>
+               <Link to="/connect">{pick("إدارة الربط", "Manage connection")}</Link>
             </Button>
           </div>
         </header>
@@ -347,13 +291,15 @@ function Dashboard() {
           <BusinessCreatorCard />
           <ScoreCard report={report} />
 
+
           <Tabs defaultValue="metrics" className="mt-2">
             <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 bg-surface p-1">
-              <TabsTrigger value="metrics">{pick("نظرة عامة", "Overview")}</TabsTrigger>
-              <TabsTrigger value="content">{pick("أقوى الهوكات", "Strongest hooks")}</TabsTrigger>
-              <TabsTrigger value="dna">{pick("نمطك", "Your pattern")}</TabsTrigger>
-              <TabsTrigger value="actions">{pick("الخطة التسويقية", "Marketing plan")}</TabsTrigger>
-              <TabsTrigger value="plan">{pick("خطة الأسبوع", "Weekly plan")}</TabsTrigger>
+               <TabsTrigger value="metrics">{pick("نظرة عامة", "Overview")}</TabsTrigger>
+               <TabsTrigger value="content">{pick("أقوى الهوكات", "Strongest hooks")}</TabsTrigger>
+               <TabsTrigger value="dna">{pick("نمطك", "Your pattern")}</TabsTrigger>
+               <TabsTrigger value="actions">{pick("الخطة التسويقية", "Marketing plan")}</TabsTrigger>
+               <TabsTrigger value="plan">{pick("خطة الأسبوع", "Weekly plan")}</TabsTrigger>
+
             </TabsList>
 
             <TabsContent value="metrics" className="mt-6">
@@ -374,19 +320,15 @@ function Dashboard() {
             <TabsContent value="plan" className="mt-6">
               {report.plan.length > 0 ? (
                 <WeeklyPlan days={report.plan} focus={report.planFocus} />
+
               ) : (
                 <div className="panel flex flex-col items-start gap-4 p-6">
                   <div className="flex items-center gap-2">
                     <Sparkles className="size-4 accent-text" />
-                    <h2 className="text-base font-semibold">
-                      {pick("لا تكفي البيانات لبناء خطة أسبوعية", "Not enough data for a weekly plan")}
-                    </h2>
+                     <h2 className="text-base font-semibold">{pick("لا تكفي البيانات لبناء خطة أسبوعية", "Not enough data for a weekly plan")}</h2>
                   </div>
                   <p className="max-w-xl text-sm leading-relaxed text-muted-foreground">
-                    {pick(
-                      "انشر فيديوهات أكثر ثم أعد التحليل لبناء خطة من أداء حسابك",
-                      "Publish more videos, then rerun analysis to build a plan from your performance",
-                    )}
+                     {pick("انشر فيديوهات أكثر ثم أعد التحليل لبناء خطة من أداء حسابك", "Publish more videos, then rerun analysis to build a plan from your performance")}
                   </p>
                 </div>
               )}
