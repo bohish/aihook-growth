@@ -118,6 +118,62 @@ function BusinessCreatorCard() {
               {pick("فيديوهات مصرّح بها", "Authorized videos")}: {state.videoCount.toLocaleString(locale)}
             </p>
           ) : null}
+          {(() => {
+            const AUDIENCE_LABELS: Record<string, [string, string]> = {
+              gender: ["الجنس", "Gender"],
+              age: ["العمر", "Age"],
+              countries: ["الدول", "Countries"],
+              regions: ["المناطق", "Regions"],
+              cities: ["المدن", "Cities"],
+            };
+            const fmt = (v: unknown): string => {
+              if (Array.isArray(v))
+                return v
+                  .map((item) =>
+                    item && typeof item === "object"
+                      ? Object.entries(item as Record<string, unknown>)
+                          .map(([k, val]) => `${k}: ${String(val)}`)
+                          .join(" ")
+                      : String(item),
+                  )
+                  .join("، ");
+              if (v && typeof v === "object")
+                return Object.entries(v as Record<string, unknown>)
+                  .map(([k, val]) => `${k}: ${String(val)}`)
+                  .join("، ");
+              return String(v);
+            };
+            const audienceEntries = Object.entries(state.audience ?? {})
+              .map(([key, value]) => {
+                const group = key.includes("gender")
+                  ? "gender"
+                  : key.includes("age")
+                    ? "age"
+                    : key.includes("countr")
+                      ? "countries"
+                      : key.includes("region")
+                        ? "regions"
+                        : key.includes("city") || key.includes("cities")
+                          ? "cities"
+                          : null;
+                return group ? ([AUDIENCE_LABELS[group], value] as const) : null;
+              })
+              .filter((e): e is [readonly [string, string], unknown] => e !== null);
+            if (audienceEntries.length === 0) return null;
+            return (
+              <div className="mt-4 border-t border-border pt-4">
+                <p className="text-xs font-semibold">{pick("الجمهور", "Audience")}</p>
+                <dl className="mt-2 grid gap-2">
+                  {audienceEntries.map(([labels, value], i) => (
+                    <div key={i} className="flex flex-wrap gap-2 text-xs">
+                      <dt className="text-muted-foreground">{pick(labels[0], labels[1])}:</dt>
+                      <dd className="font-medium">{fmt(value)}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+            );
+          })()}
         </>
       ) : (
         <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
