@@ -18,6 +18,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/useAuth";
 import { useConnection } from "@/hooks/useConnection";
 import { AnalysisUnavailableError, readCachedReport, runAnalysis } from "@/lib/report";
+import { getBusinessCreatorData, type BusinessCreatorResult } from "@/lib/tiktok-business.functions";
 import type { AnalysisReport } from "@/lib/types";
 import { useLanguage } from "@/lib/i18n";
 
