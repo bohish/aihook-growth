@@ -143,22 +143,21 @@ function BusinessCreatorCard() {
                   .join("، ");
               return String(v);
             };
-            const audienceEntries = Object.entries(state.audience ?? {})
-              .map(([key, value]) => {
-                const group = key.includes("gender")
-                  ? "gender"
-                  : key.includes("age")
-                    ? "age"
-                    : key.includes("countr")
-                      ? "countries"
-                      : key.includes("region")
-                        ? "regions"
-                        : key.includes("city") || key.includes("cities")
-                          ? "cities"
-                          : null;
-                return group ? ([AUDIENCE_LABELS[group], value] as const) : null;
-              })
-              .filter((e): e is [readonly [string, string], unknown] => e !== null);
+            const audienceEntries: Array<{ labels: [string, string]; value: unknown }> = [];
+            for (const [key, value] of Object.entries(state.audience ?? {})) {
+              const group = key.includes("gender")
+                ? "gender"
+                : key.includes("age")
+                  ? "age"
+                  : key.includes("countr")
+                    ? "countries"
+                    : key.includes("region")
+                      ? "regions"
+                      : key.includes("cit")
+                        ? "cities"
+                        : null;
+              if (group) audienceEntries.push({ labels: AUDIENCE_LABELS[group]!, value });
+            }
             if (audienceEntries.length === 0) return null;
             return (
               <div className="mt-4 border-t border-border pt-4">
