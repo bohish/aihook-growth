@@ -19,6 +19,7 @@ import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as InternalHookAgentRouteImport } from './routes/internal/hook-agent'
+import { Route as ApiPublicTiktokBusinessCallbackRouteImport } from './routes/api/public/tiktok-business/callback'
 import { Route as ApiPublicTiktokCallbackRouteImport } from './routes/api/public/tiktok/callback'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
@@ -73,6 +74,12 @@ const InternalHookAgentRoute = InternalHookAgentRouteImport.update({
   path: '/internal/hook-agent',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicTiktokBusinessCallbackRoute =
+  ApiPublicTiktokBusinessCallbackRouteImport.update({
+    id: '/api/public/tiktok-business/callback',
+    path: '/api/public/tiktok-business/callback',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicTiktokCallbackRoute = ApiPublicTiktokCallbackRouteImport.update({
   id: '/api/public/tiktok/callback',
   path: '/api/public/tiktok/callback',
@@ -100,6 +107,7 @@ export interface FileRoutesByFullPath {
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
   '/internal/hook-agent': typeof InternalHookAgentRoute
+  '/api/public/tiktok-business/callback': typeof ApiPublicTiktokBusinessCallbackRoute
   '/api/public/tiktok/callback': typeof ApiPublicTiktokCallbackRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -115,6 +123,7 @@ export interface FileRoutesByTo {
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
   '/internal/hook-agent': typeof InternalHookAgentRoute
+  '/api/public/tiktok-business/callback': typeof ApiPublicTiktokBusinessCallbackRoute
   '/api/public/tiktok/callback': typeof ApiPublicTiktokCallbackRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -131,6 +140,7 @@ export interface FileRoutesById {
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
   '/internal/hook-agent': typeof InternalHookAgentRoute
+  '/api/public/tiktok-business/callback': typeof ApiPublicTiktokBusinessCallbackRoute
   '/api/public/tiktok/callback': typeof ApiPublicTiktokCallbackRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -148,6 +158,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/terms'
     | '/internal/hook-agent'
+    | '/api/public/tiktok-business/callback'
     | '/api/public/tiktok/callback'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -163,6 +174,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/terms'
     | '/internal/hook-agent'
+    | '/api/public/tiktok-business/callback'
     | '/api/public/tiktok/callback'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -178,6 +190,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/terms'
     | '/internal/hook-agent'
+    | '/api/public/tiktok-business/callback'
     | '/api/public/tiktok/callback'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -194,6 +207,7 @@ export interface RootRouteChildren {
   PrivacyRoute: typeof PrivacyRoute
   TermsRoute: typeof TermsRoute
   InternalHookAgentRoute: typeof InternalHookAgentRoute
+  ApiPublicTiktokBusinessCallbackRoute: typeof ApiPublicTiktokBusinessCallbackRoute
   ApiPublicTiktokCallbackRoute: typeof ApiPublicTiktokCallbackRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
@@ -271,6 +285,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InternalHookAgentRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/tiktok-business/callback': {
+      id: '/api/public/tiktok-business/callback'
+      path: '/api/public/tiktok-business/callback'
+      fullPath: '/api/public/tiktok-business/callback'
+      preLoaderRoute: typeof ApiPublicTiktokBusinessCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/tiktok/callback': {
       id: '/api/public/tiktok/callback'
       path: '/api/public/tiktok/callback'
@@ -306,6 +327,7 @@ const rootRouteChildren: RootRouteChildren = {
   PrivacyRoute: PrivacyRoute,
   TermsRoute: TermsRoute,
   InternalHookAgentRoute: InternalHookAgentRoute,
+  ApiPublicTiktokBusinessCallbackRoute: ApiPublicTiktokBusinessCallbackRoute,
   ApiPublicTiktokCallbackRoute: ApiPublicTiktokCallbackRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
