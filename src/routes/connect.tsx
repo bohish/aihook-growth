@@ -19,6 +19,7 @@ import { useConnection } from "@/hooks/useConnection";
 import { CONNECTION_LABELS_AR, CONNECTION_LABELS_EN, TIKTOK_NOT_REQUESTED_AR, TIKTOK_NOT_REQUESTED_EN, TIKTOK_PERMISSIONS_AR, TIKTOK_PERMISSIONS_EN } from "@/lib/tiktok-copy";
 import { useLanguage } from "@/lib/i18n";
 import { disconnectTikTok, startTikTokOAuth } from "@/lib/tiktok.functions";
+import { startTikTokBusinessOAuth } from "@/lib/tiktok-business.functions";
 import type { ConnectionStatus } from "@/lib/types";
 
 interface ConnectSearch {
@@ -111,6 +112,26 @@ function ConnectPage() {
     } catch {
        setOverride({ status: "api_error", message: pick("تعذّر بدء عملية الربط", "Connection could not start") });
        toast.error(pick("تعذّر بدء عملية الربط", "Connection could not start"));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const connectBusiness = async () => {
+    if (!user) {
+      void navigate({ to: "/auth" });
+      return;
+    }
+    setBusy(true);
+    try {
+      const result = await startTikTokBusinessOAuth();
+      if (result.ok && result.authorizationUrl) {
+        window.location.href = result.authorizationUrl;
+        return;
+      }
+      toast.error((result.message ?? pick("تعذّر بدء الربط", "Connection could not start")).replaceAll(".", ""));
+    } catch {
+      toast.error(pick("تعذّر بدء عملية الربط", "Connection could not start"));
     } finally {
       setBusy(false);
     }
