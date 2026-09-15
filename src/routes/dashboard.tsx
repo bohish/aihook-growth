@@ -119,13 +119,14 @@ function BusinessCreatorCard() {
             </p>
           ) : null}
           {(() => {
-            const AUDIENCE_LABELS: Record<string, [string, string]> = {
-              gender: ["الجنس", "Gender"],
-              age: ["العمر", "Age"],
-              countries: ["الدول", "Countries"],
-              regions: ["المناطق", "Regions"],
-              cities: ["المدن", "Cities"],
-            };
+            const AUDIENCE_LABELS: Array<{ key: string; labels: [string, string] }> = [
+              { key: "gender", labels: ["الجنس", "Gender"] },
+              { key: "age", labels: ["العمر", "Age"] },
+              { key: "countries", labels: ["الدول", "Countries"] },
+              { key: "regions", labels: ["المناطق", "Regions"] },
+              { key: "cities", labels: ["المدن", "Cities"] },
+            ];
+            const noData = pick("لا توجد بيانات متاحة", "No data available");
             const fmt = (v: unknown): string => {
               if (Array.isArray(v))
                 return v
@@ -143,32 +144,28 @@ function BusinessCreatorCard() {
                   .join("، ");
               return String(v);
             };
-            const audienceEntries: Array<{ labels: [string, string]; value: unknown }> = [];
-            for (const [key, value] of Object.entries(state.audience ?? {})) {
-              const group = key.includes("gender")
-                ? "gender"
-                : key.includes("age")
-                  ? "age"
-                  : key.includes("countr")
-                    ? "countries"
-                    : key.includes("region")
-                      ? "regions"
-                      : key.includes("cit")
-                        ? "cities"
-                        : null;
-              if (group) audienceEntries.push({ labels: AUDIENCE_LABELS[group]!, value });
-            }
-            if (audienceEntries.length === 0) return null;
+            const findValue = (group: string): unknown => {
+              for (const [key, value] of Object.entries(state.audience ?? {})) {
+                if (key.includes(group)) return value;
+              }
+              return undefined;
+            };
             return (
               <div className="mt-4 border-t border-border pt-4">
                 <p className="text-xs font-semibold">{pick("الجمهور", "Audience")}</p>
                 <dl className="mt-2 grid gap-2">
-                  {audienceEntries.map(({ labels, value }, i) => (
-                    <div key={i} className="flex flex-wrap gap-2 text-xs">
-                      <dt className="text-muted-foreground">{pick(labels[0], labels[1])}:</dt>
-                      <dd className="font-medium">{fmt(value)}</dd>
-                    </div>
-                  ))}
+                  {AUDIENCE_LABELS.map(({ key, labels }) => {
+                    const value = findValue(key);
+                    const hasValue = value !== undefined && value !== null && !(
+                      Array.isArray(value) ? value.length === 0 : false
+                    );
+                    return (
+                      <div key={key} className="flex flex-wrap gap-2 text-xs">
+                        <dt className="text-muted-foreground">{pick(labels[0], labels[1])}:</dt>
+                        <dd className="font-medium">{hasValue ? fmt(value) : noData}</dd>
+                      </div>
+                    );
+                  })}
                 </dl>
               </div>
             );
