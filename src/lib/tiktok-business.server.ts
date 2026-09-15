@@ -62,7 +62,6 @@ async function call(
     data?: Record<string, unknown>;
   };
   if (!response.ok || payload.code !== 0) {
-    // never log tokens; only status + provider message
     console.error(`TikTok Business API ${path} failed [${response.status}] ${payload.message ?? ""}`);
     return { ok: false, message: payload.message ?? `HTTP ${response.status}` };
   }
@@ -71,15 +70,15 @@ async function call(
 
 export interface BusinessCreatorData {
   scopes: string[];
-  /** Only the fields TikTok actually returned. */
   creator: Record<string, string | number>;
+  audience: Record<string, unknown>;
   videoCount: number | null;
 }
 
 export async function fetchBusinessCreator(
   session: BusinessSession,
 ): Promise<{ ok: boolean; data?: BusinessCreatorData; message?: string }> {
-  const info = await call("/tto/creator/authorized/get/", session.accessToken);
+  const info = await call("/tto/creator/authorized/", session.accessToken);
   if (!info.ok) return { ok: false, ...(info.message ? { message: info.message } : {}) };
 
   const creator: Record<string, string | number> = {};
@@ -97,14 +96,34 @@ export async function fetchBusinessCreator(
     if (typeof value === "string" || typeof value === "number") creator[key] = value;
   }
 
+  const audience: Record<string, unknown> = {};
+  for (const key of [
+    "audience_gender",
+    "audience_genders",
+    "gender_distribution",
+    "audience_age",
+    "audience_ages",
+    "age_distribution",
+    "audience_country",
+    "audience_countries",
+    "country_distribution",
+    "audience_region",
+    "audience_regions",
+    "region_distribution",
+    "audience_city",
+    "audience_cities",
+    "city_distribution",
+  ]) {
+    const value = source[key] ?? info.data?.[key];
+    if (Array.isArray(value) || (value && typeof value === "object")) audience[key] = value;
+  }
+
   let videoCount: number | null = null;
-  const list = await call("/tto/creator/authorized/video/list/", session.accessToken, {
-    max_count: "20",
-  });
+  const list = await call("/tto/creator/authorized/video/list/", session.accessToken, { max_count: "20" });
   if (list.ok) {
     const videos = list.data?.["videos"];
     if (Array.isArray(videos)) videoCount = videos.length;
   }
 
-  return { ok: true, data: { scopes: session.scopes, creator, videoCount } };
+  return { ok: true, data: { scopes: session.scopes, creator, audience, videoCount } };
 }
