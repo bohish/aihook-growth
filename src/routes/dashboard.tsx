@@ -194,8 +194,23 @@ function Dashboard() {
   const [report, setReport] = useState<AnalysisReport | null>(null);
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
+  const [businessStatus, setBusinessStatus] = useState<BusinessCreatorResult["status"] | null>(null);
 
-  const connected = connection.status === "connected";
+  useEffect(() => {
+    let alive = true;
+    void getBusinessCreatorData()
+      .then((r) => {
+        if (alive) setBusinessStatus(r.status);
+      })
+      .catch(() => {
+        if (alive) setBusinessStatus(null);
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const connected = connection.status === "connected" || businessStatus === "connected";
 
   useEffect(() => {
     if (!connected) return;
