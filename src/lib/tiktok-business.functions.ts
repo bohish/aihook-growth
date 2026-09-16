@@ -53,6 +53,24 @@ export type AudienceValue =
   | Array<string | number | Record<string, string | number>>
   | Record<string, string | number>;
 
+export interface BusinessVideo {
+  id: string | null;
+  scalars: Record<string, string | number>;
+}
+
+export interface BusinessDerivedStats {
+  videos: number;
+  totals: Record<string, number>;
+  averages: Record<string, number>;
+  medians: Record<string, number>;
+  engagementRate: number | null;
+  postingCadencePerWeek: number | null;
+  consistency: number | null;
+  topVideoId: string | null;
+  bottomVideoId: string | null;
+  trend: "up" | "down" | "flat" | null;
+}
+
 export interface BusinessCreatorResult {
   ok: boolean;
   status: "not_connected" | "connected" | "denied" | "api_error";
@@ -60,7 +78,10 @@ export interface BusinessCreatorResult {
   scopes?: string[];
   creator?: Record<string, string | number>;
   audience?: Record<string, AudienceValue>;
+  insights?: Record<string, AudienceValue>;
+  videos?: BusinessVideo[];
   videoCount?: number | null;
+  derived?: BusinessDerivedStats | null;
 }
 
 /** Reads the Business creator endpoints with the Business token only. */
@@ -84,7 +105,10 @@ export const getBusinessCreatorData = createServerFn({ method: "GET" })
         scopes: result.data.scopes,
         creator: result.data.creator,
         audience: result.data.audience as Record<string, AudienceValue>,
+        insights: result.data.insights as Record<string, AudienceValue>,
+        videos: result.data.videos,
         videoCount: result.data.videoCount,
+        derived: result.data.derived,
       };
     } catch {
       return { ok: false, status: "api_error" };

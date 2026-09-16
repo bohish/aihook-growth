@@ -88,13 +88,30 @@ function BusinessCreatorCard() {
   const LABELS: Record<string, [string, string]> = {
     display_name: ["الاسم", "Name"],
     username: ["المعرّف", "Username"],
+    nickname: ["الاسم الظاهر", "Nickname"],
     follower_count: ["المتابعون", "Followers"],
     following_count: ["يتابع", "Following"],
     likes_count: ["الإعجابات", "Likes"],
+    total_likes: ["إجمالي الإعجابات", "Total likes"],
     video_count: ["الفيديوهات", "Videos"],
+    is_business_account: ["حساب أعمال", "Business account"],
+    region: ["المنطقة", "Region"],
+    country: ["الدولة", "Country"],
   };
+  const prettify = (key: string) => key.replaceAll("_", " ");
 
-  const entries = Object.entries(state.creator ?? {}).filter(([k]) => k in LABELS);
+  const entries = Object.entries(state.creator ?? {}).filter(([k]) => k !== "profile_deep_link");
+  const derived = state.derived ?? null;
+  const METRIC_LABELS: Record<string, [string, string]> = {
+    view_count: ["المشاهدات", "Views"],
+    play_count: ["التشغيل", "Plays"],
+    like_count: ["الإعجابات", "Likes"],
+    comment_count: ["التعليقات", "Comments"],
+    share_count: ["المشاركات", "Shares"],
+    duration: ["المدة (ث)", "Duration (s)"],
+    reach: ["الوصول", "Reach"],
+  };
+  const num = (v: number) => v.toLocaleString(locale);
 
   return (
     <div className="panel p-5">
@@ -105,7 +122,7 @@ function BusinessCreatorCard() {
             {entries.map(([key, value]) => (
               <div key={key}>
                 <dt className="text-xs text-muted-foreground">
-                  {pick(LABELS[key]![0], LABELS[key]![1])}
+                  {LABELS[key] ? pick(LABELS[key][0], LABELS[key][1]) : prettify(key)}
                 </dt>
                 <dd className="mt-1 text-sm font-medium">
                   {typeof value === "number" ? value.toLocaleString(locale) : value}
@@ -117,6 +134,79 @@ function BusinessCreatorCard() {
             <p className="mt-4 text-xs text-muted-foreground">
               {pick("فيديوهات مصرّح بها", "Authorized videos")}: {state.videoCount.toLocaleString(locale)}
             </p>
+          ) : null}
+          {derived ? (
+            <div className="mt-4 border-t border-border pt-4">
+              <p className="text-xs font-semibold">{pick("تحليلات المحتوى", "Content analytics")}</p>
+              <dl className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {Object.entries(derived.totals).map(([key, value]) => (
+                  <div key={`t-${key}`}>
+                    <dt className="text-xs text-muted-foreground">
+                      {pick("إجمالي", "Total")} {METRIC_LABELS[key] ? pick(METRIC_LABELS[key][0], METRIC_LABELS[key][1]) : prettify(key)}
+                    </dt>
+                    <dd className="mt-1 text-sm font-medium">{num(value)}</dd>
+                  </div>
+                ))}
+                {Object.entries(derived.averages).map(([key, value]) => (
+                  <div key={`a-${key}`}>
+                    <dt className="text-xs text-muted-foreground">
+                      {pick("متوسط", "Average")} {METRIC_LABELS[key] ? pick(METRIC_LABELS[key][0], METRIC_LABELS[key][1]) : prettify(key)}
+                    </dt>
+                    <dd className="mt-1 text-sm font-medium">{num(value)}</dd>
+                  </div>
+                ))}
+                {Object.entries(derived.medians).map(([key, value]) => (
+                  <div key={`m-${key}`}>
+                    <dt className="text-xs text-muted-foreground">
+                      {pick("وسيط", "Median")} {METRIC_LABELS[key] ? pick(METRIC_LABELS[key][0], METRIC_LABELS[key][1]) : prettify(key)}
+                    </dt>
+                    <dd className="mt-1 text-sm font-medium">{num(value)}</dd>
+                  </div>
+                ))}
+                {derived.engagementRate !== null ? (
+                  <div>
+                    <dt className="text-xs text-muted-foreground">{pick("معدل التفاعل", "Engagement rate")}</dt>
+                    <dd className="mt-1 text-sm font-medium">{derived.engagementRate}%</dd>
+                  </div>
+                ) : null}
+                {derived.postingCadencePerWeek !== null ? (
+                  <div>
+                    <dt className="text-xs text-muted-foreground">{pick("نشر أسبوعياً", "Posts per week")}</dt>
+                    <dd className="mt-1 text-sm font-medium">{derived.postingCadencePerWeek}</dd>
+                  </div>
+                ) : null}
+                {derived.consistency !== null ? (
+                  <div>
+                    <dt className="text-xs text-muted-foreground">{pick("الانتظام", "Consistency")}</dt>
+                    <dd className="mt-1 text-sm font-medium">{derived.consistency}/100</dd>
+                  </div>
+                ) : null}
+                {derived.trend ? (
+                  <div>
+                    <dt className="text-xs text-muted-foreground">{pick("الاتجاه", "Trend")}</dt>
+                    <dd className="mt-1 text-sm font-medium">
+                      {derived.trend === "up"
+                        ? pick("صاعد", "Up")
+                        : derived.trend === "down"
+                          ? pick("هابط", "Down")
+                          : pick("مستقر", "Flat")}
+                    </dd>
+                  </div>
+                ) : null}
+                {derived.topVideoId ? (
+                  <div>
+                    <dt className="text-xs text-muted-foreground">{pick("أفضل فيديو", "Top video")}</dt>
+                    <dd className="mt-1 text-sm font-medium" dir="ltr">{derived.topVideoId}</dd>
+                  </div>
+                ) : null}
+                {derived.bottomVideoId ? (
+                  <div>
+                    <dt className="text-xs text-muted-foreground">{pick("أضعف فيديو", "Weakest video")}</dt>
+                    <dd className="mt-1 text-sm font-medium" dir="ltr">{derived.bottomVideoId}</dd>
+                  </div>
+                ) : null}
+              </dl>
+            </div>
           ) : null}
         </>
       ) : (
