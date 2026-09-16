@@ -32,34 +32,67 @@ function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) void navigate({ to: "/connect" });
   }, [user, navigate]);
 
+  const explain = (message: string): string => {
+    const m = message.toLowerCase();
+    if (m.includes("weak") || m.includes("pwned"))
+      return pick("كلمة المرور ضعيفة وسهلة التخمين، اختر كلمة أقوى وأطول", "This password is too weak, choose a longer and stronger one");
+    if (m.includes("at least") || m.includes("should be"))
+      return pick("كلمة المرور قصيرة، استخدم 8 أحرف على الأقل", "Password is too short, use at least 8 characters");
+    if (m.includes("already registered") || m.includes("already exists") || m.includes("user already"))
+      return pick("هذا البريد مسجّل مسبقاً، سجّل الدخول بدلاً من إنشاء حساب", "This email already has an account, sign in instead");
+    if (m.includes("invalid login") || m.includes("invalid credentials"))
+      return pick("البريد أو كلمة المرور غير صحيحة", "Email or password is incorrect");
+    if (m.includes("not confirmed") || m.includes("confirm"))
+      return pick("لم يتم تفعيل البريد بعد، افتح رابط التفعيل في بريدك", "Your email is not confirmed yet, open the confirmation link in your inbox");
+    if (m.includes("invalid email") || m.includes("email address"))
+      return pick("صيغة البريد الإلكتروني غير صحيحة", "This email address is not valid");
+    if (m.includes("rate limit") || m.includes("too many"))
+      return pick("محاولات كثيرة، انتظر قليلاً ثم أعد المحاولة", "Too many attempts, wait a moment and try again");
+    return message.replaceAll(".", "");
+  };
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
+    setNotice(null);
     try {
       if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: { emailRedirectTo: `${window.location.origin}/connect` },
         });
         if (error) throw error;
-        toast.success(pick("تم إنشاء الحساب، تأكد من بريدك إذا طُلب التفعيل", "Account created, check your email if verification is required"));
+        if (data.session) {
+          toast.success(pick("تم إنشاء الحساب والدخول", "Account created and signed in"));
+        } else {
+          const msg = pick(
+            "أنشئ الحساب، أرسلنا رابط تفعيل إلى بريدك، افتحه ثم سجّل الدخول",
+            "Account created, we sent a confirmation link to your email, open it then sign in",
+          );
+          setNotice(msg);
+          toast.success(msg);
+        }
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         toast.success(pick("تم الدخول بنجاح", "Signed in successfully"));
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message.replaceAll(".", "") : pick("تعذّر إكمال العملية", "The request could not be completed"));
+      const msg = err instanceof Error ? explain(err.message) : pick("تعذّر إكمال العملية", "The request could not be completed");
+      setNotice(msg);
+      toast.error(msg);
     } finally {
       setBusy(false);
     }
   };
+
 
   const google = async () => {
     setBusy(true);
