@@ -148,6 +148,11 @@ function AuthPage() {
             </Button>
           </form>
 
+          {notice ? (
+            <p className="mt-4 rounded-md border border-border p-3 text-xs leading-relaxed text-muted-foreground">{notice}</p>
+          ) : null}
+
+
           <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground">
             <span className="h-px flex-1 bg-border" />
             {pick("أو", "or")}
