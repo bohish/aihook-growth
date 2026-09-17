@@ -109,6 +109,7 @@ export const getBusinessCreatorData = createServerFn({ method: "GET" })
         fieldKeys: result.data.fieldKeys,
         tokenScopes: result.data.tokenScopes,
         audienceAvailable: result.data.audienceAvailable,
+        snapshot: result.data.snapshot,
         ...(result.data.audienceDiag ? { audienceDiag: result.data.audienceDiag } : {}),
       };
     } catch {
