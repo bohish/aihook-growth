@@ -11,18 +11,6 @@ import {
   TrendingDown,
   TrendingUp,
 } from "lucide-react";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
 
 import { Badge } from "@/components/ui/badge";
 import { formatDateAr, formatNumber, formatPercent, formatSignedPercent } from "@/lib/metrics";
@@ -33,71 +21,30 @@ import { useLanguage } from "@/lib/i18n";
 
 /* ------------------------------- score card ------------------------------- */
 
-export function ScoreCard({ report, reach }: { report: AnalysisReport; reach?: number | null }) {
+export function ScoreCard({ report }: { report: AnalysisReport }) {
   const { pick } = useLanguage();
   const { score, summaryAr } = report.scoring;
   const band = scoreBand(score);
   const delta = report.scoreDelta;
-  const heroMetrics = [
-    { label: pick("المتابعون", "Followers"), value: formatNumber(report.metrics.followers) },
-    { label: pick("إجمالي المشاهدات", "Total views"), value: formatNumber(report.metrics.totalViews) },
-    { label: pick("معدل التفاعل", "Engagement rate"), value: formatPercent(report.metrics.totalEngagementRate) },
-    { label: pick("النشر أسبوعياً", "Posts per week"), value: report.metrics.postsPerWeek.toLocaleString("en-US", { maximumFractionDigits: 1 }) },
-    { label: pick("الوصول", "Reach"), value: reach == null ? "—" : formatNumber(reach) },
-  ];
 
   return (
-    <section className="panel overflow-hidden">
-      <div className="grid lg:grid-cols-[18rem_1fr]">
-        <div className="relative flex min-h-64 flex-col justify-between border-b border-border p-6 lg:border-b-0 lg:border-l lg:p-7">
-          <p className="text-[11px] uppercase text-muted-foreground">{pick("درجة الهوك", "Hook score")}</p>
-          <div className="relative mx-auto h-40 w-56" dir="ltr">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie data={[{ value: score }, { value: Math.max(0, 100 - score) }]} dataKey="value" startAngle={180} endAngle={0} innerRadius={70} outerRadius={90} stroke="none" cx="50%" cy="72%">
-                  <Cell fill="var(--color-primary)" />
-                  <Cell fill="var(--color-muted)" />
-                </Pie>
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="absolute inset-x-0 bottom-3 text-center">
-              <span className="text-5xl font-bold tabular-nums">{score.toLocaleString("en-US")}</span>
-              <span className="text-sm text-muted-foreground"> / 100</span>
-            </div>
-          </div>
-          <p className="border-t border-border pt-3 text-center text-sm font-semibold">{pick(band.labelAr, score >= 70 ? "Strong" : score >= 45 ? "Average" : "Needs work")}</p>
+    <section className="panel">
+      <div className="grid md:grid-cols-[minmax(0,20rem)_1fr]">
+        <div className="border-b border-border p-6 md:border-b-0 md:border-l md:p-8">
+           <p className="text-[11px] uppercase tracking-[0.35em] text-muted-foreground">{pick("درجة الهوك", "Hook score")}</p>
+          <p className="mt-4 flex items-end gap-2 font-bold leading-none">
+            <span className="text-[5.5rem] tabular-nums tracking-tighter">{score}</span>
+            <span className="pb-3 text-lg font-normal text-muted-foreground">/ 100</span>
+          </p>
+           <p className="mt-4 border-t border-border pt-3 text-sm font-semibold">{pick(band.labelAr, score >= 70 ? "Strong" : score >= 45 ? "Average" : "Needs work")}</p>
         </div>
-        <div className="flex flex-col justify-between gap-6 p-6 lg:p-7">
-          <div>
-            <p className="text-[11px] uppercase text-muted-foreground">{pick("ملخص الأداء", "Performance summary")}</p>
-            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground">{summaryAr}</p>
-          </div>
-          <div className="grid grid-cols-2 gap-px overflow-hidden border border-border bg-border sm:grid-cols-5">
-            {heroMetrics.map((item) => (
-              <div key={item.label} className="bg-card p-3">
-                <p className="text-[10px] text-muted-foreground">{item.label}</p>
-                <p className="mt-2 text-xl font-bold tabular-nums" dir="ltr">{item.value}</p>
-              </div>
-            ))}
-          </div>
-          <div className="grid grid-cols-2 gap-px overflow-hidden border border-border bg-border sm:grid-cols-4">
-            {report.scoring.subscores.map((item) => (
-              <div key={item.key} className="bg-card p-3">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-[10px] text-muted-foreground">{pick(item.labelAr, item.labelEn)}</span>
-                  <span className="text-sm font-bold tabular-nums" dir="ltr">{item.value.toLocaleString("en-US")}</span>
-                </div>
-                <div className="mt-3 h-1.5 overflow-hidden bg-muted">
-                  <div className="h-full bg-primary" style={{ width: `${item.value}%` }} />
-                </div>
-              </div>
-            ))}
-          </div>
+        <div className="flex flex-col justify-between gap-4 p-6 md:p-8">
+          <p className="max-w-xl text-sm leading-relaxed text-muted-foreground">{summaryAr}</p>
           <p className="flex items-center gap-2 border-t border-border pt-3 text-xs text-muted-foreground">
             {delta > 0 ? <TrendingUp className="size-3.5" /> : delta < 0 ? <TrendingDown className="size-3.5" /> : null}
             {delta === 0
               ? pick("الدرجة مستقرة مقارنة بالفترة السابقة", "Score is stable compared with the previous period")
-              : `${delta > 0 ? "+" : ""}${delta.toLocaleString("en-US")} ${pick("نقطة مقارنة بالفترة السابقة", "points compared with the previous period")}`}
+              : `${delta > 0 ? "+" : ""}${delta} ${pick("نقطة مقارنة بالفترة السابقة", "points compared with the previous period")}`}
           </p>
         </div>
       </div>
@@ -133,14 +80,18 @@ export function KeyMetrics({ report }: { report: AnalysisReport }) {
   const { pick } = useLanguage();
   const m = report.metrics;
   const items = [
+    { label: pick("المتابعون", "Followers"), value: formatNumber(m.followers), icon: BadgeCheck },
     { label: pick("يتابع", "Following"), value: formatNumber(m.following), icon: Activity },
     { label: pick("إعجابات الحساب", "Account likes"), value: formatNumber(m.accountLikes), icon: Heart },
     { label: pick("إجمالي الفيديوهات", "Total videos"), value: formatNumber(m.totalVideos), icon: CalendarDays },
+    { label: pick("المشاهدات", "Views"), value: formatNumber(m.totalViews), icon: Eye },
     { label: pick("متوسط المشاهدات", "Average views"), value: formatNumber(m.avgViews), icon: Eye },
     { label: pick("وسيط المشاهدات", "Median views"), value: formatNumber(m.medianViews), icon: Activity },
+    { label: pick("التفاعل الكلي", "Total engagement"), value: formatPercent(m.totalEngagementRate), icon: Heart },
     { label: pick("وسيط التفاعل", "Median engagement"), value: formatPercent(m.medianEngagementRate), icon: Heart },
     { label: pick("إجمالي التعليقات", "Total comments"), value: formatNumber(m.totalComments), icon: MessageCircle },
     { label: pick("إجمالي المشاركات", "Total shares"), value: formatNumber(m.totalShares), icon: Repeat2 },
+    { label: pick("النشر أسبوعياً", "Posts per week"), value: String(m.postsPerWeek), icon: CalendarDays },
   ];
 
   return (
@@ -149,14 +100,14 @@ export function KeyMetrics({ report }: { report: AnalysisReport }) {
          <h2 className="text-lg font-bold">{pick("المؤشرات الرقمية", "Key metrics")}</h2>
          <span className="text-[11px] text-muted-foreground">{pick("من بيانات الحساب والفيديوهات المتاحة", "From available account and video data")}</span>
       </div>
-      <div className="mt-4 grid grid-cols-2 gap-px overflow-hidden border border-border bg-border sm:grid-cols-3 xl:grid-cols-6">
+      <div className="mt-4 grid grid-cols-2 gap-px overflow-hidden border border-border bg-border sm:grid-cols-3 lg:grid-cols-4">
         {items.map((item) => (
           <article key={item.label} className="bg-background p-4 sm:p-5">
             <div className="flex items-center justify-between gap-2 text-muted-foreground">
               <span className="text-[11px] leading-tight">{item.label}</span>
               <item.icon className="size-3.5" />
             </div>
-            <p className="mt-4 text-2xl font-bold tabular-nums sm:text-3xl" dir="ltr">{item.value}</p>
+            <p className="mt-4 text-3xl font-bold tabular-nums tracking-tight sm:text-4xl">{item.value}</p>
           </article>
         ))}
       </div>
@@ -168,7 +119,7 @@ function NumberBlock({ label, value, note }: { label: string; value: string; not
   return (
     <div className="border-r border-border pr-4 first:border-r-0 first:pr-0 sm:pr-5">
       <p className="text-[11px] text-muted-foreground">{label}</p>
-      <p className="mt-2 text-2xl font-bold tabular-nums" dir="ltr">{value}</p>
+      <p className="mt-2 text-2xl font-bold tabular-nums tracking-tight">{value}</p>
       {note ? <p className="mt-1 text-[11px] text-muted-foreground">{note}</p> : null}
     </div>
   );
@@ -217,71 +168,6 @@ export function NumericPerformance({ report }: { report: AnalysisReport }) {
         </div>
       </section>
     </div>
-  );
-}
-
-export function ContentHealth({ report }: { report: AnalysisReport }) {
-  const { pick } = useLanguage();
-  const consistency = report.scoring.subscores.find((item) => item.key === "consistency")?.value ?? 0;
-  const reach = report.scoring.subscores.find((item) => item.key === "reach")?.value ?? 0;
-  const engagement = report.scoring.subscores.find((item) => item.key === "engagement")?.value ?? 0;
-  const efficiency = report.scoring.subscores.find((item) => item.key === "efficiency")?.value ?? 0;
-  const data = [
-    { label: pick("التفاعل", "Engagement"), value: engagement },
-    { label: pick("الوصول", "Reach"), value: reach },
-    { label: pick("الانتظام", "Consistency"), value: consistency },
-    { label: pick("قوة المحتوى", "Content strength"), value: efficiency },
-  ];
-  return (
-    <section className="panel p-5">
-      <div className="flex items-baseline justify-between gap-4">
-        <h2 className="text-lg font-bold">{pick("صحة المحتوى", "Content health")}</h2>
-        <span className="text-[11px] text-muted-foreground">{pick("مؤشرات من البيانات الحالية", "Signals from current data")}</span>
-      </div>
-      <div className="mt-5 h-64" dir="ltr">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} layout="vertical" margin={{ top: 0, right: 18, bottom: 0, left: 8 }}>
-            <CartesianGrid horizontal={false} stroke="var(--color-border)" />
-            <XAxis type="number" domain={[0, 100]} hide />
-            <YAxis type="category" dataKey="label" width={110} tick={{ fill: "var(--color-muted-foreground)", fontSize: 11 }} axisLine={false} tickLine={false} />
-            <Tooltip cursor={{ fill: "var(--color-muted)" }} contentStyle={{ background: "var(--color-popover)", border: "1px solid var(--color-border)", borderRadius: 4 }} formatter={(value) => [`${Number(value).toLocaleString("en-US")}/100`, pick("الدرجة", "Score")]} />
-            <Bar dataKey="value" fill="var(--color-primary)" radius={[0, 2, 2, 0]} barSize={14} />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-      <div className="flex items-center justify-between border-t border-border pt-3 text-xs">
-        <span className="text-muted-foreground">{pick("أطول فجوة نشر", "Longest posting gap")}</span>
-        <span className="font-semibold tabular-nums" dir="ltr">{report.metrics.longestGapDays.toLocaleString("en-US")} {pick("يوم", "days")}</span>
-      </div>
-    </section>
-  );
-}
-
-export function Opportunities({ report }: { report: AnalysisReport }) {
-  const { pick } = useLanguage();
-  return (
-    <section>
-      <div className="flex items-baseline justify-between gap-4">
-        <h2 className="text-lg font-bold">{pick("نقاط الضعف والفرص", "Weaknesses and opportunities")}</h2>
-        <span className="text-[11px] text-muted-foreground">{pick("من التحليل الحالي", "From current analysis")}</span>
-      </div>
-      <div className="mt-4 grid gap-3 md:grid-cols-2">
-        {report.dna.map((item, index) => (
-          <article key={`${item.title}-${index}`} className="panel grid grid-cols-[3rem_1fr] gap-4 p-4">
-            <div className="flex size-12 items-center justify-center border border-border bg-surface text-sm font-bold tabular-nums" dir="ltr">
-              {item.liftPct == null ? "—" : formatSignedPercent(item.liftPct)}
-            </div>
-            <div>
-              <h3 className="text-sm font-semibold">{item.title}</h3>
-              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{item.detail}</p>
-              <p className="mt-2 text-[10px] text-muted-foreground">
-                {pick("حجم العينة", "Sample size")} <span className="tabular-nums" dir="ltr">{item.sampleSize.toLocaleString("en-US")}</span>
-              </p>
-            </div>
-          </article>
-        ))}
-      </div>
-    </section>
   );
 }
 
@@ -460,14 +346,14 @@ export function Recommendations({
     <section>
        <h2 className="text-lg font-bold">{pick("الخطة التسويقية — رؤية الخبير", "Marketing plan — Expert view")}</h2>
       {contextNote ? <p className="mt-2 text-xs text-muted-foreground">{contextNote}</p> : null}
-      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+      <div className="mt-4 grid gap-4">
         {items.map((r, i) => {
           const isLocked = i >= items.length - locked;
           return (
-            <article key={r.title} className={`panel flex flex-col p-5 ${isLocked ? "opacity-60" : ""}`}>
+            <article key={r.title} className={`panel p-5 ${isLocked ? "opacity-60" : ""}`}>
               <div className="flex flex-wrap items-center gap-2">
-                <span className="flex h-7 min-w-16 items-center justify-center bg-primary px-2 text-[10px] font-bold uppercase text-primary-foreground">
-                  <span dir="ltr">{r.priority.toLocaleString("en-US")}</span>&nbsp;·&nbsp;{pick(LEVEL_AR[r.impact], r.impact)}
+                <span className="flex size-7 items-center justify-center rounded-lg bg-primary text-xs font-bold text-primary-foreground">
+                  {r.priority}
                 </span>
                 <h3 className="text-sm font-semibold">{r.title}</h3>
                  <div className="ms-auto flex flex-wrap gap-1.5">
@@ -555,19 +441,16 @@ export function WeeklyPlan({ days, focus = [] }: { days: PlanDay[]; focus?: stri
       <p className="mt-2 text-sm text-muted-foreground">
          {pick("نكرر أقوى اتجاهات حسابك بصيغ مختلفة مع سبب الاختيار لكل يوم", "We repeat your strongest directions in varied formats with a reason for each day")}
       </p>
-      <div className="relative mt-5 grid gap-0 border-y border-border">
-        {days.map((d, index) => (
-          <article key={d.dayAr} className="grid gap-4 border-b border-border py-5 last:border-b-0 md:grid-cols-[8rem_1fr] md:gap-6">
-            <div className="flex items-center gap-3 md:items-start">
-              <span className="flex size-8 shrink-0 items-center justify-center border border-primary bg-primary text-xs font-bold text-primary-foreground" dir="ltr">{String(index + 1).padStart(2, "0")}</span>
-              <div>
-                <p className="text-sm font-semibold">{d.dayAr}</p>
-                <p className="mt-1 text-[11px] text-muted-foreground" dir="auto">{d.targetDuration}</p>
-              </div>
+      <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+
+        {days.map((d) => (
+          <article key={d.dayAr} className="panel p-5">
+            <div className="flex items-center gap-2">
+              <Badge className="bg-primary text-primary-foreground">{d.dayAr}</Badge>
+              <span className="text-[11px] text-muted-foreground">{d.targetDuration}</span>
             </div>
-            <div>
-              <h3 className="text-base font-semibold leading-snug">{d.idea}</h3>
-              <dl className="mt-4 grid gap-3 text-xs sm:grid-cols-3">
+            <h3 className="mt-3 text-sm font-semibold leading-snug">{d.idea}</h3>
+            <dl className="mt-3 grid gap-2 text-xs">
               <div>
                  <dt className="text-muted-foreground">{pick("الهوك", "Hook")}</dt>
                 <dd className="mt-0.5">{d.hook}</dd>
@@ -580,11 +463,10 @@ export function WeeklyPlan({ days, focus = [] }: { days: PlanDay[]; focus?: stri
                  <dt className="text-muted-foreground">{pick("الدعوة للإجراء", "Call to action")}</dt>
                 <dd className="mt-0.5">{d.cta}</dd>
               </div>
-              </dl>
-              <p className="mt-4 border-s-2 border-primary ps-3 text-[11px] leading-relaxed text-muted-foreground">
+            </dl>
+            <p className="mt-3 rounded-lg border border-border bg-surface/60 p-3 text-[11px] leading-relaxed text-muted-foreground">
               {d.why}
-              </p>
-            </div>
+            </p>
           </article>
         ))}
       </div>

@@ -1,16 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AlertTriangle, Link2, Loader2, RefreshCw, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/AppShell";
 import {
   BestWorst,
-  ContentHealth,
+  ContentDna,
   KeyMetrics,
   NumericPerformance,
-  Opportunities,
   Recommendations,
   ScoreCard,
   WeeklyPlan,
@@ -67,8 +65,8 @@ function EmptyState({
 }
 
 /** TikTok for Business creator card. Shows only fields TikTok actually returned. */
-function BusinessCreatorCard({ onReach }: { onReach: (value: number | null) => void }) {
-  const { pick } = useLanguage();
+function BusinessCreatorCard() {
+  const { pick, locale } = useLanguage();
   const [state, setState] = useState<BusinessCreatorResult | null>(null);
 
   useEffect(() => {
@@ -85,6 +83,8 @@ function BusinessCreatorCard({ onReach }: { onReach: (value: number | null) => v
     };
   }, []);
 
+  if (!state || state.status === "not_connected") return null;
+
   const LABELS: Record<string, [string, string]> = {
     display_name: ["الاسم", "Name"],
     username: ["المعرّف", "Username"],
@@ -94,35 +94,16 @@ function BusinessCreatorCard({ onReach }: { onReach: (value: number | null) => v
     video_count: ["الفيديوهات", "Videos"],
   };
 
-  const entries = Object.entries(state?.creator ?? {}).filter(([k]) => k in LABELS);
-
-  useEffect(() => {
-    const rows = state?.snapshot?.videoInsights ?? [];
-    const reach = rows
-      .map((row) => {
-        const value = row["reach"];
-        return typeof value === "number" ? value : typeof value === "string" && value.trim() !== "" ? Number(value) : Number.NaN;
-      })
-      .filter(Number.isFinite);
-    onReach(reach.length > 0 ? reach.reduce((sum, value) => sum + value, 0) : null);
-  }, [onReach, state]);
-
-  if (!state || state.status === "not_connected") return null;
+  const entries = Object.entries(state.creator ?? {}).filter(([k]) => k in LABELS);
 
   return (
-    <section className="panel overflow-hidden">
-      <div className="flex items-center justify-between border-b border-border px-5 py-4">
-        <div>
-          <p className="text-[10px] uppercase text-muted-foreground">{pick("مصدر البيانات", "Data source")}</p>
-          <h2 className="mt-1 text-sm font-semibold">TikTok for Business</h2>
-        </div>
-        <span className="size-2 bg-primary" aria-label={pick("متصل", "Connected")} />
-      </div>
+    <div className="panel p-5">
+      <h2 className="text-sm font-semibold">{pick("TikTok for Business", "TikTok for Business")}</h2>
       {state.ok && entries.length > 0 ? (
-        <div className="p-5">
-          <dl className="grid grid-cols-2 gap-px overflow-hidden border border-border bg-border sm:grid-cols-3 lg:grid-cols-6">
+        <>
+          <dl className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
             {entries.map(([key, value]) => (
-              <div key={key} className="bg-card p-3">
+              <div key={key}>
                 <dt className="text-xs text-muted-foreground">
                   {pick(LABELS[key]![0], LABELS[key]![1])}
                 </dt>
@@ -132,7 +113,11 @@ function BusinessCreatorCard({ onReach }: { onReach: (value: number | null) => v
               </div>
             ))}
           </dl>
-          {state.videoCount !== null && state.videoCount !== undefined ? <p className="mt-3 text-[11px] text-muted-foreground">{pick("فيديوهات مصرّح بها", "Authorized videos")} <span dir="ltr" className="tabular-nums text-foreground">{state.videoCount.toLocaleString("en-US")}</span></p> : null}
+          {state.videoCount !== null && state.videoCount !== undefined ? (
+            <p className="mt-4 text-xs text-muted-foreground">
+              {pick("فيديوهات مصرّح بها", "Authorized videos")}: <span dir="ltr" className="tabular-nums">{state.videoCount.toLocaleString("en-US")}</span>
+            </p>
+          ) : null}
           {(() => {
             const noData = pick("لا توجد بيانات متاحة", "No data available");
             const toPercent = (v: unknown): number | null => {
@@ -229,62 +214,35 @@ function BusinessCreatorCard({ onReach }: { onReach: (value: number | null) => v
             const visible = tiles.filter((t): t is NonNullable<typeof t> => t !== null);
             if (visible.length === 0) return null;
             return (
-              <div className="mt-6 border-t border-border pt-5">
-                <div className="flex items-baseline justify-between gap-4">
-                  <p className="text-base font-bold">{pick("الجمهور", "Audience")}</p>
-                  <span className="text-[10px] uppercase text-muted-foreground">TikTok Insights</span>
-                </div>
-                <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              <div className="mt-4 border-t border-border pt-4">
+                <p className="text-xs font-semibold">{pick("الجمهور", "Audience")}</p>
+                <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {visible.map(({ g, sorted, hasData }, i) => (
-                    <article key={i} className="panel min-h-40 p-4">
-                      <p className="text-[11px] font-semibold uppercase text-muted-foreground">
+                    <div key={i} className="panel p-3">
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                         {pick(g.labels[0], g.labels[1])}
                       </p>
                       {hasData ? (
-                        g.gender ? (
-                          <div className="mt-2 grid grid-cols-[7rem_1fr] items-center gap-2" dir="ltr">
-                            <div className="h-28">
-                              <ResponsiveContainer width="100%" height="100%">
-                                <PieChart>
-                                  <Pie data={sorted} dataKey="percent" nameKey="label" innerRadius={30} outerRadius={47} stroke="var(--color-card)">
-                                    {sorted.map((_, index) => <Cell key={index} fill={`var(--color-chart-${Math.min(index + 1, 5)})`} />)}
-                                  </Pie>
-                                  <Tooltip contentStyle={{ background: "var(--color-popover)", border: "1px solid var(--color-border)", borderRadius: 4 }} formatter={(value) => fmtPct(Number(value))} />
-                                </PieChart>
-                              </ResponsiveContainer>
-                            </div>
-                            <ul className="space-y-2">
-                              {sorted.map((entry, index) => (
-                                <li key={index} className="flex items-center justify-between gap-2 text-xs">
-                                  <span className="flex min-w-0 items-center gap-2 text-muted-foreground">
-                                    <span className="size-2 shrink-0" style={{ backgroundColor: `var(--color-chart-${Math.min(index + 1, 5)})` }} />
-                                    <span className="truncate">{pick(...(GENDER_MAP[entry.label.trim().toLowerCase()] ?? [entry.label, entry.label]))}</span>
-                                  </span>
-                                  <span className="font-semibold tabular-nums">{fmtPct(entry.percent)}</span>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        ) : (
-                          <ul className="mt-4 space-y-3">
-                            {sorted.map((entry, index) => {
-                              const width = entry.percent === null ? 0 : Math.min(100, Math.max(0, entry.percent));
-                              return (
-                                <li key={index}>
-                                  <div className="flex items-center justify-between gap-3 text-xs">
-                                    <span className="truncate text-muted-foreground" dir="auto">{entry.label}{entry.sub ? ` (${entry.sub})` : ""}</span>
-                                    <span className="font-semibold tabular-nums" dir="ltr">{fmtPct(entry.percent)}</span>
-                                  </div>
-                                  <div className="mt-1.5 h-1 overflow-hidden bg-muted"><div className="h-full bg-primary" style={{ width: `${width}%` }} /></div>
-                                </li>
-                              );
-                            })}
-                          </ul>
-                        )
+                        <ul className="mt-2 space-y-1">
+                          {sorted.map((e, j) => {
+                            const label = g.gender
+                              ? pick(...(GENDER_MAP[e.label.trim().toLowerCase()] ?? [e.label, e.label]))
+                              : e.label;
+                            return (
+                              <li key={j} className="flex items-center justify-between gap-2 text-xs">
+                                <span className="truncate text-muted-foreground" dir="auto">
+                                  {label}
+                                  {e.sub ? ` (${e.sub})` : ""}
+                                </span>
+                                <span className="font-medium tabular-nums">{fmtPct(e.percent)}</span>
+                              </li>
+                            );
+                          })}
+                        </ul>
                       ) : (
-                        <div className="flex min-h-28 items-center justify-center text-xs text-muted-foreground">{noData}</div>
+                        <p className="mt-2 text-xs text-muted-foreground">{noData}</p>
                       )}
-                    </article>
+                    </div>
                   ))}
                 </div>
               </div>
@@ -428,7 +386,7 @@ function BusinessCreatorCard({ onReach }: { onReach: (value: number | null) => v
               </div>
             );
           })()}
-        </div>
+        </>
 
       ) : (
         <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
@@ -438,9 +396,16 @@ function BusinessCreatorCard({ onReach }: { onReach: (value: number | null) => v
                 "The connection exists, but TikTok has not authorized creator data yet, so no numbers are shown",
               )
             : pick("تعذّر قراءة بيانات TikTok for Business حالياً", "TikTok for Business data is unavailable right now")}
+          {state.diag ? (
+            <span className="mt-2 block border-t border-border pt-2 font-mono text-[11px] leading-relaxed text-muted-foreground" dir="ltr">
+              {state.diag.endpoint} — HTTP {state.diag.httpStatus}
+              {state.diag.code !== null ? ` — code ${state.diag.code}` : ""}
+              {state.diag.message ? ` — ${state.diag.message.replaceAll(".", "")}` : ""}
+            </span>
+          ) : null}
         </p>
       )}
-    </section>
+    </div>
   );
 }
 
@@ -453,7 +418,6 @@ function Dashboard() {
   const [report, setReport] = useState<AnalysisReport | null>(null);
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
-  const [businessReach, setBusinessReach] = useState<number | null>(null);
 
   const connected = connection.status === "connected";
 
@@ -580,7 +544,7 @@ function Dashboard() {
             ) : null}
             <div>
               <h1 className="text-xl font-bold sm:text-2xl">{report.account.displayName}</h1>
-               <p className="mt-1 text-xs text-muted-foreground">{pick("آخر تحديث", "Last updated")} <span dir="ltr" className="tabular-nums">{new Date(report.generatedAt).toLocaleString("en-US")}</span></p>
+               <p className="mt-1 text-xs text-muted-foreground">{pick("آخر تحديث", "Last updated")} {new Date(report.generatedAt).toLocaleString(locale)}</p>
               {report.limitedData ? (
                 <p className="mt-2 text-xs text-warning">
                    {pick("عدد الفيديوهات المتاح قليل، لذلك تُحسب بعض المحاور بثقة أقل", "Few videos are available, so some dimensions have lower confidence")}
@@ -599,11 +563,13 @@ function Dashboard() {
           </div>
         </header>
 
-        <div className="mt-6 grid gap-8">
-          <ScoreCard report={report} reach={businessReach} />
-          <BusinessCreatorCard onReach={setBusinessReach} />
-          <Tabs defaultValue="metrics">
-            <TabsList className="flex h-auto w-full flex-nowrap justify-start gap-1 overflow-x-auto bg-surface p-1">
+        <div className="mt-6 grid gap-6">
+          <BusinessCreatorCard />
+          <ScoreCard report={report} />
+
+
+          <Tabs defaultValue="metrics" className="mt-2">
+            <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 bg-surface p-1">
                <TabsTrigger value="metrics">{pick("نظرة عامة", "Overview")}</TabsTrigger>
                <TabsTrigger value="content">{pick("أقوى الهوكات", "Strongest hooks")}</TabsTrigger>
                <TabsTrigger value="dna">{pick("نمطك", "Your pattern")}</TabsTrigger>
@@ -615,17 +581,14 @@ function Dashboard() {
             <TabsContent value="metrics" className="mt-6">
               <div className="grid gap-8">
                 <KeyMetrics report={report} />
-                <div className="grid gap-4 xl:grid-cols-[1fr_22rem]">
-                  <NumericPerformance report={report} />
-                  <ContentHealth report={report} />
-                </div>
+                <NumericPerformance report={report} />
               </div>
             </TabsContent>
             <TabsContent value="content" className="mt-6">
               <BestWorst report={report} />
             </TabsContent>
             <TabsContent value="dna" className="mt-6">
-              <Opportunities report={report} />
+              <ContentDna insights={report.dna} />
             </TabsContent>
             <TabsContent value="actions" className="mt-6">
               <Recommendations items={report.recommendations} locked={lockedCount} contextNote={report.contextNote} />
