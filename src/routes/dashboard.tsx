@@ -94,7 +94,7 @@ function BusinessCreatorCard({ onReach }: { onReach: (value: number | null) => v
     video_count: ["الفيديوهات", "Videos"],
   };
 
-  const entries = Object.entries(state.creator ?? {}).filter(([k]) => k in LABELS);
+  const entries = Object.entries(state?.creator ?? {}).filter(([k]) => k in LABELS);
 
   useEffect(() => {
     const rows = state?.snapshot?.videoInsights ?? [];
