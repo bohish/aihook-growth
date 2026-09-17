@@ -108,7 +108,13 @@ async function resolveBusinessId(token: string): Promise<string | null> {
 export async function fetchBusinessCreator(
   session: BusinessSession,
 ): Promise<{ ok: boolean; data?: BusinessCreatorData; message?: string; diag?: BusinessApiDiag }> {
-  const info = await call("/tto/creator/authorized/", session.accessToken);
+  const businessId = await resolveBusinessId(session.accessToken);
+  if (!businessId) {
+    return { ok: false, message: "TikTok لم تُرجع معرّف حساب أعمال لهذا التفويض" };
+  }
+  const idQuery = { business_id: businessId };
+
+  const info = await call("/tto/creator/authorized/", session.accessToken, idQuery);
   if (!info.ok)
     return {
       ok: false,
