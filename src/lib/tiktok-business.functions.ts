@@ -9,11 +9,14 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 export const TIKTOK_BUSINESS_REDIRECT_URI = "https://aihook.store/api/public/tiktok-business/callback";
 
-/** Scopes approved for this app. */
+/** Scopes approved for this app (official OAuth scope strings only). */
 export const TIKTOK_BUSINESS_SCOPES = [
   "user.info.basic",
+  "user.info.stats",
   "user.insights",
   "video.list",
+  "video.insights",
+  "comment.list",
   "biz.creator.info",
   "biz.creator.insights",
   "tto.campaign.link",
