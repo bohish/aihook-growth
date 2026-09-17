@@ -241,6 +241,13 @@ function BusinessCreatorCard() {
                 "The connection exists, but TikTok has not authorized creator data yet, so no numbers are shown",
               )
             : pick("تعذّر قراءة بيانات TikTok for Business حالياً", "TikTok for Business data is unavailable right now")}
+          {state.diag ? (
+            <span className="mt-2 block border-t border-border pt-2 font-mono text-[11px] leading-relaxed text-muted-foreground" dir="ltr">
+              {state.diag.endpoint} — HTTP {state.diag.httpStatus}
+              {state.diag.code !== null ? ` — code ${state.diag.code}` : ""}
+              {state.diag.message ? ` — ${state.diag.message.replaceAll(".", "")}` : ""}
+            </span>
+          ) : null}
         </p>
       )}
     </div>
