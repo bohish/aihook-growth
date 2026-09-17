@@ -107,15 +107,15 @@ function BusinessCreatorCard() {
                 <dt className="text-xs text-muted-foreground">
                   {pick(LABELS[key]![0], LABELS[key]![1])}
                 </dt>
-                <dd className="mt-1 text-sm font-medium">
-                  {typeof value === "number" ? value.toLocaleString(locale) : value}
+                <dd className="mt-1 text-sm font-medium tabular-nums" dir="ltr">
+                  {typeof value === "number" ? value.toLocaleString("en-US") : value}
                 </dd>
               </div>
             ))}
           </dl>
           {state.videoCount !== null && state.videoCount !== undefined ? (
             <p className="mt-4 text-xs text-muted-foreground">
-              {pick("فيديوهات مصرّح بها", "Authorized videos")}: {state.videoCount.toLocaleString(locale)}
+              {pick("فيديوهات مصرّح بها", "Authorized videos")}: <span dir="ltr" className="tabular-nums">{state.videoCount.toLocaleString("en-US")}</span>
             </p>
           ) : null}
           {(() => {
@@ -250,56 +250,78 @@ function BusinessCreatorCard() {
           })()}
           {(() => {
             const snap = state.snapshot;
-            if (!snap) return null;
-            const STAT_LABELS: Record<string, [string, string]> = {
-              followers_count: ["المتابعون", "Followers"],
-              profile_views: ["زيارات الملف", "Profile views"],
-              video_views: ["مشاهدات الفيديو", "Video views"],
-              likes: ["الإعجابات", "Likes"],
-              comments: ["التعليقات", "Comments"],
-              shares: ["المشاركات", "Shares"],
-            };
-            const tiles: Array<[string, string]> = Object.entries(snap.accountStats)
-              .filter(([k]) => k in STAT_LABELS)
-              .map(([k, v]) => [pick(STAT_LABELS[k]![0], STAT_LABELS[k]![1]), v.toLocaleString(locale)]);
-            const num = (v: unknown) => (typeof v === "number" ? v : Number(v));
-            const rates = snap.videoInsights
-              .map((r) => num(r["full_video_watched_rate"]))
-              .filter((n) => Number.isFinite(n));
-            if (rates.length > 0) {
-              const avg = rates.reduce((a, b) => a + b, 0) / rates.length;
-              tiles.push([
-                pick("مشاهدة كاملة (متوسط)", "Full watch (avg)"),
-                `${(avg <= 1 ? avg * 100 : avg).toFixed(1)}%`,
-              ]);
-            }
-            const reach = snap.videoInsights
-              .map((r) => num(r["reach"]))
-              .filter((n) => Number.isFinite(n));
-            if (reach.length > 0) {
-              tiles.push([
-                pick("الوصول (إجمالي)", "Reach (total)"),
-                reach.reduce((a, b) => a + b, 0).toLocaleString(locale),
-              ]);
-            }
-            if (snap.commentsCount !== null) {
-              tiles.push([
-                pick("تعليقات أحدث فيديو", "Comments on latest video"),
-                snap.commentsCount.toLocaleString(locale),
-              ]);
-            }
-            if (tiles.length === 0) return null;
+            const fmt = (v: number | null | undefined, digits = 0) =>
+              v == null || !Number.isFinite(v)
+                ? "—"
+                : v.toLocaleString("en-US", { maximumFractionDigits: digits });
+            const num = (v: unknown) =>
+              typeof v === "number"
+                ? v
+                : typeof v === "string" && v.trim() !== "" && !Number.isNaN(Number(v))
+                  ? Number(v)
+                  : null;
+            const stats = snap?.accountStats ?? {};
+            const STAT: Array<[string, string, string]> = [
+              ["followers_count", "المتابعون", "Followers"],
+              ["profile_views", "زيارات الملف", "Profile views"],
+              ["video_views", "مشاهدات الفيديو", "Video views"],
+              ["likes", "الإعجابات", "Likes"],
+              ["comments", "التعليقات", "Comments"],
+              ["shares", "المشاركات", "Shares"],
+            ];
+            const vi = snap?.videoInsights ?? [];
+            const reach = vi.map((r) => num(r["reach"])).filter((v): v is number => v !== null);
+            const rates = vi.map((r) => num(r["full_video_watched_rate"])).filter((v): v is number => v !== null);
+            const avgWatch = vi.map((r) => num(r["average_time_watched"])).filter((v): v is number => v !== null);
+            const totalWatch = vi.map((r) => num(r["total_time_watched"])).filter((v): v is number => v !== null);
+            const sum = (a: number[]) => a.reduce((x, y) => x + y, 0);
+            const avg = (a: number[]) => (a.length ? sum(a) / a.length : null);
+            const fullWatchAvg = rates.length ? avg(rates) : null;
+            const fullWatchPct = fullWatchAvg === null ? null : fullWatchAvg <= 1 ? fullWatchAvg * 100 : fullWatchAvg;
+            const INSIGHT: Array<[string, string, string, string]> = [
+              ["reach", "الوصول (إجمالي)", "Total reach", fmt(reach.length ? sum(reach) : null)],
+              ["full", "مشاهدة كاملة (متوسط)", "Full watch avg", fullWatchPct === null ? "—" : `${fmt(fullWatchPct, 1)}%`],
+              ["avgwatch", "متوسط زمن المشاهدة", "Average watch time avg", fmt(avg(avgWatch), 1)],
+              ["totalwatch", "إجمالي زمن المشاهدة", "Total watch time", fmt(totalWatch.length ? sum(totalWatch) : null)],
+              ["count", "فيديوهات بتحليلات", "Videos with insights", vi.length > 0 ? fmt(vi.length) : "—"],
+            ];
+            const commentsOnLatest = snap?.commentsCount ?? null;
             return (
-              <div className="mt-4 border-t border-border pt-4">
-                <p className="text-xs font-semibold">{pick("أداء الحساب", "Account performance")}</p>
-                <dl className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-                  {tiles.map(([label, value]) => (
-                    <div key={label} className="panel p-3">
-                      <dt className="text-[11px] text-muted-foreground">{label}</dt>
-                      <dd className="mt-1 text-sm font-medium tabular-nums">{value}</dd>
+              <div className="mt-4 space-y-4 border-t border-border pt-4">
+                <div>
+                  <p className="text-xs font-semibold">{pick("إحصاءات الحساب", "Account stats")}</p>
+                  <dl className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+                    {STAT.map(([key, ar, enLabel]) => {
+                      const v = typeof stats[key] === "number" ? stats[key] : num(stats[key]);
+                      return (
+                        <div key={key} className="panel p-3">
+                          <dt className="text-[11px] text-muted-foreground">{pick(ar, enLabel)}</dt>
+                          <dd className="mt-1 text-sm font-medium tabular-nums" dir="ltr">{fmt(v)}</dd>
+                        </div>
+                      );
+                    })}
+                  </dl>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold">{pick("تحليلات الفيديو", "Video insights")}</p>
+                  <dl className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+                    {INSIGHT.map(([key, ar, enLabel, value]) => (
+                      <div key={key} className="panel p-3">
+                        <dt className="text-[11px] text-muted-foreground">{pick(ar, enLabel)}</dt>
+                        <dd className="mt-1 text-sm font-medium tabular-nums" dir="ltr">{value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold">{pick("التعليقات", "Comments")}</p>
+                  <dl className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                    <div className="panel p-3">
+                      <dt className="text-[11px] text-muted-foreground">{pick("تعليقات أحدث فيديو", "Comments on latest video")}</dt>
+                      <dd className="mt-1 text-sm font-medium tabular-nums" dir="ltr">{fmt(commentsOnLatest)}</dd>
                     </div>
-                  ))}
-                </dl>
+                  </dl>
+                </div>
               </div>
             );
           })()}
@@ -338,9 +360,9 @@ function BusinessCreatorCard() {
               if (spanDays > 0) postsPerWeek = (times.length / spanDays) * 7;
             }
             const fmtNum = (v: number | null, digits = 0) =>
-              v === null ? pick("لا توجد بيانات متاحة", "No data available") : v.toLocaleString(locale, { maximumFractionDigits: digits });
+              v === null ? pick("لا توجد بيانات متاحة", "No data available") : v.toLocaleString("en-US", { maximumFractionDigits: digits });
             const stats: Array<[string, string, string]> = [
-              ["الفيديوهات المقروءة", "Videos read", rows.length.toLocaleString(locale)],
+              ["الفيديوهات المقروءة", "Videos read", rows.length.toLocaleString("en-US")],
               ["إجمالي المشاهدات", "Total views", fmtNum(totalViews)],
               ["متوسط المشاهدات", "Average views", fmtNum(avg(views))],
               ["وسيط المشاهدات", "Median views", fmtNum(median(views))],
@@ -357,7 +379,7 @@ function BusinessCreatorCard() {
                   {stats.map(([ar, en, value]) => (
                     <div key={en}>
                       <dt className="text-xs text-muted-foreground">{pick(ar, en)}</dt>
-                      <dd className="mt-1 text-sm font-medium">{value}</dd>
+                      <dd className="mt-1 text-sm font-medium tabular-nums" dir="ltr">{value}</dd>
                     </div>
                   ))}
                 </dl>
