@@ -367,6 +367,23 @@ export async function fetchBusinessCreator(
     }
   }
 
+  // Optional sources: each one is independent and silent on refusal.
+  const end = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const start = new Date(end.getTime() - 29 * 24 * 60 * 60 * 1000);
+  const iso = (d: Date) => d.toISOString().slice(0, 10);
+  const accountStats = await fetchAccountStats(session.accessToken, creatorId, iso(start), iso(end));
+  const videoInsights = await fetchVideoInsights(session.accessToken, creatorId);
+  const newestId = videoInsights[0]?.["item_id"] ?? videoRows[0]?.["item_id"];
+  const commentsCount =
+    typeof newestId === "string" || typeof newestId === "number"
+      ? await fetchCommentCount(session.accessToken, creatorId, String(newestId))
+      : null;
+  const unavailable: string[] = [];
+  if (Object.keys(accountStats).length === 0) unavailable.push("/business/get/ (stats)");
+  if (videoInsights.length === 0) unavailable.push("/business/video/list/");
+  if (commentsCount === null) unavailable.push("/business/comment/list/");
+  if (!organic.ok) unavailable.push("/business/get/ (audience)");
+
   return {
     ok: true,
     data: {
@@ -379,6 +396,7 @@ export async function fetchBusinessCreator(
       tokenScopes,
       audienceAvailable: organic.ok,
       ...(organic.diag ? { audienceDiag: organic.diag } : {}),
+      snapshot: { accountStats, videoInsights, commentsCount, unavailable },
     },
   };
 }
