@@ -18,6 +18,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/useAuth";
 import { useConnection } from "@/hooks/useConnection";
 import { AnalysisUnavailableError, readCachedReport, runAnalysis } from "@/lib/report";
+import { getBusinessCreatorData, type BusinessCreatorResult } from "@/lib/tiktok-business.functions";
 import type { AnalysisReport } from "@/lib/types";
 import { useLanguage } from "@/lib/i18n";
 
@@ -62,6 +63,129 @@ function EmptyState({
     </AppShell>
   );
 }
+
+/** TikTok for Business creator card. Shows only fields TikTok actually returned. */
+function BusinessCreatorCard() {
+  const { pick, locale } = useLanguage();
+  const [state, setState] = useState<BusinessCreatorResult | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    void getBusinessCreatorData()
+      .then((r) => {
+        if (alive) setState(r);
+      })
+      .catch(() => {
+        if (alive) setState({ ok: false, status: "api_error" });
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  if (!state || state.status === "not_connected") return null;
+
+  const LABELS: Record<string, [string, string]> = {
+    display_name: ["الاسم", "Name"],
+    username: ["المعرّف", "Username"],
+    follower_count: ["المتابعون", "Followers"],
+    following_count: ["يتابع", "Following"],
+    likes_count: ["الإعجابات", "Likes"],
+    video_count: ["الفيديوهات", "Videos"],
+  };
+
+  const entries = Object.entries(state.creator ?? {}).filter(([k]) => k in LABELS);
+
+  return (
+    <div className="panel p-5">
+      <h2 className="text-sm font-semibold">{pick("TikTok for Business", "TikTok for Business")}</h2>
+      {state.ok && entries.length > 0 ? (
+        <>
+          <dl className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
+            {entries.map(([key, value]) => (
+              <div key={key}>
+                <dt className="text-xs text-muted-foreground">
+                  {pick(LABELS[key]![0], LABELS[key]![1])}
+                </dt>
+                <dd className="mt-1 text-sm font-medium">
+                  {typeof value === "number" ? value.toLocaleString(locale) : value}
+                </dd>
+              </div>
+            ))}
+          </dl>
+          {state.videoCount !== null && state.videoCount !== undefined ? (
+            <p className="mt-4 text-xs text-muted-foreground">
+              {pick("فيديوهات مصرّح بها", "Authorized videos")}: {state.videoCount.toLocaleString(locale)}
+            </p>
+          ) : null}
+          {(() => {
+            const AUDIENCE_LABELS: Array<{ key: string; labels: [string, string] }> = [
+              { key: "gender", labels: ["الجنس", "Gender"] },
+              { key: "age", labels: ["العمر", "Age"] },
+              { key: "countries", labels: ["الدول", "Countries"] },
+              { key: "regions", labels: ["المناطق", "Regions"] },
+              { key: "cities", labels: ["المدن", "Cities"] },
+            ];
+            const noData = pick("لا توجد بيانات متاحة", "No data available");
+            const fmt = (v: unknown): string => {
+              if (Array.isArray(v))
+                return v
+                  .map((item) =>
+                    item && typeof item === "object"
+                      ? Object.entries(item as Record<string, unknown>)
+                          .map(([k, val]) => `${k}: ${String(val)}`)
+                          .join(" ")
+                      : String(item),
+                  )
+                  .join("، ");
+              if (v && typeof v === "object")
+                return Object.entries(v as Record<string, unknown>)
+                  .map(([k, val]) => `${k}: ${String(val)}`)
+                  .join("، ");
+              return String(v);
+            };
+            const findValue = (group: string): unknown => {
+              for (const [key, value] of Object.entries(state.audience ?? {})) {
+                if (key.includes(group)) return value;
+              }
+              return undefined;
+            };
+            return (
+              <div className="mt-4 border-t border-border pt-4">
+                <p className="text-xs font-semibold">{pick("الجمهور", "Audience")}</p>
+                <dl className="mt-2 grid gap-2">
+                  {AUDIENCE_LABELS.map(({ key, labels }) => {
+                    const value = findValue(key);
+                    const hasValue = value !== undefined && value !== null && !(
+                      Array.isArray(value) ? value.length === 0 : false
+                    );
+                    return (
+                      <div key={key} className="flex flex-wrap gap-2 text-xs">
+                        <dt className="text-muted-foreground">{pick(labels[0], labels[1])}:</dt>
+                        <dd className="font-medium">{hasValue ? fmt(value) : noData}</dd>
+                      </div>
+                    );
+                  })}
+                </dl>
+              </div>
+            );
+          })()}
+        </>
+      ) : (
+        <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+          {state.status === "denied"
+            ? pick(
+                "الربط موجود لكن TikTok لم يسمح بقراءة بيانات المُنشئ حتى الآن، فلا تُعرض أي أرقام",
+                "The connection exists, but TikTok has not authorized creator data yet, so no numbers are shown",
+              )
+            : pick("تعذّر قراءة بيانات TikTok for Business حالياً", "TikTok for Business data is unavailable right now")}
+        </p>
+      )}
+    </div>
+  );
+}
+
+
 
 function Dashboard() {
   const { pick, locale } = useLanguage();
@@ -216,7 +340,9 @@ function Dashboard() {
         </header>
 
         <div className="mt-6 grid gap-6">
+          <BusinessCreatorCard />
           <ScoreCard report={report} />
+
 
           <Tabs defaultValue="metrics" className="mt-2">
             <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 bg-surface p-1">
