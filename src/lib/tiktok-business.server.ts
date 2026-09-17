@@ -93,6 +93,62 @@ export interface BusinessCreatorData {
   videos: Array<Record<string, string | number>>;
   /** Safe key names TikTok actually returned (no tokens/IDs), for diagnostics. */
   fieldKeys: string[];
+  /** Scopes the token itself actually carries, per /tt_user/token_info/get/ */
+  tokenScopes: string[];
+  /** Whether the official organic audience endpoint answered for this token */
+  audienceAvailable: boolean;
+  audienceDiag?: BusinessApiDiag;
+}
+
+/**
+ * Official token introspection: POST /tt_user/token_info/get/ with app_id +
+ * access_token returns { app_id, creator_id, scope }. Only the scope list is
+ * surfaced — creator_id is never returned to the browser.
+ */
+async function fetchTokenScopes(token: string): Promise<string[]> {
+  const appId = process.env["TIKTOK_BUSINESS_APP_ID"];
+  if (!appId) return [];
+  try {
+    const response = await fetch(`${BASE}/tt_user/token_info/get/`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ app_id: appId, access_token: token }),
+    });
+    const payload = (await response.json().catch(() => ({}))) as {
+      code?: number;
+      data?: { scope?: string };
+    };
+    if (payload.code !== 0) return [];
+    const scope = payload.data?.scope;
+    return typeof scope === "string" ? scope.split(/[,\s]+/).filter(Boolean) : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Official organic audience data for a business account:
+ * GET /business/get/ with fields audience_ages / audience_genders /
+ * audience_countries / audience_cities. Requires a Business Account token with
+ * the audience insight permission; creator-only tokens get rejected here.
+ */
+const AUDIENCE_FIELDS = ["audience_ages", "audience_genders", "audience_countries", "audience_cities"];
+
+async function fetchOrganicAudience(
+  token: string,
+  businessId: string,
+): Promise<{ ok: boolean; data?: Record<string, unknown>; diag?: BusinessApiDiag }> {
+  const end = new Date();
+  const start = new Date(end.getTime() - 29 * 24 * 60 * 60 * 1000);
+  const iso = (d: Date) => d.toISOString().slice(0, 10);
+  const result = await call("/business/get/", token, {
+    business_id: businessId,
+    fields: JSON.stringify(AUDIENCE_FIELDS),
+    start_date: iso(start),
+    end_date: iso(end),
+  });
+  if (!result.ok) return { ok: false, ...(result.diag ? { diag: result.diag } : {}) };
+  return { ok: true, ...(result.data ? { data: result.data } : {}) };
 }
 
 export async function fetchBusinessCreator(
@@ -194,5 +250,28 @@ export async function fetchBusinessCreator(
     }
   }
 
-  return { ok: true, data: { scopes: session.scopes, creator, audience, videoCount, videos: videoRows, fieldKeys } };
+  const tokenScopes = await fetchTokenScopes(session.accessToken);
+  const organic = await fetchOrganicAudience(session.accessToken, creatorId);
+  if (organic.ok && organic.data) {
+    for (const [key, value] of Object.entries(organic.data)) {
+      if (isAudienceKey(key) && !isAssetKey(key) && !isUrlValue(value) && isSafeValue(value)) {
+        audience[key] = value;
+      }
+    }
+  }
+
+  return {
+    ok: true,
+    data: {
+      scopes: session.scopes,
+      creator,
+      audience,
+      videoCount,
+      videos: videoRows,
+      fieldKeys,
+      tokenScopes,
+      audienceAvailable: organic.ok,
+      ...(organic.diag ? { audienceDiag: organic.diag } : {}),
+    },
+  };
 }

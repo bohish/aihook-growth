@@ -62,6 +62,9 @@ export interface BusinessCreatorResult {
   videoCount?: number | null;
   videos?: Array<Record<string, string | number>>;
   fieldKeys?: string[];
+  tokenScopes?: string[];
+  audienceAvailable?: boolean;
+  audienceDiag?: { endpoint: string; httpStatus: number; code: number | null; message: string };
   diag?: { endpoint: string; httpStatus: number; code: number | null; message: string };
 }
 
@@ -94,6 +97,9 @@ export const getBusinessCreatorData = createServerFn({ method: "GET" })
         videoCount: result.data.videoCount,
         videos: result.data.videos,
         fieldKeys: result.data.fieldKeys,
+        tokenScopes: result.data.tokenScopes,
+        audienceAvailable: result.data.audienceAvailable,
+        ...(result.data.audienceDiag ? { audienceDiag: result.data.audienceDiag } : {}),
       };
     } catch {
       return { ok: false, status: "api_error" };
