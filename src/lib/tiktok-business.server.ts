@@ -161,7 +161,7 @@ export async function fetchBusinessCreator(
 
   let videoCount: number | null = null;
   const videoRows: Array<Record<string, string | number>> = [];
-  const list = await call("/tto/creator/authorized/video/list/", session.accessToken, { max_count: "20" });
+  const list = await call("/tto/creator/authorized/video/list/", session.accessToken, { ...idQuery, max_count: "20" });
   if (list.ok) {
     const videos = list.data?.["videos"];
     if (Array.isArray(videos)) {
