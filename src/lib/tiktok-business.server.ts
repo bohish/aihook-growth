@@ -203,6 +203,8 @@ export interface BusinessCreatorData {
   /** Whether the official organic audience endpoint answered for this token */
   audienceAvailable: boolean;
   audienceDiag?: BusinessApiDiag;
+  /** Unified snapshot of every optional Business source that actually answered */
+  snapshot: BusinessSnapshot;
 }
 
 /**
