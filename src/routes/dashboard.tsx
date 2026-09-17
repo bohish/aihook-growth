@@ -249,6 +249,61 @@ function BusinessCreatorCard() {
             );
           })()}
           {(() => {
+            const snap = state.snapshot;
+            if (!snap) return null;
+            const STAT_LABELS: Record<string, [string, string]> = {
+              followers_count: ["المتابعون", "Followers"],
+              profile_views: ["زيارات الملف", "Profile views"],
+              video_views: ["مشاهدات الفيديو", "Video views"],
+              likes: ["الإعجابات", "Likes"],
+              comments: ["التعليقات", "Comments"],
+              shares: ["المشاركات", "Shares"],
+            };
+            const tiles: Array<[string, string]> = Object.entries(snap.accountStats)
+              .filter(([k]) => k in STAT_LABELS)
+              .map(([k, v]) => [pick(STAT_LABELS[k]![0], STAT_LABELS[k]![1]), v.toLocaleString(locale)]);
+            const num = (v: unknown) => (typeof v === "number" ? v : Number(v));
+            const rates = snap.videoInsights
+              .map((r) => num(r["full_video_watched_rate"]))
+              .filter((n) => Number.isFinite(n));
+            if (rates.length > 0) {
+              const avg = rates.reduce((a, b) => a + b, 0) / rates.length;
+              tiles.push([
+                pick("مشاهدة كاملة (متوسط)", "Full watch (avg)"),
+                `${(avg <= 1 ? avg * 100 : avg).toFixed(1)}%`,
+              ]);
+            }
+            const reach = snap.videoInsights
+              .map((r) => num(r["reach"]))
+              .filter((n) => Number.isFinite(n));
+            if (reach.length > 0) {
+              tiles.push([
+                pick("الوصول (إجمالي)", "Reach (total)"),
+                reach.reduce((a, b) => a + b, 0).toLocaleString(locale),
+              ]);
+            }
+            if (snap.commentsCount !== null) {
+              tiles.push([
+                pick("تعليقات أحدث فيديو", "Comments on latest video"),
+                snap.commentsCount.toLocaleString(locale),
+              ]);
+            }
+            if (tiles.length === 0) return null;
+            return (
+              <div className="mt-4 border-t border-border pt-4">
+                <p className="text-xs font-semibold">{pick("أداء الحساب", "Account performance")}</p>
+                <dl className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                  {tiles.map(([label, value]) => (
+                    <div key={label} className="panel p-3">
+                      <dt className="text-[11px] text-muted-foreground">{label}</dt>
+                      <dd className="mt-1 text-sm font-medium tabular-nums">{value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+            );
+          })()}
+          {(() => {
             const rows = state.videos ?? [];
             if (rows.length === 0) return null;
             const num = (row: Record<string, string | number>, keys: string[]): number | null => {

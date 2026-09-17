@@ -85,6 +85,111 @@ async function call(
   return { ok: true, ...(payload.data ? { data: payload.data } : {}) };
 }
 
+/** Official /business/get/ metric fields (organic account insights). */
+const STAT_FIELDS = [
+  "followers_count",
+  "profile_views",
+  "video_views",
+  "likes",
+  "comments",
+  "shares",
+];
+
+/** Official /business/video/list/ insight fields. */
+const VIDEO_INSIGHT_FIELDS = [
+  "item_id",
+  "create_time",
+  "caption",
+  "share_url",
+  "video_views",
+  "likes",
+  "comments",
+  "shares",
+  "reach",
+  "full_video_watched_rate",
+  "total_time_watched",
+  "average_time_watched",
+  "video_duration",
+];
+
+/**
+ * Every optional source is independent: a rejected endpoint yields nothing and
+ * never breaks the rest of the snapshot. No values are ever invented.
+ */
+export interface BusinessSnapshot {
+  /** Real numeric account insights returned by /business/get/ */
+  accountStats: Record<string, number>;
+  /** Per-video insight rows returned by /business/video/list/ */
+  videoInsights: Array<Record<string, string | number>>;
+  /** Comment count actually returned for the newest authorized video */
+  commentsCount: number | null;
+  /** Sources TikTok refused for this token (endpoint names only) */
+  unavailable: string[];
+}
+
+async function fetchAccountStats(
+  token: string,
+  businessId: string,
+  start: string,
+  end: string,
+): Promise<Record<string, number>> {
+  const result = await call("/business/get/", token, {
+    business_id: businessId,
+    fields: JSON.stringify(STAT_FIELDS),
+    start_date: start,
+    end_date: end,
+  });
+  const stats: Record<string, number> = {};
+  if (!result.ok || !result.data) return stats;
+  for (const key of STAT_FIELDS) {
+    const value = result.data[key];
+    if (typeof value === "number") stats[key] = value;
+    else if (typeof value === "string" && value.trim() !== "" && !Number.isNaN(Number(value))) {
+      stats[key] = Number(value);
+    }
+  }
+  return stats;
+}
+
+async function fetchVideoInsights(
+  token: string,
+  businessId: string,
+): Promise<Array<Record<string, string | number>>> {
+  const result = await call("/business/video/list/", token, {
+    business_id: businessId,
+    fields: JSON.stringify(VIDEO_INSIGHT_FIELDS),
+    max_count: "20",
+  });
+  const rows: Array<Record<string, string | number>> = [];
+  if (!result.ok || !result.data) return rows;
+  const list = result.data["videos"];
+  if (!Array.isArray(list)) return rows;
+  for (const item of list) {
+    if (!item || typeof item !== "object") continue;
+    const row: Record<string, string | number> = {};
+    for (const [k, v] of Object.entries(item as Record<string, unknown>)) {
+      if (typeof v === "string" || typeof v === "number") row[k] = v;
+    }
+    if (Object.keys(row).length > 0) rows.push(row);
+  }
+  return rows;
+}
+
+async function fetchCommentCount(
+  token: string,
+  businessId: string,
+  videoId: string,
+): Promise<number | null> {
+  const result = await call("/business/comment/list/", token, {
+    business_id: businessId,
+    video_id: videoId,
+    max_count: "20",
+  });
+  if (!result.ok || !result.data) return null;
+  const comments = result.data["comments"];
+  return Array.isArray(comments) ? comments.length : null;
+}
+
 export interface BusinessCreatorData {
   scopes: string[];
   creator: Record<string, string | number>;
@@ -98,6 +203,8 @@ export interface BusinessCreatorData {
   /** Whether the official organic audience endpoint answered for this token */
   audienceAvailable: boolean;
   audienceDiag?: BusinessApiDiag;
+  /** Unified snapshot of every optional Business source that actually answered */
+  snapshot: BusinessSnapshot;
 }
 
 /**
@@ -260,6 +367,23 @@ export async function fetchBusinessCreator(
     }
   }
 
+  // Optional sources: each one is independent and silent on refusal.
+  const end = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const start = new Date(end.getTime() - 29 * 24 * 60 * 60 * 1000);
+  const iso = (d: Date) => d.toISOString().slice(0, 10);
+  const accountStats = await fetchAccountStats(session.accessToken, creatorId, iso(start), iso(end));
+  const videoInsights = await fetchVideoInsights(session.accessToken, creatorId);
+  const newestId = videoInsights[0]?.["item_id"] ?? videoRows[0]?.["item_id"];
+  const commentsCount =
+    typeof newestId === "string" || typeof newestId === "number"
+      ? await fetchCommentCount(session.accessToken, creatorId, String(newestId))
+      : null;
+  const unavailable: string[] = [];
+  if (Object.keys(accountStats).length === 0) unavailable.push("/business/get/ (stats)");
+  if (videoInsights.length === 0) unavailable.push("/business/video/list/");
+  if (commentsCount === null) unavailable.push("/business/comment/list/");
+  if (!organic.ok) unavailable.push("/business/get/ (audience)");
+
   return {
     ok: true,
     data: {
@@ -272,6 +396,7 @@ export async function fetchBusinessCreator(
       tokenScopes,
       audienceAvailable: organic.ok,
       ...(organic.diag ? { audienceDiag: organic.diag } : {}),
+      snapshot: { accountStats, videoInsights, commentsCount, unavailable },
     },
   };
 }

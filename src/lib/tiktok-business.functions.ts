@@ -9,11 +9,14 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 export const TIKTOK_BUSINESS_REDIRECT_URI = "https://aihook.store/api/public/tiktok-business/callback";
 
-/** Scopes approved for this app. */
+/** Scopes approved for this app (official OAuth scope strings only). */
 export const TIKTOK_BUSINESS_SCOPES = [
   "user.info.basic",
+  "user.info.stats",
   "user.insights",
   "video.list",
+  "video.insights",
+  "comment.list",
   "biz.creator.info",
   "biz.creator.insights",
   "tto.campaign.link",
@@ -65,6 +68,12 @@ export interface BusinessCreatorResult {
   fieldKeys?: string[];
   tokenScopes?: string[];
   audienceAvailable?: boolean;
+  snapshot?: {
+    accountStats: Record<string, number>;
+    videoInsights: Array<Record<string, string | number>>;
+    commentsCount: number | null;
+    unavailable: string[];
+  };
   audienceDiag?: { endpoint: string; httpStatus: number; code: number | null; message: string };
   diag?: { endpoint: string; httpStatus: number; code: number | null; message: string };
 }
@@ -100,6 +109,7 @@ export const getBusinessCreatorData = createServerFn({ method: "GET" })
         fieldKeys: result.data.fieldKeys,
         tokenScopes: result.data.tokenScopes,
         audienceAvailable: result.data.audienceAvailable,
+        snapshot: result.data.snapshot,
         ...(result.data.audienceDiag ? { audienceDiag: result.data.audienceDiag } : {}),
       };
     } catch {

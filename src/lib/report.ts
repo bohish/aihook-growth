@@ -7,7 +7,8 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
 import { computeMetrics } from "@/lib/metrics";
 import { computeScore } from "@/lib/scoring";
-import { analyze } from "@/lib/analysis";
+import { analyze, type BusinessGroundTruth } from "@/lib/analysis";
+import { getBusinessCreatorData } from "@/lib/tiktok-business.functions";
 import type { StoredHookAnalysis } from "@/lib/niche";
 import { fetchTikTokAccountData } from "@/lib/tiktok.functions";
 import type { AccountData, AnalysisReport, ConnectionState } from "@/lib/types";
@@ -51,12 +52,32 @@ export async function runAnalysis(): Promise<AnalysisReport> {
   const data = result.data;
   const metrics = computeMetrics(data);
   const hookAnalyses = await fetchStoredHookAnalyses();
-  const report = analyze(data, metrics, priorPeriodScore(data), hookAnalyses);
+  const business = await fetchBusinessGroundTruth();
+  const report = analyze(data, metrics, priorPeriodScore(data), hookAnalyses, business);
   cacheReport(report);
   void persistReport(report).catch(() => {
     /* history persistence is best-effort; the analysis itself is local */
   });
   return report;
+}
+
+/**
+ * Best-effort read of the TikTok Business snapshot. When the account is not
+ * connected or TikTok refuses a source, the analysis simply runs without it.
+ */
+async function fetchBusinessGroundTruth(): Promise<BusinessGroundTruth | undefined> {
+  try {
+    const biz = await getBusinessCreatorData();
+    if (!biz.ok) return undefined;
+    return {
+      accountStats: biz.snapshot?.accountStats ?? {},
+      audience: biz.audience ?? {},
+      commentsCount: biz.snapshot?.commentsCount ?? null,
+      videoInsights: biz.snapshot?.videoInsights ?? [],
+    };
+  } catch {
+    return undefined;
+  }
 }
 
 /**

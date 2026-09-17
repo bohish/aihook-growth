@@ -555,17 +555,116 @@ export function buildWeeklyPlanFocused(
   };
 }
 
+/**
+ * Ground truth coming straight from the TikTok Business API. Only values the
+ * API actually returned are used; nothing is estimated or filled in.
+ */
+export interface BusinessGroundTruth {
+  accountStats: Record<string, number>;
+  audience: Record<string, unknown>;
+  commentsCount: number | null;
+  videoInsights: Array<Record<string, string | number>>;
+}
+
+/** Top label of an audience breakdown, with its real share, or null. */
+function topAudience(value: unknown): { label: string; pct: number } | null {
+  const rows: Array<{ label: string; pct: number }> = [];
+  const push = (label: unknown, pct: unknown) => {
+    const n = typeof pct === "number" ? pct : Number(pct);
+    if (typeof label !== "string" && typeof label !== "number") return;
+    if (!Number.isFinite(n)) return;
+    rows.push({ label: String(label), pct: n <= 1 ? n * 100 : n });
+  };
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      if (item && typeof item === "object") {
+        const o = item as Record<string, unknown>;
+        push(
+          o["name"] ?? o["label"] ?? o["age"] ?? o["gender"] ?? o["country"] ?? o["country_code"] ?? o["city"],
+          o["value"] ?? o["percentage"] ?? o["percent"] ?? o["ratio"] ?? o["share"],
+        );
+      }
+    }
+  } else if (value && typeof value === "object") {
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) push(k, v);
+  }
+  rows.sort((a, b) => b.pct - a.pct);
+  return rows[0] ?? null;
+}
+
+export function buildBusinessInsights(gt: BusinessGroundTruth): DnaInsight[] {
+  const out: DnaInsight[] = [];
+  const audienceBits: string[] = [];
+  const groups: Array<[RegExp, string]> = [
+    [/gender/i, "الجنس"],
+    [/age/i, "العمر"],
+    [/countr/i, "الدولة"],
+    [/city|cities/i, "المدينة"],
+  ];
+  for (const [re, label] of groups) {
+    for (const [key, value] of Object.entries(gt.audience)) {
+      if (!re.test(key)) continue;
+      const top = topAudience(value);
+      if (top) {
+        audienceBits.push(`${label} ${top.label} ${top.pct.toFixed(1)}%`);
+        break;
+      }
+    }
+  }
+  if (audienceBits.length > 0) {
+    out.push({
+      title: "جمهورك الفعلي حسب تيك توك",
+      detail: audienceBits.join(" و"),
+      liftPct: null,
+      sampleSize: audienceBits.length,
+      confidence: "high",
+    });
+  }
+
+  const s = gt.accountStats;
+  if (typeof s["profile_views"] === "number" && typeof s["video_views"] === "number" && s["video_views"] > 0) {
+    const rate = (s["profile_views"] / s["video_views"]) * 100;
+    out.push({
+      title: "تحويل المشاهدة إلى زيارة للحساب",
+      detail: `${fmt(s["profile_views"])} زيارة للملف مقابل ${fmt(s["video_views"])} مشاهدة أي ${rate.toFixed(2)}%`,
+      liftPct: null,
+      sampleSize: 1,
+      confidence: "high",
+    });
+  }
+
+  const rates = gt.videoInsights
+    .map((r) => r["full_video_watched_rate"])
+    .map((v) => (typeof v === "number" ? v : Number(v)))
+    .filter((n) => Number.isFinite(n)) as number[];
+  if (rates.length >= 3) {
+    const med = median(rates);
+    out.push({
+      title: "نسبة مشاهدة الفيديو كاملاً",
+      detail: `الوسيط ${(med <= 1 ? med * 100 : med).toFixed(1)}% على ${rates.length} فيديو`,
+      liftPct: null,
+      sampleSize: rates.length,
+      confidence: "high",
+    });
+  }
+  return out;
+}
+
 export function analyze(
   data: AccountData,
   metrics: Metrics,
   previousScore?: number,
   hookAnalyses: StoredHookAnalysis[] = [],
+  business?: BusinessGroundTruth,
 ): AnalysisReport {
   const scoring = computeScore(metrics);
   const sorted = [...data.videos].sort((a, b) => b.views - a.views);
   const top = sorted.slice(0, 5);
   const bottom = sorted.slice(-5).reverse();
-  const dna = buildContentDna(data.videos);
+  const dna = [
+    ...(business ? buildBusinessInsights(business) : []),
+    ...buildContentDna(data.videos),
+  ];
   const ctx = buildAccountContext(data.videos, hookAnalyses);
   const plan = buildWeeklyPlanFocused(metrics, data.videos, ctx);
 
