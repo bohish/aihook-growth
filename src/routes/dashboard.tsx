@@ -119,132 +119,132 @@ function BusinessCreatorCard() {
             </p>
           ) : null}
           {(() => {
-            const AUDIENCE_LABELS: Array<{ key: string; labels: [string, string] }> = [
-              { key: "gender", labels: ["الجنس", "Gender"] },
-              { key: "age", labels: ["العمر", "Age"] },
-              { key: "countries", labels: ["الدول", "Countries"] },
-              { key: "regions", labels: ["المناطق", "Regions"] },
-              { key: "cities", labels: ["المدن", "Cities"] },
-            ];
             const noData = pick("لا توجد بيانات متاحة", "No data available");
-            const fmt = (v: unknown): string => {
-              if (Array.isArray(v))
-                return v
-                  .map((item) =>
-                    item && typeof item === "object"
-                      ? Object.entries(item as Record<string, unknown>)
-                          .map(([k, val]) => `${k}: ${String(val)}`)
-                          .join(" ")
-                      : String(item),
-                  )
-                  .join("، ");
-              if (v && typeof v === "object")
-                return Object.entries(v as Record<string, unknown>)
-                  .map(([k, val]) => `${k}: ${String(val)}`)
-                  .join("، ");
-              return String(v);
-            };
-            const findValue = (group: string): unknown => {
-              for (const [key, value] of Object.entries(state.audience ?? {})) {
-                if (key.includes(group)) return value;
+            const toPercent = (v: unknown): number | null => {
+              if (typeof v === "number") return v >= 0 && v <= 1 ? v * 100 : v;
+              if (typeof v === "string") {
+                const n = Number(v.trim().replace(/%$/, ""));
+                if (Number.isNaN(n)) return null;
+                return n >= 0 && n <= 1 ? n * 100 : n;
               }
-              return undefined;
+              return null;
             };
+            const LABEL_KEYS = [
+              "name", "label", "city", "city_name", "region", "region_name", "age",
+              "gender", "language", "language_name", "device", "device_name",
+              "interest", "category", "country", "country_code", "country_name", "key",
+            ];
+            const VALUE_KEYS = ["value", "percentage", "percent", "ratio", "share", "count", "pct"];
+            const pickStr = (obj: Record<string, unknown>, keys: string[]): string | null => {
+              for (const k of keys) {
+                if (obj[k] !== null && obj[k] !== undefined && obj[k] !== "") return String(obj[k]);
+              }
+              return null;
+            };
+            const pickNum = (obj: Record<string, unknown>, keys: string[]): number | null => {
+              for (const k of keys) {
+                if (k in obj) {
+                  const n = toPercent(obj[k]);
+                  if (n !== null) return n;
+                }
+              }
+              return null;
+            };
+            type Entry = { label: string; percent: number | null; sub?: string };
+            const normalize = (v: unknown): Entry[] => {
+              if (v == null) return [];
+              if (Array.isArray(v)) {
+                return v.flatMap((item): Entry[] => {
+                  if (item && typeof item === "object") {
+                    const obj = item as Record<string, unknown>;
+                    const label = pickStr(obj, LABEL_KEYS) ?? "";
+                    const percent = pickNum(obj, VALUE_KEYS);
+                    const sub = pickStr(obj, ["country", "country_code", "country_name"]);
+                    const e: Entry = { label, percent };
+                    if (sub && sub !== label) e.sub = sub;
+                    return [e];
+                  }
+                  return [{ label: String(item), percent: null }];
+                });
+              }
+              if (typeof v === "object") {
+                return Object.entries(v as Record<string, unknown>).map(([k, val]) => ({
+                  label: String(k),
+                  percent: toPercent(val),
+                }));
+              }
+              return [{ label: String(v), percent: null }];
+            };
+            const GENDER_MAP: Record<string, [string, string]> = {
+              m: ["ذكر", "Male"], male: ["ذكر", "Male"],
+              f: ["أنثى", "Female"], female: ["أنثى", "Female"],
+              u: ["أخرى", "Other"], o: ["أخرى", "Other"],
+              other: ["أخرى", "Other"], unknown: ["أخرى", "Other"],
+            };
+            const fmtPct = (p: number | null): string => (p === null ? "—" : `${p.toFixed(1)}%`);
+            const GROUPS: Array<{ match: RegExp; labels: [string, string]; gender?: boolean }> = [
+              { match: /gender/i, labels: ["الجنس", "Gender"], gender: true },
+              { match: /age/i, labels: ["العمر", "Age"] },
+              { match: /countr/i, labels: ["الدول", "Countries"] },
+              { match: /city|cities/i, labels: ["المدن", "Cities"] },
+              { match: /region/i, labels: ["المناطق", "Regions"] },
+              { match: /language/i, labels: ["اللغة", "Language"] },
+              { match: /device/i, labels: ["الأجهزة", "Devices"] },
+              { match: /interest/i, labels: ["الاهتمامات", "Interests"] },
+            ];
+            const audience = state.audience ?? {};
+            const tiles = GROUPS.map((g, idx) => {
+              const entries: Entry[] = [];
+              for (const [key, value] of Object.entries(audience)) {
+                if (g.match.test(key)) entries.push(...normalize(value));
+              }
+              const sorted = entries
+                .filter((e) => e.label !== "")
+                .sort((a, b) => {
+                  if (a.percent === null && b.percent === null) return a.label.localeCompare(b.label);
+                  if (a.percent === null) return 1;
+                  if (b.percent === null) return -1;
+                  return b.percent - a.percent;
+                });
+              const hasData = sorted.length > 0;
+              const isMain = idx < 5;
+              if (!hasData && !isMain) return null;
+              return { g, sorted, hasData };
+            });
+            const visible = tiles.filter((t): t is NonNullable<typeof t> => t !== null);
+            if (visible.length === 0) return null;
             return (
               <div className="mt-4 border-t border-border pt-4">
                 <p className="text-xs font-semibold">{pick("الجمهور", "Audience")}</p>
-                <dl className="mt-2 grid gap-2">
-                  {AUDIENCE_LABELS.map(({ key, labels }) => {
-                    const value = findValue(key);
-                    const hasValue = value !== undefined && value !== null && !(
-                      Array.isArray(value) ? value.length === 0 : false
-                    );
-                    return (
-                      <div key={key} className="flex flex-wrap gap-2 text-xs">
-                        <dt className="text-muted-foreground">{pick(labels[0], labels[1])}:</dt>
-                        <dd className="font-medium">{hasValue ? fmt(value) : noData}</dd>
-                      </div>
-                    );
-                  })}
-                </dl>
-              </div>
-            );
-          })()}
-          {(() => {
-            const GROUP_LABELS: Array<[RegExp, [string, string]]> = [
-              [/gender/i, ["الجنس", "Gender"]],
-              [/age/i, ["العمر", "Age"]],
-              [/countr/i, ["الدول", "Countries"]],
-              [/region/i, ["المناطق", "Regions"]],
-              [/city|cities/i, ["المدن", "Cities"]],
-              [/location/i, ["الموقع", "Location"]],
-              [/language/i, ["اللغة", "Language"]],
-              [/device/i, ["الأجهزة", "Devices"]],
-              [/interest/i, ["الاهتمامات", "Interests"]],
-            ];
-            const fmtVal = (v: unknown): string => {
-              if (Array.isArray(v))
-                return v
-                  .map((item) =>
-                    item && typeof item === "object"
-                      ? Object.entries(item as Record<string, unknown>)
-                          .map(([k, val]) => `${k}: ${String(val)}`)
-                          .join(" ")
-                      : String(item),
-                  )
-                  .join("، ");
-              if (v && typeof v === "object")
-                return Object.entries(v as Record<string, unknown>)
-                  .map(([k, val]) => `${k}: ${String(val)}`)
-                  .join("، ");
-              return String(v);
-            };
-            const audienceEntries = Object.entries(state.audience ?? {});
-            return (
-              <div className="mt-4 border-t border-border pt-4">
-                <p className="text-xs font-semibold">
-                  {pick("بيانات الجمهور المتاحة", "Available audience data")}
-                </p>
-                {audienceEntries.length > 0 ? (
-                  <dl className="mt-2 grid gap-2">
-                    {audienceEntries.map(([key, value]) => {
-                      const match = GROUP_LABELS.find(([re]) => re.test(key));
-                      const label = match ? pick(match[1][0], match[1][1]) : key;
-                      return (
-                        <div key={key} className="flex flex-wrap gap-2 text-xs">
-                          <dt className="text-muted-foreground">{label}:</dt>
-                          <dd className="font-medium">{fmtVal(value)}</dd>
-                        </div>
-                      );
-                    })}
-                  </dl>
-                ) : (
-                  <div className="mt-2 text-xs">
-                    <p className="text-muted-foreground">
-                      {pick(
-                        "لم تُرجع TikTok حقول جمهور لهذا الحساب — المفاتيح المتاحة فعليًا",
-                        "TikTok returned no audience fields — actual keys returned",
+                <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {visible.map(({ g, sorted, hasData }, i) => (
+                    <div key={i} className="panel p-3">
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        {pick(g.labels[0], g.labels[1])}
+                      </p>
+                      {hasData ? (
+                        <ul className="mt-2 space-y-1">
+                          {sorted.map((e, j) => {
+                            const label = g.gender
+                              ? pick(...(GENDER_MAP[e.label.trim().toLowerCase()] ?? [e.label, e.label]))
+                              : e.label;
+                            return (
+                              <li key={j} className="flex items-center justify-between gap-2 text-xs">
+                                <span className="truncate text-muted-foreground" dir="auto">
+                                  {label}
+                                  {e.sub ? ` (${e.sub})` : ""}
+                                </span>
+                                <span className="font-medium tabular-nums">{fmtPct(e.percent)}</span>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      ) : (
+                        <p className="mt-2 text-xs text-muted-foreground">{noData}</p>
                       )}
-                      :
-                    </p>
-                    <p className="mt-1 break-words font-mono text-[11px] text-muted-foreground" dir="ltr">
-                      {(state.fieldKeys ?? []).join(", ") || pick("لا يوجد", "None")}
-                    </p>
-                  </div>
-                )}
-                <p className="mt-3 break-words font-mono text-[11px] text-muted-foreground" dir="ltr">
-                  scopes: {(state.tokenScopes && state.tokenScopes.length > 0
-                    ? state.tokenScopes
-                    : state.scopes ?? []
-                  ).join(", ") || "unknown"}
-                  {" | audience endpoint: "}
-                  {state.audienceAvailable ? "available" : "not available"}
-                  {!state.audienceAvailable && state.audienceDiag
-                    ? ` (${state.audienceDiag.endpoint} HTTP ${state.audienceDiag.httpStatus}${
-                        state.audienceDiag.code !== null ? ` code ${state.audienceDiag.code}` : ""
-                      }${state.audienceDiag.message ? ` ${state.audienceDiag.message.replaceAll(".", "")}` : ""})`
-                    : ""}
-                </p>
+                    </div>
+                  ))}
+                </div>
               </div>
             );
           })()}
