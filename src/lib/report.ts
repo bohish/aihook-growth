@@ -9,7 +9,7 @@ import { computeMetrics } from "@/lib/metrics";
 import { computeScore } from "@/lib/scoring";
 import { analyze } from "@/lib/analysis";
 import type { StoredHookAnalysis } from "@/lib/niche";
-import { fetchTikTokAccountData } from "@/lib/tiktok.functions";
+import { fetchBusinessAccountData } from "@/lib/tiktok-business.functions";
 import type { AccountData, AnalysisReport, ConnectionState } from "@/lib/types";
 
 
@@ -44,7 +44,7 @@ export class AnalysisUnavailableError extends Error {
  * AnalysisUnavailableError — it never substitutes fabricated data.
  */
 export async function runAnalysis(): Promise<AnalysisReport> {
-  const result = await fetchTikTokAccountData();
+  const result = await fetchBusinessAccountData();
   if (!result.ok || !result.data) {
     throw new AnalysisUnavailableError(result.status, (result.message ?? "تعذّر جلب بيانات الحساب").replaceAll(".", ""));
   }

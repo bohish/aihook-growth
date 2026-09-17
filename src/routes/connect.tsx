@@ -18,7 +18,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useConnection } from "@/hooks/useConnection";
 import { CONNECTION_LABELS_AR, CONNECTION_LABELS_EN, TIKTOK_NOT_REQUESTED_AR, TIKTOK_NOT_REQUESTED_EN, TIKTOK_PERMISSIONS_AR, TIKTOK_PERMISSIONS_EN } from "@/lib/tiktok-copy";
 import { useLanguage } from "@/lib/i18n";
-import { disconnectTikTok, startTikTokOAuth } from "@/lib/tiktok.functions";
+
 import { startTikTokBusinessOAuth } from "@/lib/tiktok-business.functions";
 import type { ConnectionStatus } from "@/lib/types";
 
@@ -140,7 +140,7 @@ function ConnectPage() {
   const disconnect = async () => {
     setBusy(true);
     try {
-      await disconnectTikTok();
+      await disconnectBusiness();
       setOverride(null);
       await refetch();
        toast.success(pick("تم فصل الحساب", "Account disconnected"));
