@@ -93,6 +93,18 @@ export interface BusinessCreatorData {
   videos: Array<Record<string, string | number>>;
 }
 
+/** Resolves the business/creator ID the /tto/creator/* endpoints require, via the official bootstrap endpoint. */
+async function resolveBusinessId(token: string): Promise<string | null> {
+  const appId = process.env["TIKTOK_BUSINESS_APP_ID"];
+  const secret = process.env["TIKTOK_BUSINESS_APP_SECRET"];
+  if (!appId || !secret) return null;
+  const res = await call("/tto/oauth2/tcm/", token, { app_id: appId, secret });
+  if (!res.ok) return null;
+  const ids = res.data?.["tto_tcm_account_ids"];
+  if (Array.isArray(ids) && typeof ids[0] === "string" && ids[0]) return ids[0];
+  return null;
+}
+
 export async function fetchBusinessCreator(
   session: BusinessSession,
 ): Promise<{ ok: boolean; data?: BusinessCreatorData; message?: string; diag?: BusinessApiDiag }> {
