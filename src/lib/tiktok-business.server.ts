@@ -91,6 +91,8 @@ export interface BusinessCreatorData {
   audience: Record<string, unknown>;
   videoCount: number | null;
   videos: Array<Record<string, string | number>>;
+  /** Safe key names TikTok actually returned (no tokens/IDs), for diagnostics. */
+  fieldKeys: string[];
 }
 
 export async function fetchBusinessCreator(
