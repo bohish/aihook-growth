@@ -68,6 +68,12 @@ export interface BusinessCreatorResult {
   fieldKeys?: string[];
   tokenScopes?: string[];
   audienceAvailable?: boolean;
+  snapshot?: {
+    accountStats: Record<string, number>;
+    videoInsights: Array<Record<string, string | number>>;
+    commentsCount: number | null;
+    unavailable: string[];
+  };
   audienceDiag?: { endpoint: string; httpStatus: number; code: number | null; message: string };
   diag?: { endpoint: string; httpStatus: number; code: number | null; message: string };
 }
