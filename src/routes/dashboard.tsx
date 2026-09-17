@@ -1,17 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { AlertTriangle, Link2, Loader2, RefreshCw, Sparkles } from "lucide-react";
+import { AlertTriangle, ArrowUpRight, CalendarDays, Eye, Heart, Link2, Loader2, MessageCircle, RefreshCw, Repeat2, Sparkles, Target } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/AppShell";
 import {
-  BestWorst,
-  ContentDna,
-  KeyMetrics,
-  NumericPerformance,
-  Recommendations,
-  ScoreCard,
-  WeeklyPlan,
 } from "@/components/dashboard/sections";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -19,7 +12,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useConnection } from "@/hooks/useConnection";
 import { AnalysisUnavailableError, readCachedReport, runAnalysis } from "@/lib/report";
 import { getBusinessCreatorData, type BusinessCreatorResult } from "@/lib/tiktok-business.functions";
-import type { AnalysisReport } from "@/lib/types";
+import { formatNumber, formatPercent, formatSignedPercent } from "@/lib/metrics";
+import type { AnalysisReport, VideoRecord } from "@/lib/types";
 import { useLanguage } from "@/lib/i18n";
 
 export const Route = createFileRoute("/dashboard")({
@@ -97,24 +91,30 @@ function BusinessCreatorCard() {
   const entries = Object.entries(state.creator ?? {}).filter(([k]) => k in LABELS);
 
   return (
-    <div className="panel p-5">
-      <h2 className="text-sm font-semibold">{pick("TikTok for Business", "TikTok for Business")}</h2>
+    <section className="panel overflow-hidden">
+      <div className="flex items-center justify-between border-b border-border px-5 py-4">
+        <div>
+          <p className="text-[10px] uppercase text-muted-foreground">{pick("مصدر البيانات", "Data source")}</p>
+          <h2 className="mt-1 text-sm font-semibold">{pick("TikTok for Business", "TikTok for Business")}</h2>
+        </div>
+        <span className="size-2 bg-primary" aria-label={pick("متصل", "Connected")} />
+      </div>
       {state.ok && entries.length > 0 ? (
         <>
-          <dl className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
+          <dl className="grid grid-cols-2 border-b border-border sm:grid-cols-3 lg:grid-cols-6">
             {entries.map(([key, value]) => (
-              <div key={key}>
+              <div key={key} className="min-w-0 border-e border-border p-4 last:border-e-0">
                 <dt className="text-xs text-muted-foreground">
                   {pick(LABELS[key]![0], LABELS[key]![1])}
                 </dt>
-                <dd className="mt-1 text-sm font-medium tabular-nums" dir="ltr">
+                <dd className="mt-2 truncate text-xl font-bold tabular-nums" dir="ltr">
                   {typeof value === "number" ? value.toLocaleString("en-US") : value}
                 </dd>
               </div>
             ))}
           </dl>
           {state.videoCount !== null && state.videoCount !== undefined ? (
-            <p className="mt-4 text-xs text-muted-foreground">
+            <p className="px-5 pt-4 text-xs text-muted-foreground">
               {pick("فيديوهات مصرّح بها", "Authorized videos")}: <span dir="ltr" className="tabular-nums">{state.videoCount.toLocaleString("en-US")}</span>
             </p>
           ) : null}
@@ -214,27 +214,34 @@ function BusinessCreatorCard() {
             const visible = tiles.filter((t): t is NonNullable<typeof t> => t !== null);
             if (visible.length === 0) return null;
             return (
-              <div className="mt-4 border-t border-border pt-4">
-                <p className="text-xs font-semibold">{pick("الجمهور", "Audience")}</p>
-                <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="border-b border-border px-5 py-6">
+                <div className="flex items-end justify-between gap-3">
+                  <div>
+                    <p className="text-[10px] uppercase text-muted-foreground">{pick("توزيع ديموغرافي", "Demographic distribution")}</p>
+                    <h3 className="mt-1 text-lg font-bold">{pick("الجمهور", "Audience")}</h3>
+                  </div>
+                </div>
+                <div className="mt-5 grid grid-cols-1 gap-px overflow-hidden border border-border bg-border sm:grid-cols-2 lg:grid-cols-3">
                   {visible.map(({ g, sorted, hasData }, i) => (
-                    <div key={i} className="panel p-3">
+                    <div key={i} className="min-w-0 bg-card p-4">
                       <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                         {pick(g.labels[0], g.labels[1])}
                       </p>
                       {hasData ? (
-                        <ul className="mt-2 space-y-1">
+                        <ul className="mt-3 space-y-3">
                           {sorted.map((e, j) => {
                             const label = g.gender
                               ? pick(...(GENDER_MAP[e.label.trim().toLowerCase()] ?? [e.label, e.label]))
                               : e.label;
                             return (
-                              <li key={j} className="flex items-center justify-between gap-2 text-xs">
-                                <span className="truncate text-muted-foreground" dir="auto">
-                                  {label}
-                                  {e.sub ? ` (${e.sub})` : ""}
-                                </span>
-                                <span className="font-medium tabular-nums">{fmtPct(e.percent)}</span>
+                              <li key={j} className="text-xs">
+                                <div className="flex items-center justify-between gap-2">
+                                  <span className="truncate text-muted-foreground" dir="auto">{label}{e.sub ? ` (${e.sub})` : ""}</span>
+                                  <span className="font-semibold tabular-nums" dir="ltr">{fmtPct(e.percent)}</span>
+                                </div>
+                                {e.percent !== null ? (
+                                  <div className="mt-1.5 h-1 bg-muted"><div className="h-full bg-primary" style={{ width: `${Math.min(100, Math.max(0, e.percent))}%` }} /></div>
+                                ) : null}
                               </li>
                             );
                           })}
@@ -287,36 +294,36 @@ function BusinessCreatorCard() {
             ];
             const commentsOnLatest = snap?.commentsCount ?? null;
             return (
-              <div className="mt-4 space-y-4 border-t border-border pt-4">
+              <div className="border-b border-border px-5 py-6">
                 <div>
-                  <p className="text-xs font-semibold">{pick("إحصاءات الحساب", "Account stats")}</p>
-                  <dl className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+                  <p className="text-[10px] uppercase text-muted-foreground">{pick("أداء الحساب", "Account performance")}</p>
+                  <dl className="mt-4 grid grid-cols-2 gap-px overflow-hidden border border-border bg-border sm:grid-cols-3 lg:grid-cols-6">
                     {STAT.map(([key, ar, enLabel]) => {
                       const v = typeof stats[key] === "number" ? stats[key] : num(stats[key]);
                       return (
-                        <div key={key} className="panel p-3">
+                        <div key={key} className="bg-card p-4">
                           <dt className="text-[11px] text-muted-foreground">{pick(ar, enLabel)}</dt>
-                          <dd className="mt-1 text-sm font-medium tabular-nums" dir="ltr">{fmt(v)}</dd>
+                          <dd className="mt-2 text-xl font-bold tabular-nums" dir="ltr">{fmt(v)}</dd>
                         </div>
                       );
                     })}
                   </dl>
                 </div>
-                <div>
-                  <p className="text-xs font-semibold">{pick("تحليلات الفيديو", "Video insights")}</p>
-                  <dl className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+                <div className="mt-6">
+                  <p className="text-[10px] uppercase text-muted-foreground">{pick("تحليلات الفيديو", "Video insights")}</p>
+                  <dl className="mt-4 grid grid-cols-2 gap-px overflow-hidden border border-border bg-border sm:grid-cols-3 lg:grid-cols-5">
                     {INSIGHT.map(([key, ar, enLabel, value]) => (
-                      <div key={key} className="panel p-3">
+                      <div key={key} className="bg-card p-4">
                         <dt className="text-[11px] text-muted-foreground">{pick(ar, enLabel)}</dt>
-                        <dd className="mt-1 text-sm font-medium tabular-nums" dir="ltr">{value}</dd>
+                        <dd className="mt-2 text-xl font-bold tabular-nums" dir="ltr">{value}</dd>
                       </div>
                     ))}
                   </dl>
                 </div>
-                <div>
-                  <p className="text-xs font-semibold">{pick("التعليقات", "Comments")}</p>
-                  <dl className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
-                    <div className="panel p-3">
+                <div className="mt-6">
+                  <p className="text-[10px] uppercase text-muted-foreground">{pick("التعليقات", "Comments")}</p>
+                  <dl className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                    <div className="border-s-2 border-primary ps-4">
                       <dt className="text-[11px] text-muted-foreground">{pick("تعليقات أحدث فيديو", "Comments on latest video")}</dt>
                       <dd className="mt-1 text-sm font-medium tabular-nums" dir="ltr">{fmt(commentsOnLatest)}</dd>
                     </div>
@@ -373,13 +380,13 @@ function BusinessCreatorCard() {
               ["منشورات/أسبوع", "Posts per week", fmtNum(postsPerWeek, 1)],
             ];
             return (
-              <div className="mt-4 border-t border-border pt-4">
-                <p className="text-xs font-semibold">{pick("أرقام الفيديوهات الحقيقية", "Real video metrics")}</p>
-                <dl className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <div className="px-5 py-6">
+                <p className="text-[10px] uppercase text-muted-foreground">{pick("أرقام الفيديوهات الحقيقية", "Real video metrics")}</p>
+                <dl className="mt-4 grid grid-cols-2 gap-px overflow-hidden border border-border bg-border sm:grid-cols-3">
                   {stats.map(([ar, en, value]) => (
-                    <div key={en}>
+                    <div key={en} className="bg-card p-4">
                       <dt className="text-xs text-muted-foreground">{pick(ar, en)}</dt>
-                      <dd className="mt-1 text-sm font-medium tabular-nums" dir="ltr">{value}</dd>
+                      <dd className="mt-2 text-xl font-bold tabular-nums" dir="ltr">{value}</dd>
                     </div>
                   ))}
                 </dl>
@@ -389,7 +396,7 @@ function BusinessCreatorCard() {
         </>
 
       ) : (
-        <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+        <p className="p-5 text-xs leading-relaxed text-muted-foreground">
           {state.status === "denied"
             ? pick(
                 "الربط موجود لكن TikTok لم يسمح بقراءة بيانات المُنشئ حتى الآن، فلا تُعرض أي أرقام",
@@ -405,8 +412,97 @@ function BusinessCreatorCard() {
           ) : null}
         </p>
       )}
-    </div>
+    </section>
   );
+}
+
+function DashboardOverview({ report }: { report: AnalysisReport }) {
+  const { pick } = useLanguage();
+  const m = report.metrics;
+  const score = report.scoring.score;
+  const kpis = [
+    [pick("المشاهدات", "Views"), formatNumber(m.totalViews), Eye],
+    [pick("التفاعل", "Engagement"), formatPercent(m.totalEngagementRate), Heart],
+    [pick("النشر أسبوعيًا", "Posts per week"), m.postsPerWeek.toLocaleString("en-US", { maximumFractionDigits: 1 }), CalendarDays],
+    [pick("وسيط المشاهدات", "Median views"), formatNumber(m.medianViews), Target],
+  ] as const;
+  return (
+    <section className="panel overflow-hidden">
+      <div className="grid lg:grid-cols-[18rem_1fr]">
+        <div className="flex min-h-64 flex-col justify-between border-b border-border p-6 lg:border-b-0 lg:border-e">
+          <p className="text-[10px] uppercase text-muted-foreground">{pick("درجة الحساب", "Account score")}</p>
+          <div>
+            <div className="flex items-end gap-2" dir="ltr">
+              <span className="text-7xl font-bold leading-none tabular-nums sm:text-8xl">{score.toLocaleString("en-US")}</span>
+              <span className="pb-2 text-sm text-muted-foreground">/ 100</span>
+            </div>
+            <div className="mt-5 h-1.5 bg-muted"><div className="h-full bg-primary" style={{ width: `${score}%` }} /></div>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4">
+          {kpis.map(([label, value, Icon]) => (
+            <div key={label} className="flex min-h-32 flex-col justify-between border-b border-e border-border p-5 lg:border-b-0 last:border-e-0">
+              <div className="flex items-center justify-between text-muted-foreground"><span className="text-[11px]">{label}</span><Icon className="size-3.5" /></div>
+              <span className="mt-6 text-2xl font-bold tabular-nums sm:text-3xl" dir="ltr">{value}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="grid border-t border-border sm:grid-cols-4">
+        {report.scoring.subscores.map((item) => (
+          <div key={item.key} className="border-b border-border p-4 sm:border-b-0 sm:border-e last:border-e-0">
+            <div className="flex items-center justify-between gap-2 text-xs"><span className="text-muted-foreground">{pick(item.labelAr, item.labelEn)}</span><span className="font-bold tabular-nums" dir="ltr">{item.value}</span></div>
+            <div className="mt-3 h-1 bg-muted"><div className="h-full bg-primary" style={{ width: `${item.value}%` }} /></div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function PerformanceOverview({ report }: { report: AnalysisReport }) {
+  const { pick } = useLanguage();
+  const m = report.metrics;
+  const metrics = [
+    [pick("المتابعون", "Followers"), formatNumber(m.followers)], [pick("إعجابات الحساب", "Account likes"), formatNumber(m.accountLikes)],
+    [pick("الفيديوهات", "Videos"), formatNumber(m.totalVideos)], [pick("متوسط المشاهدات", "Average views"), formatNumber(m.avgViews)],
+    [pick("التعليقات", "Comments"), formatNumber(m.totalComments)], [pick("المشاركات", "Shares"), formatNumber(m.totalShares)],
+  ];
+  const visuals = [
+    [pick("اعتماد أقوى 3 فيديوهات", "Top 3 dependency"), m.viralDependency * 100, formatPercent(m.viralDependency, 0)],
+    [pick("فيديوهات فوق المتوسط", "Videos above average"), m.totalVideos ? (m.videosAboveAverage / m.totalVideos) * 100 : 0, formatNumber(m.videosAboveAverage)],
+    [pick("اتجاه آخر 7 أيام", "7 day trend"), Math.min(100, Math.max(0, 50 + m.trend7 * 50)), formatSignedPercent(m.trend7)],
+  ];
+  return (
+    <section className="grid gap-6">
+      <div className="grid grid-cols-2 gap-px overflow-hidden border border-border bg-border sm:grid-cols-3 lg:grid-cols-6">
+        {metrics.map(([label, value]) => <div key={label} className="bg-background p-4"><p className="text-[11px] text-muted-foreground">{label}</p><p className="mt-3 text-2xl font-bold tabular-nums" dir="ltr">{value}</p></div>)}
+      </div>
+      <div className="grid gap-5 lg:grid-cols-3">
+        {visuals.map(([label, width, value]) => <div key={label as string} className="border-t border-border pt-4"><div className="flex items-end justify-between gap-3"><p className="text-xs text-muted-foreground">{label}</p><p className="text-xl font-bold tabular-nums" dir="ltr">{value}</p></div><div className="mt-4 h-2 bg-muted"><div className="h-full bg-primary" style={{ width: `${width}%` }} /></div></div>)}
+      </div>
+    </section>
+  );
+}
+
+function RankedVideos({ report }: { report: AnalysisReport }) {
+  const { pick } = useLanguage();
+  const render = (title: string, rows: VideoRecord[]) => {
+    const max = Math.max(1, ...rows.map((v) => v.views));
+    return <section><h2 className="text-lg font-bold">{title}</h2><div className="mt-4 border-y border-border">{rows.map((video, index) => <article key={video.id} className="grid grid-cols-[2.5rem_1fr_auto] items-center gap-3 border-b border-border py-4 last:border-b-0"><span className="text-2xl font-bold text-muted-foreground tabular-nums" dir="ltr">{String(index + 1).padStart(2, "0")}</span><div className="min-w-0"><p className="truncate text-sm font-semibold">{video.caption}</p><div className="mt-2 h-1 bg-muted"><div className="h-full bg-primary" style={{ width: `${(video.views / max) * 100}%` }} /></div><p className="mt-2 line-clamp-2 text-xs leading-relaxed text-muted-foreground">{report.verdicts[video.id] ?? ""}</p></div><div className="text-end"><p className="text-lg font-bold tabular-nums" dir="ltr">{formatNumber(video.views)}</p><p className="text-[10px] text-muted-foreground">{pick("مشاهدة", "views")}</p></div></article>)}</div></section>;
+  };
+  return <div className="grid gap-10">{render(pick("أقوى أداء", "Best performance"), report.top)}{render(pick("يحتاج تحسين", "Needs improvement"), report.bottom)}</div>;
+}
+
+function InsightGrid({ report, mode }: { report: AnalysisReport; mode: "dna" | "recommendations" }) {
+  const { pick } = useLanguage();
+  const rows = mode === "dna" ? report.dna.map((d) => ({ title: d.title, value: d.liftPct == null ? "—" : formatSignedPercent(d.liftPct), detail: d.detail })) : report.recommendations.map((r) => ({ title: r.title, value: String(r.priority).padStart(2, "0"), detail: `${r.evidence} ${r.action}` }));
+  return <section><div className="grid gap-px overflow-hidden border border-border bg-border md:grid-cols-2">{rows.map((row, index) => <article key={`${row.title}-${index}`} className="bg-background p-5"><div className="flex items-start justify-between gap-4"><span className="text-3xl font-bold tabular-nums" dir="ltr">{row.value}</span><ArrowUpRight className="size-4 text-muted-foreground" /></div><h3 className="mt-6 text-sm font-semibold">{row.title}</h3><p className="mt-2 text-xs leading-relaxed text-muted-foreground">{row.detail}</p></article>)}</div>{mode === "recommendations" && report.contextNote ? <p className="mt-4 text-xs text-muted-foreground">{report.contextNote}</p> : null}</section>;
+}
+
+function WeeklyTimeline({ report }: { report: AnalysisReport }) {
+  const { pick } = useLanguage();
+  return <section>{report.planFocus?.length ? <div className="mb-6 flex flex-wrap items-center gap-2 border-y border-border py-4"><Target className="size-4" />{report.planFocus.map((item) => <span key={item} className="border border-border px-3 py-1 text-xs">{item}</span>)}</div> : null}<div className="border-y border-border">{report.plan.map((day, index) => <article key={`${day.dayAr}-${index}`} className="grid gap-4 border-b border-border py-5 last:border-b-0 md:grid-cols-[4rem_1fr_1fr_auto]"><div><p className="text-2xl font-bold tabular-nums" dir="ltr">{String(index + 1).padStart(2, "0")}</p><p className="mt-1 text-xs text-muted-foreground">{day.dayAr}</p></div><div><p className="text-sm font-semibold">{day.idea}</p><p className="mt-2 text-xs text-muted-foreground">{day.hook}</p></div><div className="text-xs"><p className="text-muted-foreground">{pick("الصيغة", "Format")}</p><p className="mt-1">{day.format}</p><p className="mt-2 text-muted-foreground">{day.cta}</p></div><span className="self-start border border-border px-2 py-1 text-[10px] tabular-nums" dir="ltr">{day.targetDuration}</span></article>)}</div></section>;
 }
 
 
