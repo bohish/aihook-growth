@@ -171,6 +171,71 @@ function BusinessCreatorCard() {
             );
           })()}
           {(() => {
+            const GROUP_LABELS: Array<[RegExp, [string, string]]> = [
+              [/gender/i, ["الجنس", "Gender"]],
+              [/age/i, ["العمر", "Age"]],
+              [/countr/i, ["الدول", "Countries"]],
+              [/region/i, ["المناطق", "Regions"]],
+              [/city|cities/i, ["المدن", "Cities"]],
+              [/location/i, ["الموقع", "Location"]],
+              [/language/i, ["اللغة", "Language"]],
+              [/device/i, ["الأجهزة", "Devices"]],
+              [/interest/i, ["الاهتمامات", "Interests"]],
+            ];
+            const fmtVal = (v: unknown): string => {
+              if (Array.isArray(v))
+                return v
+                  .map((item) =>
+                    item && typeof item === "object"
+                      ? Object.entries(item as Record<string, unknown>)
+                          .map(([k, val]) => `${k}: ${String(val)}`)
+                          .join(" ")
+                      : String(item),
+                  )
+                  .join("، ");
+              if (v && typeof v === "object")
+                return Object.entries(v as Record<string, unknown>)
+                  .map(([k, val]) => `${k}: ${String(val)}`)
+                  .join("، ");
+              return String(v);
+            };
+            const audienceEntries = Object.entries(state.audience ?? {});
+            return (
+              <div className="mt-4 border-t border-border pt-4">
+                <p className="text-xs font-semibold">
+                  {pick("بيانات الجمهور المتاحة", "Available audience data")}
+                </p>
+                {audienceEntries.length > 0 ? (
+                  <dl className="mt-2 grid gap-2">
+                    {audienceEntries.map(([key, value]) => {
+                      const match = GROUP_LABELS.find(([re]) => re.test(key));
+                      const label = match ? pick(match[1][0], match[1][1]) : key;
+                      return (
+                        <div key={key} className="flex flex-wrap gap-2 text-xs">
+                          <dt className="text-muted-foreground">{label}:</dt>
+                          <dd className="font-medium">{fmtVal(value)}</dd>
+                        </div>
+                      );
+                    })}
+                  </dl>
+                ) : (
+                  <div className="mt-2 text-xs">
+                    <p className="text-muted-foreground">
+                      {pick(
+                        "لم تُرجع TikTok حقول جمهور لهذا الحساب — المفاتيح المتاحة فعليًا",
+                        "TikTok returned no audience fields — actual keys returned",
+                      )}
+                      :
+                    </p>
+                    <p className="mt-1 break-words font-mono text-[11px] text-muted-foreground" dir="ltr">
+                      {(state.fieldKeys ?? []).join(", ") || pick("لا يوجد", "None")}
+                    </p>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+          {(() => {
             const rows = state.videos ?? [];
             if (rows.length === 0) return null;
             const num = (row: Record<string, string | number>, keys: string[]): number | null => {

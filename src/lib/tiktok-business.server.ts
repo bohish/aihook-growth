@@ -91,6 +91,8 @@ export interface BusinessCreatorData {
   audience: Record<string, unknown>;
   videoCount: number | null;
   videos: Array<Record<string, string | number>>;
+  /** Safe key names TikTok actually returned (no tokens/IDs), for diagnostics. */
+  fieldKeys: string[];
 }
 
 export async function fetchBusinessCreator(
@@ -127,27 +129,33 @@ export async function fetchBusinessCreator(
     if (typeof value === "string" || typeof value === "number") creator[key] = value;
   }
 
+  // Flexible, read-only scan of the real response: collect safe key names and
+  // any audience-like fields wherever TikTok placed them. No invented fields.
+  const SENSITIVE = /token|secret|open_id|union_id|signature|credential/i;
+  const AUDIENCE_RE = /audience|gender|age|country|countries|region|city|cities|location|language|device|interest/i;
   const audience: Record<string, unknown> = {};
-  for (const key of [
-    "audience_gender",
-    "audience_genders",
-    "gender_distribution",
-    "audience_age",
-    "audience_ages",
-    "age_distribution",
-    "audience_country",
-    "audience_countries",
-    "country_distribution",
-    "audience_region",
-    "audience_regions",
-    "region_distribution",
-    "audience_city",
-    "audience_cities",
-    "city_distribution",
-  ]) {
-    const value = source[key] ?? info.data?.[key];
-    if (Array.isArray(value) || (value && typeof value === "object")) audience[key] = value;
-  }
+  const keySet = new Set<string>();
+  const isSafeValue = (v: unknown): boolean =>
+    typeof v === "string" ||
+    typeof v === "number" ||
+    typeof v === "boolean" ||
+    Array.isArray(v) ||
+    (v !== null && typeof v === "object");
+  const walk = (node: unknown, prefix: string, depth: number) => {
+    if (!node || typeof node !== "object" || Array.isArray(node) || depth > 3) return;
+    for (const [key, value] of Object.entries(node as Record<string, unknown>)) {
+      if (SENSITIVE.test(key)) continue;
+      keySet.add(prefix ? `${prefix}.${key}` : key);
+      if (AUDIENCE_RE.test(key) && isSafeValue(value)) {
+        audience[prefix ? `${prefix}.${key}` : key] = value;
+      }
+      if (value && typeof value === "object" && !Array.isArray(value)) {
+        walk(value, key, depth + 1);
+      }
+    }
+  };
+  walk(info.data, "", 0);
+  const fieldKeys = [...keySet].sort();
 
   let videoCount: number | null = null;
   const videoRows: Array<Record<string, string | number>> = [];
@@ -167,5 +175,5 @@ export async function fetchBusinessCreator(
     }
   }
 
-  return { ok: true, data: { scopes: session.scopes, creator, audience, videoCount, videos: videoRows } };
+  return { ok: true, data: { scopes: session.scopes, creator, audience, videoCount, videos: videoRows, fieldKeys } };
 }
