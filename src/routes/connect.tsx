@@ -213,19 +213,13 @@ function ConnectPage() {
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Button
               className="h-12 flex-1 text-base"
-              disabled={busy || status === "missing_credentials"}
-              onClick={() => void connect()}
-            >
-              {busy ? <Loader2 className="size-4 animate-spin" /> : null}
-               {status === "connected" || status === "expired" ? pick("إعادة ربط الحساب", "Reconnect account") : pick("ربط حساب TikTok", "Connect TikTok account")}
-            </Button>
-            <Button
-              variant="outline"
-              className="h-12 flex-1 text-base"
               disabled={busy}
               onClick={() => void connectBusiness()}
             >
-              {pick("ربط TikTok for Business", "Connect TikTok for Business")}
+              {busy ? <Loader2 className="size-4 animate-spin" /> : null}
+              {status === "connected" || status === "expired"
+                ? pick("إعادة ربط الحساب", "Reconnect account")
+                : pick("ربط حساب TikTok", "Connect TikTok account")}
             </Button>
             {status === "connected" ? (
               <>
