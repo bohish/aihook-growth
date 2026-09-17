@@ -484,10 +484,57 @@ function PerformanceOverview({ report }: { report: AnalysisReport }) {
   );
 }
 
+function DnaDetail({ title, detail }: { title: string; detail: string }) {
+  if (title === "جمهورك الفعلي حسب تيك توك") {
+    const GENDER: Record<string, string> = { m: "ذكر", male: "ذكر", f: "أنثى", female: "أنثى", u: "أخرى", o: "أخرى", other: "أخرى", unknown: "أخرى" };
+    const COUNTRY: Record<string, string> = { sa: "السعودية", ae: "الإمارات", eg: "مصر", kw: "الكويت", qa: "قطر", bh: "البحرين", om: "عُمان", jo: "الأردن", iq: "العراق", us: "الولايات المتحدة", gb: "بريطانيا", fr: "فرنسا", de: "ألمانيا" };
+    const LABEL: Record<string, string> = { "الجنس": "الجنس", "العمر": "الفئة العمرية الأعلى", "الدولة": "الدولة الأعلى", "المدينة": "المدينة الأعلى" };
+    const bits = detail.split(/\s+و\s*/).map((s) => s.trim()).filter(Boolean);
+    const parts: { label: string; value: string; pct: string }[] = [];
+    for (const bit of bits) {
+      const m = bit.match(/^(الجنس|العمر|الدولة|المدينة)\s+(.+?)\s+([\d.]+)%$/);
+      if (!m) continue;
+      const key = m[1]!;
+      const val = m[2]!;
+      const pct = m[3]!;
+      const lower = val.toLowerCase();
+      let value = val;
+      if (key === "الجنس" && GENDER[lower]) value = GENDER[lower];
+      else if (key === "الدولة" && COUNTRY[lower]) value = COUNTRY[lower];
+      parts.push({ label: LABEL[key] ?? key, value, pct });
+    }
+    if (parts.length === 0) return <span>{detail}</span>;
+    return (
+      <>
+        {parts.map((p, i) => (
+          <span key={i}>
+            {i > 0 ? " • " : ""}
+            {p.label}: {/^\d/.test(p.value) ? <span dir="ltr" className="tabular-nums">{p.value}</span> : p.value} <span dir="ltr" className="tabular-nums">({p.pct}%)</span>
+          </span>
+        ))}
+      </>
+    );
+  }
+  if (title === "نسبة مشاهدة الفيديو كاملاً") {
+    const m = detail.match(/الوسيط\s+([\d.]+)%\s+على\s+(\d+)\s+فيديو/);
+    if (m) {
+      const pct = m[1]!;
+      const n = m[2]!;
+      return (
+        <span>
+          وسيط نسبة المشاهدة الكاملة: <span dir="ltr" className="tabular-nums">{pct}%</span> عبر <span dir="ltr" className="tabular-nums">{n}</span> فيديو
+        </span>
+      );
+    }
+  }
+  return <span>{detail}</span>;
+}
+
 function InsightGrid({ report, mode }: { report: AnalysisReport; mode: "dna" | "recommendations" }) {
   const { pick } = useLanguage();
   const rows = mode === "dna" ? report.dna.map((d) => ({ title: d.title, value: d.liftPct == null ? "—" : formatSignedPercent(d.liftPct), detail: d.detail })) : report.recommendations.map((r) => ({ title: r.title, value: String(r.priority).padStart(2, "0"), detail: [r.evidence, r.action, r.hookLine, r.shoot, r.build, r.cta].filter(Boolean).join(" — ") }));
-  return <section><div className="grid gap-px overflow-hidden border border-border bg-border md:grid-cols-2">{rows.map((row, index) => <article key={`${row.title}-${index}`} className="bg-background p-5"><div className="flex items-start justify-between gap-4"><span className="text-3xl font-bold tabular-nums" dir="ltr">{row.value}</span><ArrowUpRight className="size-4 text-muted-foreground" /></div><h3 className="mt-6 text-sm font-semibold">{row.title}</h3><p className="mt-2 text-xs leading-relaxed text-muted-foreground">{row.detail}</p></article>)}</div>{mode === "recommendations" && report.contextNote ? <p className="mt-4 text-xs text-muted-foreground">{report.contextNote}</p> : null}</section>;
+  const isSpecial = (t: string) => t === "جمهورك الفعلي حسب تيك توك" || t === "نسبة مشاهدة الفيديو كاملاً";
+  return <section><div className="grid gap-px overflow-hidden border border-border bg-border md:grid-cols-2">{rows.map((row, index) => <article key={`${row.title}-${index}`} className="bg-background p-5"><div className="flex items-start justify-between gap-4"><span className="text-3xl font-bold tabular-nums" dir="ltr">{row.value}</span><ArrowUpRight className="size-4 text-muted-foreground" /></div><h3 className="mt-6 text-sm font-semibold">{row.title}</h3><p className="mt-2 text-xs leading-relaxed text-muted-foreground" dir={mode === "dna" && isSpecial(row.title) ? "rtl" : undefined}><DnaDetail title={row.title} detail={row.detail} /></p></article>)}</div>{mode === "recommendations" && report.contextNote ? <p className="mt-4 text-xs text-muted-foreground">{report.contextNote}</p> : null}</section>;
 }
 
 function WeeklyTimeline({ report }: { report: AnalysisReport }) {
