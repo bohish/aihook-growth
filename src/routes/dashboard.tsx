@@ -232,6 +232,19 @@ function BusinessCreatorCard() {
                     </p>
                   </div>
                 )}
+                <p className="mt-3 break-words font-mono text-[11px] text-muted-foreground" dir="ltr">
+                  scopes: {(state.tokenScopes && state.tokenScopes.length > 0
+                    ? state.tokenScopes
+                    : state.scopes ?? []
+                  ).join(", ") || "unknown"}
+                  {" | audience endpoint: "}
+                  {state.audienceAvailable ? "available" : "not available"}
+                  {!state.audienceAvailable && state.audienceDiag
+                    ? ` (${state.audienceDiag.endpoint} HTTP ${state.audienceDiag.httpStatus}${
+                        state.audienceDiag.code !== null ? ` code ${state.audienceDiag.code}` : ""
+                      }${state.audienceDiag.message ? ` ${state.audienceDiag.message.replaceAll(".", "")}` : ""})`
+                    : ""}
+                </p>
               </div>
             );
           })()}
