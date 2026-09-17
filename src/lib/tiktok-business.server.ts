@@ -138,7 +138,7 @@ async function fetchOrganicAudience(
   token: string,
   businessId: string,
 ): Promise<{ ok: boolean; data?: Record<string, unknown>; diag?: BusinessApiDiag }> {
-  const end = new Date();
+  const end = new Date(Date.now() - 24 * 60 * 60 * 1000);
   const start = new Date(end.getTime() - 29 * 24 * 60 * 60 * 1000);
   const iso = (d: Date) => d.toISOString().slice(0, 10);
   const result = await call("/business/get/", token, {
