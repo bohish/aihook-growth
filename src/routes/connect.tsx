@@ -19,7 +19,7 @@ import { useConnection } from "@/hooks/useConnection";
 import { CONNECTION_LABELS_AR, CONNECTION_LABELS_EN, TIKTOK_NOT_REQUESTED_AR, TIKTOK_NOT_REQUESTED_EN, TIKTOK_PERMISSIONS_AR, TIKTOK_PERMISSIONS_EN } from "@/lib/tiktok-copy";
 import { useLanguage } from "@/lib/i18n";
 
-import { startTikTokBusinessOAuth } from "@/lib/tiktok-business.functions";
+import { disconnectBusiness, startTikTokBusinessOAuth } from "@/lib/tiktok-business.functions";
 import type { ConnectionStatus } from "@/lib/types";
 
 interface ConnectSearch {
@@ -93,29 +93,6 @@ function ConnectPage() {
   const status = state.status;
   const message = "message" in state ? state.message : undefined;
   const ui = TONE[status];
-
-  const connect = async () => {
-    if (!user) {
-      void navigate({ to: "/auth" });
-      return;
-    }
-    setBusy(true);
-    setOverride({ status: "connecting" });
-    try {
-      const result = await startTikTokOAuth();
-      if (result.ok && result.authorizationUrl) {
-        window.location.href = result.authorizationUrl;
-        return;
-      }
-      setOverride({ status: result.status, message: result.message });
-       toast.error((result.message ?? pick("تعذّر بدء الربط", "Connection could not start")).replaceAll(".", ""));
-    } catch {
-       setOverride({ status: "api_error", message: pick("تعذّر بدء عملية الربط", "Connection could not start") });
-       toast.error(pick("تعذّر بدء عملية الربط", "Connection could not start"));
-    } finally {
-      setBusy(false);
-    }
-  };
 
   const connectBusiness = async () => {
     if (!user) {
@@ -219,16 +196,6 @@ function ConnectPage() {
               {busy ? <Loader2 className="size-4 animate-spin" /> : null}
                {status === "connected" || status === "expired" ? pick("إعادة ربط الحساب", "Reconnect account") : pick("ربط حساب TikTok", "Connect TikTok account")}
             </Button>
-            {false ? (
-            <Button
-              variant="outline"
-              className="h-12 flex-1 text-base"
-              disabled={busy}
-              onClick={() => void connectBusiness()}
-            >
-              {pick("ربط TikTok for Business", "Connect TikTok for Business")}
-            </Button>
-            ) : null}
             {status === "connected" ? (
               <>
                 <Button asChild variant="outline" className="h-12 flex-1 text-base">
