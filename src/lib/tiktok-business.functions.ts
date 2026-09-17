@@ -85,6 +85,7 @@ export const getBusinessCreatorData = createServerFn({ method: "GET" })
         creator: result.data.creator,
         audience: result.data.audience as Record<string, AudienceValue>,
         videoCount: result.data.videoCount,
+        videos: result.data.videos,
       };
     } catch {
       return { ok: false, status: "api_error" };
