@@ -626,7 +626,7 @@ function Dashboard() {
             ) : null}
             <div>
               <h1 className="text-xl font-bold sm:text-2xl">{report.account.displayName}</h1>
-               <p className="mt-1 text-xs text-muted-foreground">{pick("آخر تحديث", "Last updated")} <span dir="ltr" className="tabular-nums">{new Date(report.generatedAt).toLocaleString(locale === "ar" ? "ar-SA-u-nu-latn" : "en-US")}</span></p>
+               <p className="mt-1 text-xs text-muted-foreground">{pick("آخر تحديث", "Last updated")} <span dir="ltr" className="tabular-nums">{new Date(report.generatedAt).toLocaleString(locale === "ar-SA" ? "ar-SA-u-nu-latn" : "en-US")}</span></p>
               {report.limitedData ? (
                 <p className="mt-2 text-xs text-warning">
                    {pick("عدد الفيديوهات المتاح قليل، لذلك تُحسب بعض المحاور بثقة أقل", "Few videos are available, so some dimensions have lower confidence")}
