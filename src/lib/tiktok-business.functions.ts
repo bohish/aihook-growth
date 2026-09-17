@@ -12,9 +12,10 @@ export const TIKTOK_BUSINESS_REDIRECT_URI = "https://aihook.store/api/public/tik
 /** Scopes approved for this app. */
 export const TIKTOK_BUSINESS_SCOPES = [
   "user.info.basic",
+  "user.insights",
+  "video.list",
   "biz.creator.info",
   "biz.creator.insights",
-  "video.list",
   "tto.campaign.link",
 ];
 
