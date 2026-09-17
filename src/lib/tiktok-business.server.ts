@@ -211,7 +211,7 @@ function derive(videos: BusinessVideoMetrics[], followers: number | null): Busin
 export async function fetchBusinessCreator(
   session: BusinessSession,
 ): Promise<{ ok: boolean; data?: BusinessCreatorData; message?: string }> {
-  const info = await call("/tto/creator/authorized/get/", session.accessToken);
+  const info = await call("/tto/creator/authorized/", session.accessToken);
   if (!info.ok) return { ok: false, ...(info.message ? { message: info.message } : {}) };
 
   const root = info.data ?? {};
