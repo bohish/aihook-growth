@@ -51,7 +51,8 @@ export async function runAnalysis(): Promise<AnalysisReport> {
   const data = result.data;
   const metrics = computeMetrics(data);
   const hookAnalyses = await fetchStoredHookAnalyses();
-  const report = analyze(data, metrics, priorPeriodScore(data), hookAnalyses);
+  const business = await fetchBusinessGroundTruth();
+  const report = analyze(data, metrics, priorPeriodScore(data), hookAnalyses, business);
   cacheReport(report);
   void persistReport(report).catch(() => {
     /* history persistence is best-effort; the analysis itself is local */
