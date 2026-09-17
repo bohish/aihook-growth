@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type { AccountData, Metrics, VideoRecord } from "@/lib/types";
 
 
 export type HookAgentStatus = {
@@ -143,6 +144,116 @@ const videoInput = z.object({
   cache_only: z.boolean().optional(),
 });
 
+type PerformanceContext = {
+  target_video?: Record<string, unknown>;
+  account?: Record<string, unknown>;
+  audience?: Record<string, unknown>;
+  account_stats?: Record<string, number>;
+  video_insights?: Record<string, string | number>;
+  comparison?: Record<string, unknown>;
+  previous_hook_analyses?: Array<Record<string, unknown>>;
+};
+
+const asNumber = (value: unknown): number | null => {
+  const n = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(n) ? n : null;
+};
+
+function compactAudience(audience: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(audience).map(([key, value]) => {
+      if (!Array.isArray(value)) return [key, value];
+      const ranked = [...value]
+        .sort((a, b) => {
+          const valueOf = (item: unknown) => {
+            if (!item || typeof item !== "object") return asNumber(item) ?? 0;
+            const row = item as Record<string, unknown>;
+            return asNumber(row["percentage"] ?? row["percent"] ?? row["ratio"] ?? row["share"] ?? row["value"]) ?? 0;
+          };
+          return valueOf(b) - valueOf(a);
+        })
+        .slice(0, 10);
+      return [key, ranked];
+    }),
+  );
+}
+
+function videoMetrics(video: VideoRecord) {
+  return {
+    video_id: video.id,
+    caption: video.caption || undefined,
+    published_at: video.publishedAt,
+    duration_seconds: video.durationSeconds,
+    views: video.views,
+    likes: video.likes,
+    comments: video.comments,
+    shares: video.shares,
+    engagement_rate:
+      video.views > 0 ? (video.likes + video.comments + video.shares) / video.views : null,
+  };
+}
+
+function accountMetrics(data: AccountData, metrics: Metrics) {
+  return {
+    followers: data.account.followerCount,
+    profile_likes: data.account.likesCount,
+    video_count: data.account.videoCount,
+    average_views: metrics.avgViews,
+    median_views: metrics.medianViews,
+    account_engagement_rate: metrics.totalEngagementRate,
+    posting_frequency_per_week: metrics.postsPerWeek,
+    longest_posting_gap_days: metrics.longestGapDays,
+  };
+}
+
+/** Builds a bounded ground-truth payload from the same real data shown in the dashboard. */
+async function buildPerformanceContext(
+  videoId: string,
+  previous: Array<Record<string, unknown>>,
+): Promise<PerformanceContext | undefined> {
+  const [{ fetchTikTokAccountData }, { getBusinessCreatorData }, { computeMetrics }] = await Promise.all([
+    import("./tiktok.functions"),
+    import("./tiktok-business.functions"),
+    import("./metrics"),
+  ]);
+  const [displayResult, businessResult] = await Promise.allSettled([
+    fetchTikTokAccountData(),
+    getBusinessCreatorData(),
+  ]);
+  const display = displayResult.status === "fulfilled" && displayResult.value.ok
+    ? displayResult.value.data
+    : undefined;
+  const business = businessResult.status === "fulfilled" && businessResult.value.ok
+    ? businessResult.value
+    : undefined;
+  if (!display && !business) return undefined;
+
+  const target = display?.videos.find((video) => video.id === videoId);
+  const metrics = display ? computeMetrics(display) : undefined;
+  const ranked = display ? [...display.videos].sort((a, b) => b.views - a.views) : [];
+  const rank = target ? ranked.findIndex((video) => video.id === target.id) + 1 : 0;
+  const insight = business?.snapshot?.videoInsights.find((row) =>
+    String(row["item_id"] ?? row["video_id"] ?? row["id"] ?? "") === videoId,
+  );
+
+  return {
+    ...(target ? { target_video: videoMetrics(target) } : {}),
+    ...(display && metrics ? { account: accountMetrics(display, metrics) } : {}),
+    ...(business?.audience ? { audience: compactAudience(business.audience) } : {}),
+    ...(business?.snapshot?.accountStats ? { account_stats: business.snapshot.accountStats } : {}),
+    ...(insight ? { video_insights: insight } : {}),
+    ...(target && metrics ? {
+      comparison: {
+        views_vs_average_ratio: metrics.avgViews > 0 ? target.views / metrics.avgViews : null,
+        views_vs_median_ratio: metrics.medianViews > 0 ? target.views / metrics.medianViews : null,
+        rank_by_views: rank || null,
+        compared_video_count: ranked.length,
+      },
+    } : {}),
+    ...(previous.length > 0 ? { previous_hook_analyses: previous.slice(0, 10) } : {}),
+  };
+}
+
 function pickStr(src: Record<string, unknown>, key: string): string | null {
   const v = src[key];
   return typeof v === "string" && v.trim() ? v : null;
@@ -241,6 +352,18 @@ export const getVideoHookAnalysis = createServerFn({ method: "POST" })
     if (!url || !secret) return failWith("الوكيل غير مضبوط بعد");
 
     try {
+      const { data: previousRows } = await table
+        .select("video_id, hook_type, hook_summary, replicate_this, avoid_this, hook_score")
+        .eq("user_id", context.userId)
+        .eq("status", "completed")
+        .neq("video_id", data.video_id)
+        .order("analyzed_at", { ascending: false })
+        .limit(10);
+      const performanceContext = await buildPerformanceContext(
+        data.video_id,
+        (previousRows ?? []) as Array<Record<string, unknown>>,
+      ).catch(() => undefined);
+
       const response = await fetch(url, {
         method: "POST",
         headers: { "content-type": "application/json", "x-hook-secret": secret },
@@ -252,10 +375,11 @@ export const getVideoHookAnalysis = createServerFn({ method: "POST" })
             ...(data.share_url ? { share_url: data.share_url } : {}),
             output_language: "ar",
             locale: "ar-SA",
-            analysis_version: "marketing-v2",
+            analysis_version: "performance-v3",
             ...(data.force ? { force: true } : {}),
+            ...(performanceContext ? { performance_context: performanceContext } : {}),
             instruction:
-              "Marketing Expert Analysis of the first 5 seconds: why the hook works or fails, link audio/visual/on-screen text, actionable takeaways. Not a raw vision/OCR dump; ignore sponsor logos, HUD and irrelevant on-screen text.",
+              "حلّل الفيديو كخبير أداء باستخدام الفيديو وأول 5 ثوانٍ وperformance_context كحقائق. اربط الهوك والاحتفاظ والوصول والتفاعل والجمهور وأداء الحساب، وقارن المقطع بمتوسط ووسيط وترتيب فيديوهات الحساب. ميّز بوضوح بين ملاحظة من الفيديو، ودليل رقمي من TikTok، واستنتاج. لا تستخدم أي حقل غير متاح ولا تخترع أرقاماً أو أسباباً. لا تعتبر الهوك ضعيفاً إذا كان الاحتفاظ قوياً بلا دليل. إذا كان التفاعل قوياً والمشاهدات منخفضة فاذكر أن المحتوى قد يكون جيداً والتوزيع أو البداية أضعف؛ وإذا كانت المشاهدات عالية والتفاعل ضعيفاً فالجذب موجود وقد تكون القيمة أو الاستمرار أضعف. أعد نفس الحقول الحالية مع تشخيص دقيق، أقوى وأضعف عنصر، ما يُكرر وما يُتجنب، وثلاث إعادة صياغة للهوك بالعربية البسيطة.",
 
           },
         }),
