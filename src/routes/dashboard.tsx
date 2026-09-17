@@ -18,7 +18,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/useAuth";
 import { useConnection } from "@/hooks/useConnection";
 import { AnalysisUnavailableError, readCachedReport, runAnalysis } from "@/lib/report";
-import { getBusinessCreatorData, type BusinessCreatorResult } from "@/lib/tiktok-business.functions";
 import type { AnalysisReport } from "@/lib/types";
 import { useLanguage } from "@/lib/i18n";
 
@@ -64,219 +63,6 @@ function EmptyState({
   );
 }
 
-/** TikTok for Business creator card. Shows only fields TikTok actually returned. */
-function BusinessCreatorCard() {
-  const { pick, locale } = useLanguage();
-  const [state, setState] = useState<BusinessCreatorResult | null>(null);
-
-  useEffect(() => {
-    let alive = true;
-    void getBusinessCreatorData()
-      .then((r) => {
-        if (alive) setState(r);
-      })
-      .catch(() => {
-        if (alive) setState({ ok: false, status: "api_error" });
-      });
-    return () => {
-      alive = false;
-    };
-  }, []);
-
-  if (!state || state.status === "not_connected") return null;
-
-  const LABELS: Record<string, [string, string]> = {
-    display_name: ["الاسم", "Name"],
-    username: ["المعرّف", "Username"],
-    nickname: ["الاسم الظاهر", "Nickname"],
-    follower_count: ["المتابعون", "Followers"],
-    following_count: ["يتابع", "Following"],
-    likes_count: ["الإعجابات", "Likes"],
-    total_likes: ["إجمالي الإعجابات", "Total likes"],
-    video_count: ["الفيديوهات", "Videos"],
-    is_business_account: ["حساب أعمال", "Business account"],
-    region: ["المنطقة", "Region"],
-    country: ["الدولة", "Country"],
-  };
-  const prettify = (key: string) => key.replaceAll("_", " ");
-
-  const entries = Object.entries(state.creator ?? {}).filter(([k]) => k !== "profile_deep_link");
-  const derived = state.derived ?? null;
-  const METRIC_LABELS: Record<string, [string, string]> = {
-    view_count: ["المشاهدات", "Views"],
-    play_count: ["التشغيل", "Plays"],
-    like_count: ["الإعجابات", "Likes"],
-    comment_count: ["التعليقات", "Comments"],
-    share_count: ["المشاركات", "Shares"],
-    duration: ["المدة (ث)", "Duration (s)"],
-    reach: ["الوصول", "Reach"],
-  };
-  const num = (v: number) => v.toLocaleString(locale);
-
-  return (
-    <div className="panel p-5">
-      <h2 className="text-sm font-semibold">{pick("TikTok for Business", "TikTok for Business")}</h2>
-      {state.ok && entries.length > 0 ? (
-        <>
-          <dl className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
-            {entries.map(([key, value]) => (
-              <div key={key}>
-                <dt className="text-xs text-muted-foreground">
-                  {LABELS[key] ? pick(LABELS[key][0], LABELS[key][1]) : prettify(key)}
-                </dt>
-                <dd className="mt-1 text-sm font-medium">
-                  {typeof value === "number" ? value.toLocaleString(locale) : value}
-                </dd>
-              </div>
-            ))}
-          </dl>
-          {state.videoCount !== null && state.videoCount !== undefined ? (
-            <p className="mt-4 text-xs text-muted-foreground">
-              {pick("فيديوهات مصرّح بها", "Authorized videos")}: {state.videoCount.toLocaleString(locale)}
-            </p>
-          ) : null}
-          {derived ? (
-            <div className="mt-4 border-t border-border pt-4">
-              <p className="text-xs font-semibold">{pick("تحليلات المحتوى", "Content analytics")}</p>
-              <dl className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3">
-                {Object.entries(derived.totals).map(([key, value]) => (
-                  <div key={`t-${key}`}>
-                    <dt className="text-xs text-muted-foreground">
-                      {pick("إجمالي", "Total")} {METRIC_LABELS[key] ? pick(METRIC_LABELS[key][0], METRIC_LABELS[key][1]) : prettify(key)}
-                    </dt>
-                    <dd className="mt-1 text-sm font-medium">{num(value)}</dd>
-                  </div>
-                ))}
-                {Object.entries(derived.averages).map(([key, value]) => (
-                  <div key={`a-${key}`}>
-                    <dt className="text-xs text-muted-foreground">
-                      {pick("متوسط", "Average")} {METRIC_LABELS[key] ? pick(METRIC_LABELS[key][0], METRIC_LABELS[key][1]) : prettify(key)}
-                    </dt>
-                    <dd className="mt-1 text-sm font-medium">{num(value)}</dd>
-                  </div>
-                ))}
-                {Object.entries(derived.medians).map(([key, value]) => (
-                  <div key={`m-${key}`}>
-                    <dt className="text-xs text-muted-foreground">
-                      {pick("وسيط", "Median")} {METRIC_LABELS[key] ? pick(METRIC_LABELS[key][0], METRIC_LABELS[key][1]) : prettify(key)}
-                    </dt>
-                    <dd className="mt-1 text-sm font-medium">{num(value)}</dd>
-                  </div>
-                ))}
-                {derived.engagementRate !== null ? (
-                  <div>
-                    <dt className="text-xs text-muted-foreground">{pick("معدل التفاعل", "Engagement rate")}</dt>
-                    <dd className="mt-1 text-sm font-medium">{derived.engagementRate}%</dd>
-                  </div>
-                ) : null}
-                {derived.postingCadencePerWeek !== null ? (
-                  <div>
-                    <dt className="text-xs text-muted-foreground">{pick("نشر أسبوعياً", "Posts per week")}</dt>
-                    <dd className="mt-1 text-sm font-medium">{derived.postingCadencePerWeek}</dd>
-                  </div>
-                ) : null}
-                {derived.consistency !== null ? (
-                  <div>
-                    <dt className="text-xs text-muted-foreground">{pick("الانتظام", "Consistency")}</dt>
-                    <dd className="mt-1 text-sm font-medium">{derived.consistency}/100</dd>
-                  </div>
-                ) : null}
-                {derived.trend ? (
-                  <div>
-                    <dt className="text-xs text-muted-foreground">{pick("الاتجاه", "Trend")}</dt>
-                    <dd className="mt-1 text-sm font-medium">
-                      {derived.trend === "up"
-                        ? pick("صاعد", "Up")
-                        : derived.trend === "down"
-                          ? pick("هابط", "Down")
-                          : pick("مستقر", "Flat")}
-                    </dd>
-                  </div>
-                ) : null}
-                {derived.topVideoId ? (
-                  <div>
-                    <dt className="text-xs text-muted-foreground">{pick("أفضل فيديو", "Top video")}</dt>
-                    <dd className="mt-1 text-sm font-medium" dir="ltr">{derived.topVideoId}</dd>
-                  </div>
-                ) : null}
-                {derived.bottomVideoId ? (
-                  <div>
-                    <dt className="text-xs text-muted-foreground">{pick("أضعف فيديو", "Weakest video")}</dt>
-                    <dd className="mt-1 text-sm font-medium" dir="ltr">{derived.bottomVideoId}</dd>
-                  </div>
-                ) : null}
-              </dl>
-            </div>
-          ) : null}
-        </>
-      ) : (
-        <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
-          {state.status === "denied"
-            ? pick(
-                "الربط موجود لكن TikTok لم يسمح بقراءة بيانات المُنشئ حتى الآن، فلا تُعرض أي أرقام",
-                "The connection exists, but TikTok has not authorized creator data yet, so no numbers are shown",
-              )
-            : pick("تعذّر قراءة بيانات TikTok for Business حالياً", "TikTok for Business data is unavailable right now")}
-        </p>
-      )}
-      {(() => {
-        const AUDIENCE_LABELS: Array<{ key: string; labels: [string, string] }> = [
-          { key: "gender", labels: ["الجنس", "Gender"] },
-          { key: "age", labels: ["العمر", "Age"] },
-          { key: "countries", labels: ["الدول", "Countries"] },
-          { key: "regions", labels: ["المناطق", "Regions"] },
-          { key: "cities", labels: ["المدن", "Cities"] },
-        ];
-        const noData = pick("لا توجد بيانات متاحة", "No data available");
-        const fmt = (v: unknown): string => {
-          if (Array.isArray(v))
-            return v
-              .map((item) =>
-                item && typeof item === "object"
-                  ? Object.entries(item as Record<string, unknown>)
-                      .map(([k, val]) => `${k}: ${String(val)}`)
-                      .join(" ")
-                  : String(item),
-              )
-              .join("، ");
-          if (v && typeof v === "object")
-            return Object.entries(v as Record<string, unknown>)
-              .map(([k, val]) => `${k}: ${String(val)}`)
-              .join("، ");
-          return String(v);
-        };
-        const findValue = (group: string): unknown => {
-          for (const [key, value] of Object.entries(state.audience ?? {})) {
-            if (key.includes(group)) return value;
-          }
-          return undefined;
-        };
-        return (
-          <div className="mt-4 border-t border-border pt-4">
-            <p className="text-xs font-semibold">{pick("الجمهور", "Audience")}</p>
-            <dl className="mt-2 grid gap-2">
-              {AUDIENCE_LABELS.map(({ key, labels }) => {
-                const value = findValue(key);
-                const hasValue = value !== undefined && value !== null && !(
-                  Array.isArray(value) ? value.length === 0 : false
-                );
-                return (
-                  <div key={key} className="flex flex-wrap gap-2 text-xs">
-                    <dt className="text-muted-foreground">{pick(labels[0], labels[1])}:</dt>
-                    <dd className="font-medium">{hasValue ? fmt(value) : noData}</dd>
-                  </div>
-                );
-              })}
-            </dl>
-          </div>
-        );
-      })()}
-    </div>
-  );
-}
-
-
-
 function Dashboard() {
   const { pick, locale } = useLanguage();
   const { user } = useAuth();
@@ -284,23 +70,8 @@ function Dashboard() {
   const [report, setReport] = useState<AnalysisReport | null>(null);
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
-  const [businessStatus, setBusinessStatus] = useState<BusinessCreatorResult["status"] | null>(null);
 
-  useEffect(() => {
-    let alive = true;
-    void getBusinessCreatorData()
-      .then((r) => {
-        if (alive) setBusinessStatus(r.status);
-      })
-      .catch(() => {
-        if (alive) setBusinessStatus(null);
-      });
-    return () => {
-      alive = false;
-    };
-  }, []);
-
-  const connected = connection.status === "connected" || businessStatus === "connected";
+  const connected = connection.status === "connected";
 
   useEffect(() => {
     if (!connected) return;
@@ -445,9 +216,7 @@ function Dashboard() {
         </header>
 
         <div className="mt-6 grid gap-6">
-          <BusinessCreatorCard />
           <ScoreCard report={report} />
-
 
           <Tabs defaultValue="metrics" className="mt-2">
             <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 bg-surface p-1">

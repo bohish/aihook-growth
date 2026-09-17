@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { useAuth } from "@/hooks/useAuth";
-import { getBusinessConnectionState } from "@/lib/tiktok-business.functions";
+import { getConnectionState } from "@/lib/tiktok.functions";
 import type { ConnectionState } from "@/lib/types";
 
 /**
@@ -13,8 +13,8 @@ export function useConnection() {
   const { user } = useAuth();
 
   const query = useQuery<ConnectionState>({
-    queryKey: ["tiktok-business-connection", user?.id ?? "anon"],
-    queryFn: () => getBusinessConnectionState(),
+    queryKey: ["tiktok-connection", user?.id ?? "anon"],
+    queryFn: () => getConnectionState(),
     enabled: Boolean(user),
     staleTime: 15_000,
   });

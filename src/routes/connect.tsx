@@ -18,8 +18,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useConnection } from "@/hooks/useConnection";
 import { CONNECTION_LABELS_AR, CONNECTION_LABELS_EN, TIKTOK_NOT_REQUESTED_AR, TIKTOK_NOT_REQUESTED_EN, TIKTOK_PERMISSIONS_AR, TIKTOK_PERMISSIONS_EN } from "@/lib/tiktok-copy";
 import { useLanguage } from "@/lib/i18n";
-
-import { disconnectBusiness, startTikTokBusinessOAuth } from "@/lib/tiktok-business.functions";
+import { disconnectTikTok, startTikTokOAuth } from "@/lib/tiktok.functions";
+import { startTikTokBusinessOAuth } from "@/lib/tiktok-business.functions";
 import type { ConnectionStatus } from "@/lib/types";
 
 interface ConnectSearch {
@@ -94,6 +94,29 @@ function ConnectPage() {
   const message = "message" in state ? state.message : undefined;
   const ui = TONE[status];
 
+  const connect = async () => {
+    if (!user) {
+      void navigate({ to: "/auth" });
+      return;
+    }
+    setBusy(true);
+    setOverride({ status: "connecting" });
+    try {
+      const result = await startTikTokOAuth();
+      if (result.ok && result.authorizationUrl) {
+        window.location.href = result.authorizationUrl;
+        return;
+      }
+      setOverride({ status: result.status, message: result.message });
+       toast.error((result.message ?? pick("تعذّر بدء الربط", "Connection could not start")).replaceAll(".", ""));
+    } catch {
+       setOverride({ status: "api_error", message: pick("تعذّر بدء عملية الربط", "Connection could not start") });
+       toast.error(pick("تعذّر بدء عملية الربط", "Connection could not start"));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const connectBusiness = async () => {
     if (!user) {
       void navigate({ to: "/auth" });
@@ -117,7 +140,7 @@ function ConnectPage() {
   const disconnect = async () => {
     setBusy(true);
     try {
-      await disconnectBusiness();
+      await disconnectTikTok();
       setOverride(null);
       await refetch();
        toast.success(pick("تم فصل الحساب", "Account disconnected"));
@@ -191,10 +214,18 @@ function ConnectPage() {
             <Button
               className="h-12 flex-1 text-base"
               disabled={busy || status === "missing_credentials"}
-              onClick={() => void connectBusiness()}
+              onClick={() => void connect()}
             >
               {busy ? <Loader2 className="size-4 animate-spin" /> : null}
                {status === "connected" || status === "expired" ? pick("إعادة ربط الحساب", "Reconnect account") : pick("ربط حساب TikTok", "Connect TikTok account")}
+            </Button>
+            <Button
+              variant="outline"
+              className="h-12 flex-1 text-base"
+              disabled={busy}
+              onClick={() => void connectBusiness()}
+            >
+              {pick("ربط TikTok for Business", "Connect TikTok for Business")}
             </Button>
             {status === "connected" ? (
               <>

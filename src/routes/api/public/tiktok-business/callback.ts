@@ -1,16 +1,18 @@
 /**
  * TikTok for Business OAuth redirect target.
  * Verifies the signed httpOnly state cookie, then exchanges auth_code for a
- * token server-side. The Business token is stored separately from the Display
- * API connection, so it can never overwrite it. Tokens are never logged.
+ * token server-side. The app secret never leaves the server.
  */
 import { createFileRoute } from "@tanstack/react-router";
 
-function redirect(to: string, cookieName: string, extraCookie?: string): Response {
-  const headers = new Headers({ Location: to });
-  headers.append("Set-Cookie", `${cookieName}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`);
-  if (extraCookie) headers.append("Set-Cookie", extraCookie);
-  return new Response(null, { status: 302, headers });
+function redirect(to: string, cookieName: string): Response {
+  return new Response(null, {
+    status: 302,
+    headers: {
+      Location: to,
+      "Set-Cookie": `${cookieName}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`,
+    },
+  });
 }
 
 export const Route = createFileRoute("/api/public/tiktok-business/callback")({
@@ -18,11 +20,14 @@ export const Route = createFileRoute("/api/public/tiktok-business/callback")({
     handlers: {
       GET: async ({ request }) => {
         const store = await import("@/lib/tiktok-connection.server");
-        const biz = await import("@/lib/tiktok-business.server");
         const url = new URL(request.url);
         const cookieName = store.OAUTH_COOKIE;
-        const cookieHeader = request.headers.get("cookie");
-        const cookieValue = biz.readCookie(cookieHeader, cookieName);
+
+        const cookieValue = (request.headers.get("cookie") ?? "")
+          .split(";")
+          .map((c) => c.trim())
+          .find((c) => c.startsWith(`${cookieName}=`))
+          ?.slice(cookieName.length + 1);
 
         const verified = store.verifyStateToken(cookieValue, url.searchParams.get("state"));
         if (!verified) {
@@ -41,17 +46,19 @@ export const Route = createFileRoute("/api/public/tiktok-business/callback")({
         }
 
         try {
-          const response = await fetch("https://business-api.tiktok.com/open_api/v1.3/tt_user/oauth2/token/", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              client_id: appId,
-              client_secret: secret,
-              auth_code: code,
-              grant_type: "authorization_code",
-              redirect_uri: "https://aihook.store/api/public/tiktok-business/callback",
-            }),
-          });
+          const response = await fetch(
+            "https://business-api.tiktok.com/open_api/v1.3/tt_user/oauth2/token/",
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                app_id: appId,
+                secret,
+                auth_code: code,
+                grant_type: "authorization_code",
+              }),
+            },
+          );
           const payload = (await response.json()) as {
             code?: number;
             message?: string;
@@ -70,18 +77,19 @@ export const Route = createFileRoute("/api/public/tiktok-business/callback")({
           }
 
           const scopeRaw = payload.data?.scope;
-          const bizCookie = biz.buildBusinessCookie({
+          await store.saveTokenSet(verified.userId, {
             accessToken: token,
             refreshToken: payload.data?.refresh_token ?? null,
             expiresAt: new Date(Date.now() + (payload.data?.expires_in ?? 86400) * 1000).toISOString(),
             openId: payload.data?.open_id ?? null,
             scopes: Array.isArray(scopeRaw) ? scopeRaw : scopeRaw ? [scopeRaw] : [],
           });
-          return redirect(`${url.origin}/dashboard?business=connected`, cookieName, bizCookie);
         } catch (err) {
           console.error(err);
           return redirect(`${url.origin}/connect?state=error&reason=api_error`, cookieName);
         }
+
+        return redirect(`${url.origin}/analyzing`, cookieName);
       },
     },
   },
