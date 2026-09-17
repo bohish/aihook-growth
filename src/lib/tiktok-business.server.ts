@@ -131,8 +131,22 @@ export async function fetchBusinessCreator(
 
   // Flexible, read-only scan of the real response: collect safe key names and
   // any audience-like fields wherever TikTok placed them. No invented fields.
+  // Matching is segment-based (split on _ - . /) so "image" never matches "age".
   const SENSITIVE = /token|secret|open_id|union_id|signature|credential/i;
-  const AUDIENCE_RE = /audience|gender|age|country|countries|region|city|cities|location|language|device|interest/i;
+  const ASSET_RE = /^(image|avatar|photo|cover|thumbnail|url|icon|logo|picture|asset|link|href|src)$/i;
+  const DEMOGRAPHIC = new Set([
+    "audience", "gender", "age", "country", "countries", "region",
+    "regions", "city", "cities", "location", "language", "languages",
+    "device", "devices", "interest", "interests", "demographic", "demographics",
+  ]);
+  const segments = (key: string) => key.split(/[_\-.\/\s]+/).filter(Boolean);
+  const isAudienceKey = (key: string) => {
+    const segs = segments(key);
+    return segs.some((s) => DEMOGRAPHIC.has(s.toLowerCase()));
+  };
+  const isAssetKey = (key: string) => segments(key).some((s) => ASSET_RE.test(s));
+  const isUrlValue = (v: unknown) =>
+    typeof v === "string" && /^https?:\/\//i.test(v);
   const audience: Record<string, unknown> = {};
   const keySet = new Set<string>();
   const isSafeValue = (v: unknown): boolean =>
@@ -146,7 +160,12 @@ export async function fetchBusinessCreator(
     for (const [key, value] of Object.entries(node as Record<string, unknown>)) {
       if (SENSITIVE.test(key)) continue;
       keySet.add(prefix ? `${prefix}.${key}` : key);
-      if (AUDIENCE_RE.test(key) && isSafeValue(value)) {
+      if (
+        isAudienceKey(key) &&
+        !isAssetKey(key) &&
+        !isUrlValue(value) &&
+        isSafeValue(value)
+      ) {
         audience[prefix ? `${prefix}.${key}` : key] = value;
       }
       if (value && typeof value === "object" && !Array.isArray(value)) {
