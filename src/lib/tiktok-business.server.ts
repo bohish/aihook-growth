@@ -119,11 +119,22 @@ export async function fetchBusinessCreator(
   }
 
   let videoCount: number | null = null;
+  const videoRows: Array<Record<string, string | number>> = [];
   const list = await call("/tto/creator/authorized/video/list/", session.accessToken, { max_count: "20" });
   if (list.ok) {
     const videos = list.data?.["videos"];
-    if (Array.isArray(videos)) videoCount = videos.length;
+    if (Array.isArray(videos)) {
+      videoCount = videos.length;
+      for (const item of videos) {
+        if (!item || typeof item !== "object") continue;
+        const row: Record<string, string | number> = {};
+        for (const [k, v] of Object.entries(item as Record<string, unknown>)) {
+          if (typeof v === "string" || typeof v === "number") row[k] = v;
+        }
+        if (Object.keys(row).length > 0) videoRows.push(row);
+      }
+    }
   }
 
-  return { ok: true, data: { scopes: session.scopes, creator, audience, videoCount } };
+  return { ok: true, data: { scopes: session.scopes, creator, audience, videoCount, videos: videoRows } };
 }
