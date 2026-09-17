@@ -62,6 +62,25 @@ export async function runAnalysis(): Promise<AnalysisReport> {
 }
 
 /**
+ * Best-effort read of the TikTok Business snapshot. When the account is not
+ * connected or TikTok refuses a source, the analysis simply runs without it.
+ */
+async function fetchBusinessGroundTruth(): Promise<BusinessGroundTruth | undefined> {
+  try {
+    const biz = await getBusinessCreatorData();
+    if (!biz.ok) return undefined;
+    return {
+      accountStats: biz.snapshot?.accountStats ?? {},
+      audience: biz.audience ?? {},
+      commentsCount: biz.snapshot?.commentsCount ?? null,
+      videoInsights: biz.snapshot?.videoInsights ?? [],
+    };
+  } catch {
+    return undefined;
+  }
+}
+
+/**
  * Reads hook analyses that already exist for this user. Read-only: it never
  * triggers a new analysis, so no extra API cost is introduced.
  */
