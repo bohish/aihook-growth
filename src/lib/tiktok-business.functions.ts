@@ -61,6 +61,7 @@ export interface BusinessCreatorResult {
   audience?: Record<string, AudienceValue>;
   videoCount?: number | null;
   videos?: Array<Record<string, string | number>>;
+  diag?: { endpoint: string; httpStatus: number; code: number | null; message: string };
 }
 
 /** Reads the Business creator endpoints with the Business token only. */
