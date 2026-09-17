@@ -93,26 +93,16 @@ export interface BusinessCreatorData {
   videos: Array<Record<string, string | number>>;
 }
 
-/** Resolves the business/creator ID the /tto/creator/* endpoints require, via the official bootstrap endpoint. */
-async function resolveBusinessId(token: string): Promise<string | null> {
-  const appId = process.env["TIKTOK_BUSINESS_APP_ID"];
-  const secret = process.env["TIKTOK_BUSINESS_APP_SECRET"];
-  if (!appId || !secret) return null;
-  const res = await call("/tto/oauth2/tcm/", token, { app_id: appId, secret });
-  if (!res.ok) return null;
-  const ids = res.data?.["tto_tcm_account_ids"];
-  if (Array.isArray(ids) && typeof ids[0] === "string" && ids[0]) return ids[0];
-  return null;
-}
-
 export async function fetchBusinessCreator(
   session: BusinessSession,
 ): Promise<{ ok: boolean; data?: BusinessCreatorData; message?: string; diag?: BusinessApiDiag }> {
-  const businessId = await resolveBusinessId(session.accessToken);
-  if (!businessId) {
-    return { ok: false, message: "TikTok لم تُرجع معرّف حساب أعمال لهذا التفويض" };
+  // Per TikTok's official docs, creator_id for /tto/creator/* is the open_id
+  // returned by /tt_user/oauth2/token/ — already stored in the session.
+  const creatorId = session.openId;
+  if (!creatorId) {
+    return { ok: false, message: "جلسة العمل لا تحتوي معرّف المنشئ — أعد ربط الحساب" };
   }
-  const idQuery = { business_id: businessId };
+  const idQuery = { creator_id: creatorId };
 
   const info = await call("/tto/creator/authorized/", session.accessToken, idQuery);
   if (!info.ok)
