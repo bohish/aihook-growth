@@ -73,6 +73,7 @@ export interface BusinessCreatorData {
   creator: Record<string, string | number>;
   audience: Record<string, unknown>;
   videoCount: number | null;
+  videos: Array<Record<string, string | number>>;
 }
 
 export async function fetchBusinessCreator(
