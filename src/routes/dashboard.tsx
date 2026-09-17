@@ -85,8 +85,6 @@ function BusinessCreatorCard({ onReach }: { onReach: (value: number | null) => v
     };
   }, []);
 
-  if (!state || state.status === "not_connected") return null;
-
   const LABELS: Record<string, [string, string]> = {
     display_name: ["الاسم", "Name"],
     username: ["المعرّف", "Username"],
@@ -108,6 +106,8 @@ function BusinessCreatorCard({ onReach }: { onReach: (value: number | null) => v
       .filter(Number.isFinite);
     onReach(reach.length > 0 ? reach.reduce((sum, value) => sum + value, 0) : null);
   }, [onReach, state]);
+
+  if (!state || state.status === "not_connected") return null;
 
   return (
     <section className="panel overflow-hidden">

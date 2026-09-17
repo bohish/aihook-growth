@@ -226,13 +226,11 @@ export function ContentHealth({ report }: { report: AnalysisReport }) {
   const reach = report.scoring.subscores.find((item) => item.key === "reach")?.value ?? 0;
   const engagement = report.scoring.subscores.find((item) => item.key === "engagement")?.value ?? 0;
   const efficiency = report.scoring.subscores.find((item) => item.key === "efficiency")?.value ?? 0;
-  const gapScore = Math.max(0, Math.min(100, 100 - report.metrics.longestGapDays * 5));
   const data = [
     { label: pick("التفاعل", "Engagement"), value: engagement },
     { label: pick("الوصول", "Reach"), value: reach },
     { label: pick("الانتظام", "Consistency"), value: consistency },
     { label: pick("قوة المحتوى", "Content strength"), value: efficiency },
-    { label: pick("فجوات النشر", "Posting gaps"), value: gapScore },
   ];
   return (
     <section className="panel p-5">
@@ -250,6 +248,10 @@ export function ContentHealth({ report }: { report: AnalysisReport }) {
             <Bar dataKey="value" fill="var(--color-primary)" radius={[0, 2, 2, 0]} barSize={14} />
           </BarChart>
         </ResponsiveContainer>
+      </div>
+      <div className="flex items-center justify-between border-t border-border pt-3 text-xs">
+        <span className="text-muted-foreground">{pick("أطول فجوة نشر", "Longest posting gap")}</span>
+        <span className="font-semibold tabular-nums" dir="ltr">{report.metrics.longestGapDays.toLocaleString("en-US")} {pick("يوم", "days")}</span>
       </div>
     </section>
   );
