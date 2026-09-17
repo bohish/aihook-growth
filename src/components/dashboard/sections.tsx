@@ -33,11 +33,18 @@ import { useLanguage } from "@/lib/i18n";
 
 /* ------------------------------- score card ------------------------------- */
 
-export function ScoreCard({ report }: { report: AnalysisReport }) {
+export function ScoreCard({ report, reach }: { report: AnalysisReport; reach?: number | null }) {
   const { pick } = useLanguage();
   const { score, summaryAr } = report.scoring;
   const band = scoreBand(score);
   const delta = report.scoreDelta;
+  const heroMetrics = [
+    { label: pick("المتابعون", "Followers"), value: formatNumber(report.metrics.followers) },
+    { label: pick("إجمالي المشاهدات", "Total views"), value: formatNumber(report.metrics.totalViews) },
+    { label: pick("معدل التفاعل", "Engagement rate"), value: formatPercent(report.metrics.totalEngagementRate) },
+    { label: pick("النشر أسبوعياً", "Posts per week"), value: report.metrics.postsPerWeek.toLocaleString("en-US", { maximumFractionDigits: 1 }) },
+    { label: pick("الوصول", "Reach"), value: reach == null ? "—" : formatNumber(reach) },
+  ];
 
   return (
     <section className="panel overflow-hidden">
@@ -64,6 +71,14 @@ export function ScoreCard({ report }: { report: AnalysisReport }) {
           <div>
             <p className="text-[11px] uppercase text-muted-foreground">{pick("ملخص الأداء", "Performance summary")}</p>
             <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground">{summaryAr}</p>
+          </div>
+          <div className="grid grid-cols-2 gap-px overflow-hidden border border-border bg-border sm:grid-cols-5">
+            {heroMetrics.map((item) => (
+              <div key={item.label} className="bg-card p-3">
+                <p className="text-[10px] text-muted-foreground">{item.label}</p>
+                <p className="mt-2 text-xl font-bold tabular-nums" dir="ltr">{item.value}</p>
+              </div>
+            ))}
           </div>
           <div className="grid grid-cols-2 gap-px overflow-hidden border border-border bg-border sm:grid-cols-4">
             {report.scoring.subscores.map((item) => (
@@ -118,18 +133,14 @@ export function KeyMetrics({ report }: { report: AnalysisReport }) {
   const { pick } = useLanguage();
   const m = report.metrics;
   const items = [
-    { label: pick("المتابعون", "Followers"), value: formatNumber(m.followers), icon: BadgeCheck },
     { label: pick("يتابع", "Following"), value: formatNumber(m.following), icon: Activity },
     { label: pick("إعجابات الحساب", "Account likes"), value: formatNumber(m.accountLikes), icon: Heart },
     { label: pick("إجمالي الفيديوهات", "Total videos"), value: formatNumber(m.totalVideos), icon: CalendarDays },
-    { label: pick("المشاهدات", "Views"), value: formatNumber(m.totalViews), icon: Eye },
     { label: pick("متوسط المشاهدات", "Average views"), value: formatNumber(m.avgViews), icon: Eye },
     { label: pick("وسيط المشاهدات", "Median views"), value: formatNumber(m.medianViews), icon: Activity },
-    { label: pick("التفاعل الكلي", "Total engagement"), value: formatPercent(m.totalEngagementRate), icon: Heart },
     { label: pick("وسيط التفاعل", "Median engagement"), value: formatPercent(m.medianEngagementRate), icon: Heart },
     { label: pick("إجمالي التعليقات", "Total comments"), value: formatNumber(m.totalComments), icon: MessageCircle },
     { label: pick("إجمالي المشاركات", "Total shares"), value: formatNumber(m.totalShares), icon: Repeat2 },
-    { label: pick("النشر أسبوعياً", "Posts per week"), value: String(m.postsPerWeek), icon: CalendarDays },
   ];
 
   return (
@@ -454,7 +465,7 @@ export function Recommendations({
             <article key={r.title} className={`panel flex flex-col p-5 ${isLocked ? "opacity-60" : ""}`}>
               <div className="flex flex-wrap items-center gap-2">
                 <span className="flex h-7 min-w-16 items-center justify-center bg-primary px-2 text-[10px] font-bold uppercase text-primary-foreground">
-                  {pick(LEVEL_AR[r.impact], r.impact)}
+                  <span dir="ltr">{r.priority.toLocaleString("en-US")}</span>&nbsp;·&nbsp;{pick(LEVEL_AR[r.impact], r.impact)}
                 </span>
                 <h3 className="text-sm font-semibold">{r.title}</h3>
                  <div className="ms-auto flex flex-wrap gap-1.5">
