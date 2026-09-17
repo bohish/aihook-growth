@@ -175,5 +175,5 @@ export async function fetchBusinessCreator(
     }
   }
 
-  return { ok: true, data: { scopes: session.scopes, creator, audience, videoCount, videos: videoRows } };
+  return { ok: true, data: { scopes: session.scopes, creator, audience, videoCount, videos: videoRows, fieldKeys } };
 }
