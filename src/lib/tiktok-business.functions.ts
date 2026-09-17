@@ -60,6 +60,7 @@ export interface BusinessCreatorResult {
   creator?: Record<string, string | number>;
   audience?: Record<string, AudienceValue>;
   videoCount?: number | null;
+  videos?: Array<Record<string, string | number>>;
 }
 
 /** Reads the Business creator endpoints with the Business token only. */
