@@ -1,10 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { AlertTriangle, ArrowUpRight, CalendarDays, Eye, Heart, Link2, Loader2, MessageCircle, RefreshCw, Repeat2, Sparkles, Target } from "lucide-react";
+import { AlertTriangle, ArrowUpRight, CalendarDays, Eye, Heart, Link2, Loader2, RefreshCw, Sparkles, Target } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/AppShell";
 import {
+  BestWorst,
 } from "@/components/dashboard/sections";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -60,7 +61,7 @@ function EmptyState({
 
 /** TikTok for Business creator card. Shows only fields TikTok actually returned. */
 function BusinessCreatorCard() {
-  const { pick, locale } = useLanguage();
+  const { pick } = useLanguage();
   const [state, setState] = useState<BusinessCreatorResult | null>(null);
 
   useEffect(() => {
@@ -496,13 +497,13 @@ function RankedVideos({ report }: { report: AnalysisReport }) {
 
 function InsightGrid({ report, mode }: { report: AnalysisReport; mode: "dna" | "recommendations" }) {
   const { pick } = useLanguage();
-  const rows = mode === "dna" ? report.dna.map((d) => ({ title: d.title, value: d.liftPct == null ? "—" : formatSignedPercent(d.liftPct), detail: d.detail })) : report.recommendations.map((r) => ({ title: r.title, value: String(r.priority).padStart(2, "0"), detail: `${r.evidence} ${r.action}` }));
+  const rows = mode === "dna" ? report.dna.map((d) => ({ title: d.title, value: d.liftPct == null ? "—" : formatSignedPercent(d.liftPct), detail: d.detail })) : report.recommendations.map((r) => ({ title: r.title, value: String(r.priority).padStart(2, "0"), detail: [r.evidence, r.action, r.hookLine, r.shoot, r.build, r.cta].filter(Boolean).join(" — ") }));
   return <section><div className="grid gap-px overflow-hidden border border-border bg-border md:grid-cols-2">{rows.map((row, index) => <article key={`${row.title}-${index}`} className="bg-background p-5"><div className="flex items-start justify-between gap-4"><span className="text-3xl font-bold tabular-nums" dir="ltr">{row.value}</span><ArrowUpRight className="size-4 text-muted-foreground" /></div><h3 className="mt-6 text-sm font-semibold">{row.title}</h3><p className="mt-2 text-xs leading-relaxed text-muted-foreground">{row.detail}</p></article>)}</div>{mode === "recommendations" && report.contextNote ? <p className="mt-4 text-xs text-muted-foreground">{report.contextNote}</p> : null}</section>;
 }
 
 function WeeklyTimeline({ report }: { report: AnalysisReport }) {
   const { pick } = useLanguage();
-  return <section>{report.planFocus?.length ? <div className="mb-6 flex flex-wrap items-center gap-2 border-y border-border py-4"><Target className="size-4" />{report.planFocus.map((item) => <span key={item} className="border border-border px-3 py-1 text-xs">{item}</span>)}</div> : null}<div className="border-y border-border">{report.plan.map((day, index) => <article key={`${day.dayAr}-${index}`} className="grid gap-4 border-b border-border py-5 last:border-b-0 md:grid-cols-[4rem_1fr_1fr_auto]"><div><p className="text-2xl font-bold tabular-nums" dir="ltr">{String(index + 1).padStart(2, "0")}</p><p className="mt-1 text-xs text-muted-foreground">{day.dayAr}</p></div><div><p className="text-sm font-semibold">{day.idea}</p><p className="mt-2 text-xs text-muted-foreground">{day.hook}</p></div><div className="text-xs"><p className="text-muted-foreground">{pick("الصيغة", "Format")}</p><p className="mt-1">{day.format}</p><p className="mt-2 text-muted-foreground">{day.cta}</p></div><span className="self-start border border-border px-2 py-1 text-[10px] tabular-nums" dir="ltr">{day.targetDuration}</span></article>)}</div></section>;
+  return <section>{report.planFocus?.length ? <div className="mb-6 flex flex-wrap items-center gap-2 border-y border-border py-4"><Target className="size-4" />{report.planFocus.map((item) => <span key={item} className="border border-border px-3 py-1 text-xs">{item}</span>)}</div> : null}<div className="border-y border-border">{report.plan.map((day, index) => <article key={`${day.dayAr}-${index}`} className="grid gap-4 border-b border-border py-5 last:border-b-0 md:grid-cols-[4rem_1fr_1fr_auto]"><div><p className="text-2xl font-bold tabular-nums" dir="ltr">{String(index + 1).padStart(2, "0")}</p><p className="mt-1 text-xs text-muted-foreground">{day.dayAr}</p></div><div><p className="text-sm font-semibold">{day.idea}</p><p className="mt-2 text-xs text-muted-foreground">{day.hook}</p><p className="mt-2 text-xs leading-relaxed text-muted-foreground">{day.why}</p></div><div className="text-xs"><p className="text-muted-foreground">{pick("الصيغة", "Format")}</p><p className="mt-1">{day.format}</p><p className="mt-2 text-muted-foreground">{day.cta}</p></div><span className="self-start border border-border px-2 py-1 text-[10px] tabular-nums" dir="ltr">{day.targetDuration}</span></article>)}</div></section>;
 }
 
 
@@ -620,10 +621,6 @@ function Dashboard() {
     );
   }
 
-  // Free plan: full score + 3 insights. The remaining two recommendations stay
-  // locked until Pro (no payments wired yet).
-  const lockedCount = 0;
-
   return (
     <AppShell>
       <div className="mx-auto w-full max-w-6xl px-4 py-8">
@@ -640,7 +637,7 @@ function Dashboard() {
             ) : null}
             <div>
               <h1 className="text-xl font-bold sm:text-2xl">{report.account.displayName}</h1>
-               <p className="mt-1 text-xs text-muted-foreground">{pick("آخر تحديث", "Last updated")} {new Date(report.generatedAt).toLocaleString(locale)}</p>
+               <p className="mt-1 text-xs text-muted-foreground">{pick("آخر تحديث", "Last updated")} <span dir="ltr" className="tabular-nums">{new Date(report.generatedAt).toLocaleString(locale === "ar" ? "ar-SA-u-nu-latn" : "en-US")}</span></p>
               {report.limitedData ? (
                 <p className="mt-2 text-xs text-warning">
                    {pick("عدد الفيديوهات المتاح قليل، لذلك تُحسب بعض المحاور بثقة أقل", "Few videos are available, so some dimensions have lower confidence")}
@@ -660,8 +657,8 @@ function Dashboard() {
         </header>
 
         <div className="mt-6 grid gap-6">
+          <DashboardOverview report={report} />
           <BusinessCreatorCard />
-          <ScoreCard report={report} />
 
 
           <Tabs defaultValue="metrics" className="mt-2">
@@ -675,23 +672,20 @@ function Dashboard() {
             </TabsList>
 
             <TabsContent value="metrics" className="mt-6">
-              <div className="grid gap-8">
-                <KeyMetrics report={report} />
-                <NumericPerformance report={report} />
-              </div>
+              <PerformanceOverview report={report} />
             </TabsContent>
             <TabsContent value="content" className="mt-6">
               <BestWorst report={report} />
             </TabsContent>
             <TabsContent value="dna" className="mt-6">
-              <ContentDna insights={report.dna} />
+              <InsightGrid report={report} mode="dna" />
             </TabsContent>
             <TabsContent value="actions" className="mt-6">
-              <Recommendations items={report.recommendations} locked={lockedCount} contextNote={report.contextNote} />
+              <InsightGrid report={report} mode="recommendations" />
             </TabsContent>
             <TabsContent value="plan" className="mt-6">
               {report.plan.length > 0 ? (
-                <WeeklyPlan days={report.plan} focus={report.planFocus} />
+                <WeeklyTimeline report={report} />
 
               ) : (
                 <div className="panel flex flex-col items-start gap-4 p-6">
