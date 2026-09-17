@@ -95,9 +95,14 @@ export interface BusinessCreatorData {
 
 export async function fetchBusinessCreator(
   session: BusinessSession,
-): Promise<{ ok: boolean; data?: BusinessCreatorData; message?: string }> {
+): Promise<{ ok: boolean; data?: BusinessCreatorData; message?: string; diag?: BusinessApiDiag }> {
   const info = await call("/tto/creator/authorized/", session.accessToken);
-  if (!info.ok) return { ok: false, ...(info.message ? { message: info.message } : {}) };
+  if (!info.ok)
+    return {
+      ok: false,
+      ...(info.message ? { message: info.message } : {}),
+      ...(info.diag ? { diag: info.diag } : {}),
+    };
 
   const creator: Record<string, string | number> = {};
   const source = (info.data?.["creator"] ?? info.data ?? {}) as Record<string, unknown>;
