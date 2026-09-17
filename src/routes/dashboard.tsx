@@ -4,9 +4,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/AppShell";
-import {
-  BestWorst,
-} from "@/components/dashboard/sections";
+import { BestWorst } from "@/components/dashboard/sections";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/useAuth";
@@ -14,7 +12,7 @@ import { useConnection } from "@/hooks/useConnection";
 import { AnalysisUnavailableError, readCachedReport, runAnalysis } from "@/lib/report";
 import { getBusinessCreatorData, type BusinessCreatorResult } from "@/lib/tiktok-business.functions";
 import { formatNumber, formatPercent, formatSignedPercent } from "@/lib/metrics";
-import type { AnalysisReport, VideoRecord } from "@/lib/types";
+import type { AnalysisReport } from "@/lib/types";
 import { useLanguage } from "@/lib/i18n";
 
 export const Route = createFileRoute("/dashboard")({
@@ -484,15 +482,6 @@ function PerformanceOverview({ report }: { report: AnalysisReport }) {
       </div>
     </section>
   );
-}
-
-function RankedVideos({ report }: { report: AnalysisReport }) {
-  const { pick } = useLanguage();
-  const render = (title: string, rows: VideoRecord[]) => {
-    const max = Math.max(1, ...rows.map((v) => v.views));
-    return <section><h2 className="text-lg font-bold">{title}</h2><div className="mt-4 border-y border-border">{rows.map((video, index) => <article key={video.id} className="grid grid-cols-[2.5rem_1fr_auto] items-center gap-3 border-b border-border py-4 last:border-b-0"><span className="text-2xl font-bold text-muted-foreground tabular-nums" dir="ltr">{String(index + 1).padStart(2, "0")}</span><div className="min-w-0"><p className="truncate text-sm font-semibold">{video.caption}</p><div className="mt-2 h-1 bg-muted"><div className="h-full bg-primary" style={{ width: `${(video.views / max) * 100}%` }} /></div><p className="mt-2 line-clamp-2 text-xs leading-relaxed text-muted-foreground">{report.verdicts[video.id] ?? ""}</p></div><div className="text-end"><p className="text-lg font-bold tabular-nums" dir="ltr">{formatNumber(video.views)}</p><p className="text-[10px] text-muted-foreground">{pick("مشاهدة", "views")}</p></div></article>)}</div></section>;
-  };
-  return <div className="grid gap-10">{render(pick("أقوى أداء", "Best performance"), report.top)}{render(pick("يحتاج تحسين", "Needs improvement"), report.bottom)}</div>;
 }
 
 function InsightGrid({ report, mode }: { report: AnalysisReport; mode: "dna" | "recommendations" }) {
