@@ -170,7 +170,69 @@ function BusinessCreatorCard() {
               </div>
             );
           })()}
+          {(() => {
+            const rows = state.videos ?? [];
+            if (rows.length === 0) return null;
+            const num = (row: Record<string, string | number>, keys: string[]): number | null => {
+              for (const k of keys) {
+                const v = row[k];
+                if (typeof v === "number") return v;
+                if (typeof v === "string" && v.trim() !== "" && !Number.isNaN(Number(v))) return Number(v);
+              }
+              return null;
+            };
+            const views = rows.map((r) => num(r, ["view_count", "video_views", "views"])).filter((v): v is number => v !== null);
+            const likes = rows.map((r) => num(r, ["like_count", "likes", "digg_count"])).filter((v): v is number => v !== null);
+            const comments = rows.map((r) => num(r, ["comment_count", "comments"])).filter((v): v is number => v !== null);
+            const shares = rows.map((r) => num(r, ["share_count", "shares"])).filter((v): v is number => v !== null);
+            const times = rows.map((r) => num(r, ["create_time", "created_time", "publish_time"])).filter((v): v is number => v !== null);
+            const sum = (a: number[]) => a.reduce((x, y) => x + y, 0);
+            const avg = (a: number[]) => (a.length ? sum(a) / a.length : null);
+            const median = (a: number[]) => {
+              if (!a.length) return null;
+              const s = [...a].sort((x, y) => x - y);
+              const mid = Math.floor(s.length / 2);
+              return s.length % 2 ? s[mid]! : (s[mid - 1]! + s[mid]!) / 2;
+            };
+            const totalViews = views.length ? sum(views) : null;
+            const engagementRate =
+              totalViews && totalViews > 0
+                ? ((sum(likes) + sum(comments) + sum(shares)) / totalViews) * 100
+                : null;
+            let postsPerWeek: number | null = null;
+            if (times.length >= 2) {
+              const spanDays = (Math.max(...times) - Math.min(...times)) / 86400;
+              if (spanDays > 0) postsPerWeek = (times.length / spanDays) * 7;
+            }
+            const fmtNum = (v: number | null, digits = 0) =>
+              v === null ? pick("لا توجد بيانات متاحة", "No data available") : v.toLocaleString(locale, { maximumFractionDigits: digits });
+            const stats: Array<[string, string, string]> = [
+              ["الفيديوهات المقروءة", "Videos read", rows.length.toLocaleString(locale)],
+              ["إجمالي المشاهدات", "Total views", fmtNum(totalViews)],
+              ["متوسط المشاهدات", "Average views", fmtNum(avg(views))],
+              ["وسيط المشاهدات", "Median views", fmtNum(median(views))],
+              ["إجمالي الإعجابات", "Total likes", fmtNum(likes.length ? sum(likes) : null)],
+              ["إجمالي التعليقات", "Total comments", fmtNum(comments.length ? sum(comments) : null)],
+              ["إجمالي المشاركات", "Total shares", fmtNum(shares.length ? sum(shares) : null)],
+              ["معدل التفاعل %", "Engagement rate %", fmtNum(engagementRate, 2)],
+              ["منشورات/أسبوع", "Posts per week", fmtNum(postsPerWeek, 1)],
+            ];
+            return (
+              <div className="mt-4 border-t border-border pt-4">
+                <p className="text-xs font-semibold">{pick("أرقام الفيديوهات الحقيقية", "Real video metrics")}</p>
+                <dl className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  {stats.map(([ar, en, value]) => (
+                    <div key={en}>
+                      <dt className="text-xs text-muted-foreground">{pick(ar, en)}</dt>
+                      <dd className="mt-1 text-sm font-medium">{value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+            );
+          })()}
         </>
+
       ) : (
         <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
           {state.status === "denied"
