@@ -45,11 +45,19 @@ export function readBusinessSession(cookieHeader: string | null): BusinessSessio
   }
 }
 
+/** Safe diagnostics: no tokens, secrets, or IDs — only status/code/message/endpoint. */
+export interface BusinessApiDiag {
+  endpoint: string;
+  httpStatus: number;
+  code: number | null;
+  message: string;
+}
+
 async function call(
   path: string,
   token: string,
   query: Record<string, string> = {},
-): Promise<{ ok: boolean; data?: Record<string, unknown>; message?: string }> {
+): Promise<{ ok: boolean; data?: Record<string, unknown>; message?: string; diag?: BusinessApiDiag }> {
   const url = new URL(`${BASE}${path}`);
   for (const [k, v] of Object.entries(query)) url.searchParams.set(k, v);
   const response = await fetch(url.toString(), {
@@ -63,7 +71,16 @@ async function call(
   };
   if (!response.ok || payload.code !== 0) {
     console.error(`TikTok Business API ${path} failed [${response.status}] ${payload.message ?? ""}`);
-    return { ok: false, message: payload.message ?? `HTTP ${response.status}` };
+    return {
+      ok: false,
+      message: payload.message ?? `HTTP ${response.status}`,
+      diag: {
+        endpoint: path,
+        httpStatus: response.status,
+        code: typeof payload.code === "number" ? payload.code : null,
+        message: payload.message ?? "",
+      },
+    };
   }
   return { ok: true, ...(payload.data ? { data: payload.data } : {}) };
 }
@@ -78,9 +95,14 @@ export interface BusinessCreatorData {
 
 export async function fetchBusinessCreator(
   session: BusinessSession,
-): Promise<{ ok: boolean; data?: BusinessCreatorData; message?: string }> {
+): Promise<{ ok: boolean; data?: BusinessCreatorData; message?: string; diag?: BusinessApiDiag }> {
   const info = await call("/tto/creator/authorized/", session.accessToken);
-  if (!info.ok) return { ok: false, ...(info.message ? { message: info.message } : {}) };
+  if (!info.ok)
+    return {
+      ok: false,
+      ...(info.message ? { message: info.message } : {}),
+      ...(info.diag ? { diag: info.diag } : {}),
+    };
 
   const creator: Record<string, string | number> = {};
   const source = (info.data?.["creator"] ?? info.data ?? {}) as Record<string, unknown>;

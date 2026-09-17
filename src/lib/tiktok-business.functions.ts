@@ -61,6 +61,7 @@ export interface BusinessCreatorResult {
   audience?: Record<string, AudienceValue>;
   videoCount?: number | null;
   videos?: Array<Record<string, string | number>>;
+  diag?: { endpoint: string; httpStatus: number; code: number | null; message: string };
 }
 
 /** Reads the Business creator endpoints with the Business token only. */
@@ -76,7 +77,12 @@ export const getBusinessCreatorData = createServerFn({ method: "GET" })
     try {
       const result = await biz.fetchBusinessCreator(session);
       if (!result.ok || !result.data) {
-        return { ok: false, status: "denied", ...(result.message ? { message: result.message } : {}) };
+        return {
+          ok: false,
+          status: "denied",
+          ...(result.message ? { message: result.message } : {}),
+          ...(result.diag ? { diag: result.diag } : {}),
+        };
       }
       return {
         ok: true,
