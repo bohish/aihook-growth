@@ -67,7 +67,7 @@ function EmptyState({
 }
 
 /** TikTok for Business creator card. Shows only fields TikTok actually returned. */
-function BusinessCreatorCard() {
+function BusinessCreatorCard({ onReach }: { onReach: (value: number | null) => void }) {
   const { pick } = useLanguage();
   const [state, setState] = useState<BusinessCreatorResult | null>(null);
 
@@ -97,6 +97,17 @@ function BusinessCreatorCard() {
   };
 
   const entries = Object.entries(state.creator ?? {}).filter(([k]) => k in LABELS);
+
+  useEffect(() => {
+    const rows = state?.snapshot?.videoInsights ?? [];
+    const reach = rows
+      .map((row) => {
+        const value = row["reach"];
+        return typeof value === "number" ? value : typeof value === "string" && value.trim() !== "" ? Number(value) : Number.NaN;
+      })
+      .filter(Number.isFinite);
+    onReach(reach.length > 0 ? reach.reduce((sum, value) => sum + value, 0) : null);
+  }, [onReach, state]);
 
   return (
     <section className="panel overflow-hidden">
@@ -442,6 +453,7 @@ function Dashboard() {
   const [report, setReport] = useState<AnalysisReport | null>(null);
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
+  const [businessReach, setBusinessReach] = useState<number | null>(null);
 
   const connected = connection.status === "connected";
 
@@ -588,8 +600,8 @@ function Dashboard() {
         </header>
 
         <div className="mt-6 grid gap-8">
-          <ScoreCard report={report} />
-          <BusinessCreatorCard />
+          <ScoreCard report={report} reach={businessReach} />
+          <BusinessCreatorCard onReach={setBusinessReach} />
           <Tabs defaultValue="metrics">
             <TabsList className="flex h-auto w-full flex-nowrap justify-start gap-1 overflow-x-auto bg-surface p-1">
                <TabsTrigger value="metrics">{pick("نظرة عامة", "Overview")}</TabsTrigger>
