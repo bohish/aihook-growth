@@ -250,5 +250,28 @@ export async function fetchBusinessCreator(
     }
   }
 
-  return { ok: true, data: { scopes: session.scopes, creator, audience, videoCount, videos: videoRows, fieldKeys } };
+  const tokenScopes = await fetchTokenScopes(session.accessToken);
+  const organic = await fetchOrganicAudience(session.accessToken, creatorId);
+  if (organic.ok && organic.data) {
+    for (const [key, value] of Object.entries(organic.data)) {
+      if (isAudienceKey(key) && !isAssetKey(key) && !isUrlValue(value) && isSafeValue(value)) {
+        audience[key] = value;
+      }
+    }
+  }
+
+  return {
+    ok: true,
+    data: {
+      scopes: session.scopes,
+      creator,
+      audience,
+      videoCount,
+      videos: videoRows,
+      fieldKeys,
+      tokenScopes,
+      audienceAvailable: organic.ok,
+      ...(organic.diag ? { audienceDiag: organic.diag } : {}),
+    },
+  };
 }
