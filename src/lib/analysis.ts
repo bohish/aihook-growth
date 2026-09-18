@@ -283,11 +283,13 @@ export function buildRecommendations(
   const sorted = [...videos].sort((a, b) => b.views - a.views);
   const top = sorted[0];
   const topSubject = (top ? shortTopic(top.caption, 5) : null) ?? subject;
-  const commentInsight = dna.find(
-    (item) =>
-      item.title.startsWith("أغلب التعليقات:") ||
-      item.title.startsWith("أكثر موضوع متكرر في التعليقات:"),
-  );
+  const commentInsight =
+    dna.find((item) => item.title.startsWith("أكثر سؤال متكرر:")) ??
+    dna.find(
+      (item) =>
+        item.title.startsWith("أغلب التعليقات:") ||
+        item.title.startsWith("أكثر موضوع متكرر في التعليقات:"),
+    );
 
   const hookCounts = new Map<string, { n: number; views: number[] }>();
   videos.forEach((v) => {
@@ -641,41 +643,69 @@ interface CommentTheme {
   examples: string[];
 }
 
-const COMMENT_THEMES: Array<{ label: string; pattern: RegExp }> = [
-  { label: "السعر", pattern: /سعر|بكم|كم\s*(?:ريال|يكلف|سعره)|price/i },
-  {
-    label: "طريقة الطلب والشراء",
-    pattern: /كيف\s*(?:اطلب|أطلب|اشتري|أشتري)|طلب|شراء|الرابط|متجر|shop|order/i,
-  },
-  { label: "التوفر والمخزون", pattern: /متوفر|متاح|خلص|مخزون|available|stock/i },
-  { label: "المقاس", pattern: /مقاس|قياس|حجم|size/i },
-  { label: "الموقع والتوصيل", pattern: /وين|اين|أين|موقع|مدينة|توصيل|شحن|location|delivery/i },
-  {
-    label: "طلب شرح أو طريقة الاستخدام",
-    pattern: /كيف|طريقة|شرح|استخدام|سو(?:ها|يه)|tutorial|how/i,
-  },
-  { label: "الجودة والتجربة", pattern: /جودة|تجرب|يستاهل|اصلي|أصلي|quality|review/i },
-  {
-    label: "اسم المنتج أو الشيء الظاهر",
-    pattern: /وش\s*(?:اسمه|اسم)|ايش\s*(?:اسمه|اسم)|اسم\s*(?:المنتج|اللعبة)|what.*name/i,
-  },
-];
+const COMMENT_STOP_WORDS = new Set([
+  "هذا", "هذه", "هذي", "ذا", "ذي", "اللي", "على", "علي", "الى", "إلى", "من", "في", "عن", "مع",
+  "يا", "او", "أو", "هو", "هي", "انا", "أنا", "انت", "أنت", "كان", "مرة", "مره", "جدا", "جداً",
+  "والله", "الله", "ماشاءالله", "ما", "لا", "بس", "كل", "شي", "شيء", "حق", "عند", "عندي", "عندك",
+  "the", "a", "an", "and", "or", "to", "of", "in", "is", "it", "this", "that", "you", "your",
+]);
+const QUESTION_WORDS = new Set(["وش", "ايش", "إيش", "كيف", "وين", "اين", "أين", "متى", "ليش", "لماذا", "هل", "كم", "من"]);
+const QUESTION_PATTERN = /[؟?]|^\s*من\s|(?:^|\s)(?:وش|ايش|إيش|كيف|وين|اين|أين|متى|ليش|لماذا|هل|كم)(?:\s|$)/i;
+
+function commentTokens(text: string, keepQuestionWords: boolean): string[] {
+  return text
+    .toLowerCase()
+    .replace(/[ًٌٍَُِّْـ]/g, "")
+    .match(/[\p{L}\p{N}]+/gu)?.filter(
+      (token) =>
+        token.length >= 2 &&
+        !COMMENT_STOP_WORDS.has(token) &&
+        (keepQuestionWords || !QUESTION_WORDS.has(token)),
+    ) ?? [];
+}
+
+/** Finds phrases repeated across separate real comments, without fixed topic labels. */
+function findRepeatedCommentSignal(texts: string[], questionsOnly = false): CommentTheme | null {
+  const source = questionsOnly ? texts.filter((text) => QUESTION_PATTERN.test(text)) : texts;
+  if (source.length < 2) return null;
+  const occurrences = new Map<string, { count: number; examples: string[]; words: number }>();
+  for (const text of source) {
+    const tokens = commentTokens(text, questionsOnly).slice(0, 30);
+    const seen = new Set<string>();
+    for (const size of [3, 2, 1]) {
+      for (let index = 0; index <= tokens.length - size; index += 1) {
+        const phrase = tokens.slice(index, index + size).join(" ");
+        if (seen.has(phrase)) continue;
+        seen.add(phrase);
+        const row = occurrences.get(phrase) ?? { count: 0, examples: [], words: size };
+        row.count += 1;
+        if (row.examples.length < 2) row.examples.push(text.slice(0, 140));
+        occurrences.set(phrase, row);
+      }
+    }
+  }
+  const ranked = [...occurrences.entries()]
+    .filter(([, row]) => row.count >= 2)
+    .sort((a, b) => b[1].count - a[1].count || b[1].words - a[1].words || b[0].length - a[0].length);
+  const top = ranked[0];
+  if (!top) return null;
+  return {
+    label: top[0],
+    count: top[1].count,
+    total: texts.length,
+    ratio: top[1].count / texts.length,
+    examples: top[1].examples,
+  };
+}
 
 function findCommentTheme(comments: Array<{ videoId: string; text: string }>): CommentTheme | null {
   const texts = comments.map((comment) => comment.text.trim()).filter(Boolean);
-  if (texts.length < 3) return null;
-  const ranked = COMMENT_THEMES.map((theme) => {
-    const matches = texts.filter((text) => theme.pattern.test(text));
-    return {
-      label: theme.label,
-      count: matches.length,
-      total: texts.length,
-      ratio: matches.length / texts.length,
-      examples: matches.slice(0, 3),
-    };
-  }).sort((a, b) => b.count - a.count);
-  const top = ranked[0];
-  return top && top.count >= 2 ? top : null;
+  return texts.length >= 3 ? findRepeatedCommentSignal(texts) : null;
+}
+
+function findCommentQuestion(comments: Array<{ videoId: string; text: string }>): CommentTheme | null {
+  const texts = comments.map((comment) => comment.text.trim()).filter(Boolean);
+  return texts.length >= 3 ? findRepeatedCommentSignal(texts, true) : null;
 }
 
 export function buildBusinessInsights(gt: BusinessGroundTruth): DnaInsight[] {
@@ -742,10 +772,20 @@ export function buildBusinessInsights(gt: BusinessGroundTruth): DnaInsight[] {
     const scope = commentTheme.ratio > 0.5 ? "أغلب التعليقات" : "أكثر موضوع متكرر في التعليقات";
     out.push({
       title: `${scope}: ${commentTheme.label}`,
-      detail: `ظهر في ${commentTheme.count} من أصل ${commentTheme.total} تعليقاً حقيقياً (${(commentTheme.ratio * 100).toFixed(1)}%).`,
+      detail: `تكرر في ${commentTheme.count} من أصل ${commentTheme.total} تعليقاً حقيقياً (${(commentTheme.ratio * 100).toFixed(1)}%). أمثلة فعلية: ${commentTheme.examples.map((example) => `«${example}»`).join("، ")}`,
       liftPct: null,
       sampleSize: commentTheme.total,
       confidence: commentTheme.total >= 15 ? "high" : commentTheme.total >= 7 ? "medium" : "low",
+    });
+  }
+  const commentQuestion = findCommentQuestion(gt.comments);
+  if (commentQuestion && commentQuestion.label !== commentTheme?.label) {
+    out.push({
+      title: `أكثر سؤال متكرر: ${commentQuestion.label}`,
+      detail: `تكرر في ${commentQuestion.count} من أصل ${commentQuestion.total} تعليقاً حقيقياً (${(commentQuestion.ratio * 100).toFixed(1)}%). أمثلة فعلية: ${commentQuestion.examples.map((example) => `«${example}»`).join("، ")}`,
+      liftPct: null,
+      sampleSize: commentQuestion.total,
+      confidence: commentQuestion.total >= 15 ? "high" : commentQuestion.total >= 7 ? "medium" : "low",
     });
   }
   return out;

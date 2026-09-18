@@ -13,7 +13,7 @@ import type { StoredHookAnalysis } from "@/lib/niche";
 import { fetchTikTokAccountData } from "@/lib/tiktok.functions";
 import type { AccountData, AnalysisReport, ConnectionState } from "@/lib/types";
 
-const CACHE_KEY = "tga.report.v1";
+const CACHE_KEY = "tga.report.v2";
 
 /**
  * Prior-period baseline score: recompute the score as it would have looked

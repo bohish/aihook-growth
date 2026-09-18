@@ -532,7 +532,10 @@ function DnaDetail({ title, detail }: { title: string; detail: string }) {
 
 function InsightGrid({ report, mode }: { report: AnalysisReport; mode: "dna" | "recommendations" }) {
   const { pick } = useLanguage();
-  const rows = mode === "dna" ? report.dna.map((d) => ({ title: d.title, value: d.liftPct == null ? "—" : formatSignedPercent(d.liftPct), detail: d.detail })) : report.recommendations.map((r) => ({ title: r.title, value: String(r.priority).padStart(2, "0"), detail: [r.evidence, r.action, r.hookLine, r.shoot, r.build, r.cta].filter(Boolean).join(" — ") }));
+  const rows = mode === "dna" ? report.dna.map((d) => {
+    const repetitions = d.detail.match(/(?:ظهر|تكرر) في (\d+)/)?.[1];
+    return { title: d.title, value: repetitions ? `${repetitions}×` : d.liftPct == null ? "—" : formatSignedPercent(d.liftPct), detail: d.detail };
+  }) : report.recommendations.map((r) => ({ title: r.title, value: String(r.priority).padStart(2, "0"), detail: [r.evidence, r.action, r.hookLine, r.shoot, r.build, r.cta].filter(Boolean).join(" — ") }));
   const isSpecial = (t: string) => t === "جمهورك الفعلي حسب تيك توك" || t === "نسبة مشاهدة الفيديو كاملاً";
   return <section><div className="grid gap-px overflow-hidden border border-border bg-border md:grid-cols-2">{rows.map((row, index) => <article key={`${row.title}-${index}`} className="bg-background p-5"><div className="flex items-start justify-between gap-4"><span className="text-3xl font-bold tabular-nums" dir="ltr">{row.value}</span><ArrowUpRight className="size-4 text-muted-foreground" /></div><h3 className="mt-6 text-sm font-semibold">{row.title}</h3><p className="mt-2 text-xs leading-relaxed text-muted-foreground" dir={mode === "dna" && isSpecial(row.title) ? "rtl" : undefined}><DnaDetail title={row.title} detail={row.detail} /></p></article>)}</div>{mode === "recommendations" && report.contextNote ? <p className="mt-4 text-xs text-muted-foreground">{report.contextNote}</p> : null}</section>;
 }
@@ -698,28 +701,28 @@ function Dashboard() {
 
 
           <Tabs defaultValue="metrics" className="mt-2 min-w-0 max-w-full">
-            <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 bg-surface p-1">
+            <TabsList className="grid h-auto w-full grid-cols-2 gap-1 bg-surface p-1 sm:grid-cols-3 lg:grid-cols-5">
                <TabsTrigger value="metrics">{pick("نظرة عامة", "Overview")}</TabsTrigger>
+               <TabsTrigger value="dna">{pick("الجمهور والمحتوى", "Audience & content")}</TabsTrigger>
                <TabsTrigger value="content">{pick("تحليل المقاطع", "Video analysis")}</TabsTrigger>
-               <TabsTrigger value="dna">{pick("نمطك", "Your pattern")}</TabsTrigger>
                <TabsTrigger value="actions">{pick("الخطة التسويقية", "Marketing plan")}</TabsTrigger>
                <TabsTrigger value="plan">{pick("خطة الأسبوع", "Weekly plan")}</TabsTrigger>
 
             </TabsList>
 
-            <TabsContent value="metrics" className="mt-6">
+            <TabsContent value="metrics" className="mt-6 min-w-0">
               <PerformanceOverview report={report} />
             </TabsContent>
             <TabsContent value="content" className="mt-6 min-w-0 max-w-full">
               <BestWorst report={report} />
             </TabsContent>
-            <TabsContent value="dna" className="mt-6">
+            <TabsContent value="dna" className="mt-6 min-w-0">
               <InsightGrid report={report} mode="dna" />
             </TabsContent>
-            <TabsContent value="actions" className="mt-6">
+            <TabsContent value="actions" className="mt-6 min-w-0">
               <InsightGrid report={report} mode="recommendations" />
             </TabsContent>
-            <TabsContent value="plan" className="mt-6">
+            <TabsContent value="plan" className="mt-6 min-w-0">
               {report.plan.length > 0 ? (
                 <WeeklyTimeline report={report} />
 
