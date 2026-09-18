@@ -277,18 +277,19 @@ export function BestWorst({ report }: { report: AnalysisReport }) {
         {pick(`كل المقاطع المتاحة من TikTok (${videos.length}). اختر أي مقطع، ثم شغّل تحليل الأداء الاحترافي له.`, `All videos available from TikTok (${videos.length}). Choose any video, then run its professional performance analysis.`)}
       </p>
 
-      <div className="mt-4 flex gap-3 overflow-x-auto pb-3">
+      <div className="mt-4 grid max-h-[34rem] min-w-0 grid-cols-2 gap-3 overflow-y-auto border-y border-border py-3 sm:grid-cols-3 lg:grid-cols-5">
         {videos.map((video) => (
-          <button key={video.id} type="button" onClick={() => setSelectedId(video.id)} className={`w-36 shrink-0 border p-2 text-start transition-colors ${selected?.id === video.id ? "border-foreground bg-surface" : "border-border hover:border-foreground/50"}`}>
+          <button key={video.id} type="button" onClick={() => setSelectedId(video.id)} className={`min-w-0 overflow-hidden border p-2 text-start transition-colors ${selected?.id === video.id ? "border-foreground bg-surface" : "border-border hover:border-foreground/50"}`}>
             {video.thumbnailUrl ? <img src={video.thumbnailUrl} alt="" className="aspect-[9/12] w-full object-cover" /> : <div className="flex aspect-[9/12] w-full items-center justify-center bg-surface text-xs text-muted-foreground">—</div>}
-            <p className="mt-2 line-clamp-2 text-xs font-medium">{video.caption || pick("بدون وصف", "No caption")}</p>
+            <p className="mt-2 line-clamp-2 min-h-8 break-words text-xs font-medium">{video.caption || pick("بدون وصف", "No caption")}</p>
             <p className="mt-1 text-[10px] tabular-nums text-muted-foreground" dir="ltr">{formatNumber(video.views)} views</p>
           </button>
         ))}
       </div>
 
       {selected ? (
-        <div className="mt-5 max-w-2xl">
+        <div className="mx-auto mt-6 min-w-0 w-full max-w-3xl">
+          <h3 className="mb-3 text-sm font-semibold">{pick("المقطع المحدد ونتيجة التحليل", "Selected video and analysis")}</h3>
           <VideoCard key={selected.id} video={selected} verdict={report.verdicts[selected.id] ?? ""} tone={report.top.some((video) => video.id === selected.id) ? "top" : report.bottom.some((video) => video.id === selected.id) ? "bottom" : "neutral"} />
         </div>
       ) : null}

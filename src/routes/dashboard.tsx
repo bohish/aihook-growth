@@ -659,7 +659,7 @@ function Dashboard() {
 
   return (
     <AppShell>
-      <div className="mx-auto w-full max-w-6xl px-4 py-8">
+      <div className="mx-auto min-w-0 w-full max-w-6xl px-4 py-8">
         <header className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex items-start gap-3">
             {report.account.avatarUrl ? (
@@ -697,7 +697,7 @@ function Dashboard() {
           <BusinessCreatorCard />
 
 
-          <Tabs defaultValue="metrics" className="mt-2">
+          <Tabs defaultValue="metrics" className="mt-2 min-w-0 max-w-full">
             <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 bg-surface p-1">
                <TabsTrigger value="metrics">{pick("نظرة عامة", "Overview")}</TabsTrigger>
                <TabsTrigger value="content">{pick("تحليل المقاطع", "Video analysis")}</TabsTrigger>
@@ -710,7 +710,7 @@ function Dashboard() {
             <TabsContent value="metrics" className="mt-6">
               <PerformanceOverview report={report} />
             </TabsContent>
-            <TabsContent value="content" className="mt-6">
+            <TabsContent value="content" className="mt-6 min-w-0 max-w-full">
               <BestWorst report={report} />
             </TabsContent>
             <TabsContent value="dna" className="mt-6">
