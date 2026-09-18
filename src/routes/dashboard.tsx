@@ -532,12 +532,58 @@ function DnaDetail({ title, detail }: { title: string; detail: string }) {
 
 function InsightGrid({ report, mode }: { report: AnalysisReport; mode: "dna" | "recommendations" }) {
   const { pick } = useLanguage();
-  const rows = mode === "dna" ? report.dna.map((d) => {
+  if (mode === "recommendations") {
+    const impactLabel = { high: pick("تأثير مرتفع", "High impact"), medium: pick("تأثير متوسط", "Medium impact"), low: pick("تأثير منخفض", "Low impact") };
+    return (
+      <section>
+        <div className="mb-5">
+          <h2 className="text-lg font-bold">{pick("الخطة التسويقية", "Marketing plan")}</h2>
+          <p className="mt-1 text-sm text-muted-foreground">{pick("توصيات مرتبة بالأولوية، مع الدليل وطريقة التنفيذ", "Prioritized recommendations with evidence and execution")}</p>
+        </div>
+        <div className="grid gap-4">
+          {report.recommendations.map((item) => (
+            <article key={`${item.priority}-${item.title}`} className="border border-border bg-background p-5 sm:p-6">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="border border-border px-2 py-1 text-xs font-bold tabular-nums" dir="ltr">#{String(item.priority).padStart(2, "0")}</span>
+                    <span className="bg-foreground px-2 py-1 text-[10px] font-semibold text-background">{impactLabel[item.impact]}</span>
+                  </div>
+                  <h3 className="mt-4 text-base font-bold leading-relaxed">{item.title}</h3>
+                </div>
+              </div>
+
+              <div className="mt-5 grid gap-3 md:grid-cols-2">
+                <div className="border border-border bg-surface/50 p-4">
+                  <p className="text-[10px] font-semibold text-muted-foreground">{pick("لماذا هذه التوصية؟", "Why this recommendation?")}</p>
+                  <p className="mt-2 text-sm leading-relaxed">{item.evidence}</p>
+                </div>
+                <div className="border border-border bg-surface/50 p-4">
+                  <p className="text-[10px] font-semibold text-muted-foreground">{pick("الإجراء المطلوب", "Recommended action")}</p>
+                  <p className="mt-2 text-sm leading-relaxed">{item.action}</p>
+                </div>
+              </div>
+
+              <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                {item.hookLine ? <div className="border-r-2 border-foreground/60 px-3"><p className="text-[10px] text-muted-foreground">{pick("الهوك المقترح", "Suggested hook")}</p><p className="mt-1 text-xs font-medium leading-relaxed">{item.hookLine}</p></div> : null}
+                {item.shoot ? <div className="border-r-2 border-border px-3"><p className="text-[10px] text-muted-foreground">{pick("طريقة التصوير", "How to shoot")}</p><p className="mt-1 text-xs leading-relaxed">{item.shoot}</p></div> : null}
+                {item.build ? <div className="border-r-2 border-border px-3"><p className="text-[10px] text-muted-foreground">{pick("بناء المقطع", "Video structure")}</p><p className="mt-1 text-xs leading-relaxed">{item.build}</p></div> : null}
+                {item.cta ? <div className="border-r-2 border-border px-3"><p className="text-[10px] text-muted-foreground">CTA</p><p className="mt-1 text-xs leading-relaxed">{item.cta}</p></div> : null}
+              </div>
+            </article>
+          ))}
+        </div>
+        {report.contextNote ? <p className="mt-4 border-t border-border pt-4 text-xs text-muted-foreground">{report.contextNote}</p> : null}
+      </section>
+    );
+  }
+
+  const rows = report.dna.map((d) => {
     const repetitions = d.detail.match(/(?:ظهر|تكرر) في (\d+)/)?.[1];
     return { title: d.title, value: repetitions ? `${repetitions}×` : d.liftPct == null ? "—" : formatSignedPercent(d.liftPct), detail: d.detail };
-  }) : report.recommendations.map((r) => ({ title: r.title, value: String(r.priority).padStart(2, "0"), detail: [r.evidence, r.action, r.hookLine, r.shoot, r.build, r.cta].filter(Boolean).join(" — ") }));
+  });
   const isSpecial = (t: string) => t === "جمهورك الفعلي حسب تيك توك" || t === "نسبة مشاهدة الفيديو كاملاً";
-  return <section><div className="grid gap-px overflow-hidden border border-border bg-border md:grid-cols-2">{rows.map((row, index) => <article key={`${row.title}-${index}`} className="bg-background p-5"><div className="flex items-start justify-between gap-4"><span className="text-3xl font-bold tabular-nums" dir="ltr">{row.value}</span><ArrowUpRight className="size-4 text-muted-foreground" /></div><h3 className="mt-6 text-sm font-semibold">{row.title}</h3><p className="mt-2 text-xs leading-relaxed text-muted-foreground" dir={mode === "dna" && isSpecial(row.title) ? "rtl" : undefined}><DnaDetail title={row.title} detail={row.detail} /></p></article>)}</div>{mode === "recommendations" && report.contextNote ? <p className="mt-4 text-xs text-muted-foreground">{report.contextNote}</p> : null}</section>;
+  return <section><div className="grid gap-3 md:grid-cols-2">{rows.map((row, index) => <article key={`${row.title}-${index}`} className="border border-border bg-background p-5"><div className="flex items-start justify-between gap-4"><span className="text-3xl font-bold tabular-nums" dir="ltr">{row.value}</span><ArrowUpRight className="size-4 text-muted-foreground" /></div><h3 className="mt-6 text-sm font-semibold">{row.title}</h3><p className="mt-2 text-xs leading-relaxed text-muted-foreground" dir={isSpecial(row.title) ? "rtl" : undefined}><DnaDetail title={row.title} detail={row.detail} /></p></article>)}</div></section>;
 }
 
 function WeeklyTimeline({ report }: { report: AnalysisReport }) {

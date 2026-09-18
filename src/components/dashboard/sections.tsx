@@ -346,7 +346,7 @@ export function CommentIntelligence({ report }: { report: AnalysisReport }) {
       icon: CircleHelp,
     },
     {
-      title: pick("أكثر نوع محتوى يجلب تعليقات", "Content type with most comments"),
+      title: pick("نوع المحتوى الأعلى في معدل التعليقات", "Highest comment-rate content type"),
       value: data.topContentType?.label ?? "—",
       note: data.topContentType ? `${data.topContentType.commentsPer1kViews.toFixed(1)} ${pick("تعليق لكل 1K مشاهدة", "comments per 1K views")} · ${data.topContentType.videos} ${pick("فيديو", "videos")}` : pick("لا تتوفر بيانات كافية", "Not enough data"),
       icon: TrendingUp,
@@ -362,8 +362,8 @@ export function CommentIntelligence({ report }: { report: AnalysisReport }) {
             {pick("قراءة مباشرة لما يكرره جمهورك ويسأل عنه", "A direct reading of what your audience repeats and asks")}
           </p>
         </div>
-        <span className="border border-border px-3 py-1 text-xs tabular-nums" dir="ltr">
-          {data.analyzedComments} comments analyzed
+        <span className="border border-border px-3 py-1 text-xs tabular-nums">
+          <span dir="ltr">{data.analyzedComments}</span> {pick("تعليق محلل", "comments analyzed")}
         </span>
       </div>
 
