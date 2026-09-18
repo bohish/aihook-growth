@@ -159,6 +159,26 @@ export interface VideoVerdict {
   reason: string;
 }
 
+export interface CommentSignal {
+  label: string;
+  count: number;
+  ratio: number;
+  examples: string[];
+}
+
+export interface CommentAnalytics {
+  analyzedComments: number;
+  topWord: CommentSignal | null;
+  topTopic: CommentSignal | null;
+  topQuestion: CommentSignal | null;
+  topContentType: {
+    label: string;
+    comments: number;
+    videos: number;
+    commentsPer1kViews: number;
+  } | null;
+}
+
 export interface AnalysisReport {
   account: AccountRecord;
   metrics: Metrics;
@@ -170,6 +190,8 @@ export interface AnalysisReport {
   bottom: VideoRecord[];
   verdicts: Record<string, string>;
   dna: DnaInsight[];
+  /** Comment text signals and content comment rates based only on real TikTok data. */
+  commentAnalytics?: CommentAnalytics;
   recommendations: Recommendation[];
   plan: PlanDay[];
   /** 2–3 content pillars this week focuses on, derived from the account. */

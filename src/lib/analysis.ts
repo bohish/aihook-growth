@@ -20,6 +20,7 @@ import {
 import type {
   AccountData,
   AnalysisReport,
+  CommentAnalytics,
   DnaInsight,
   Level,
   Metrics,
@@ -708,6 +709,72 @@ function findCommentQuestion(comments: Array<{ videoId: string; text: string }>)
   return texts.length >= 3 ? findRepeatedCommentSignal(texts, true) : null;
 }
 
+function toCommentSignal(theme: CommentTheme | null) {
+  return theme
+    ? { label: theme.label, count: theme.count, ratio: theme.ratio, examples: theme.examples }
+    : null;
+}
+
+function findTopCommentWord(texts: string[]): CommentTheme | null {
+  const counts = new Map<string, { count: number; examples: string[] }>();
+  for (const text of texts) {
+    for (const word of new Set(commentTokens(text, false))) {
+      const row = counts.get(word) ?? { count: 0, examples: [] };
+      row.count += 1;
+      if (row.examples.length < 2) row.examples.push(text.slice(0, 140));
+      counts.set(word, row);
+    }
+  }
+  const top = [...counts.entries()].filter(([, row]) => row.count >= 2).sort((a, b) => b[1].count - a[1].count || b[0].length - a[0].length)[0];
+  return top
+    ? { label: top[0], count: top[1].count, total: texts.length, ratio: top[1].count / texts.length, examples: top[1].examples }
+    : null;
+}
+
+function buildCommentAnalytics(
+  comments: Array<{ videoId: string; text: string }>,
+  videos: VideoRecord[],
+): CommentAnalytics {
+  const texts = comments.map((comment) => comment.text.trim()).filter(Boolean);
+  const topWord = findTopCommentWord(texts);
+  const typeLabels: Record<string, string> = {
+    ugc: "محتوى الجمهور UGC",
+    product_demo: "استعراض المنتج",
+    talking_head: "الحديث المباشر",
+    trend: "الترند",
+    educational: "المحتوى التعليمي",
+    offer: "العروض والخصومات",
+    behind_scenes: "الكواليس",
+  };
+  const types = new Map<string, { comments: number; views: number; videos: number }>();
+  for (const video of videos) {
+    for (const tag of video.features.tags) {
+      const row = types.get(tag) ?? { comments: 0, views: 0, videos: 0 };
+      row.comments += video.comments;
+      row.views += video.views;
+      row.videos += 1;
+      types.set(tag, row);
+    }
+  }
+  const topType = [...types.entries()]
+    .filter(([, row]) => row.views > 0)
+    .map(([tag, row]) => ({
+      label: typeLabels[tag] ?? tag,
+      comments: row.comments,
+      videos: row.videos,
+      commentsPer1kViews: (row.comments / row.views) * 1000,
+    }))
+    .sort((a, b) => b.commentsPer1kViews - a.commentsPer1kViews)[0] ?? null;
+
+  return {
+    analyzedComments: texts.length,
+    topWord: toCommentSignal(topWord),
+    topTopic: toCommentSignal(findCommentTheme(comments)),
+    topQuestion: toCommentSignal(findCommentQuestion(comments)),
+    topContentType: topType,
+  };
+}
+
 export function buildBusinessInsights(gt: BusinessGroundTruth): DnaInsight[] {
   const out: DnaInsight[] = [];
   const audienceBits: string[] = [];
@@ -809,6 +876,7 @@ export function analyze(
   const ctx = buildAccountContext(data.videos, hookAnalyses);
   const commentTheme = business ? findCommentTheme(business.comments) : null;
   const plan = buildWeeklyPlanFocused(metrics, data.videos, ctx, commentTheme);
+  const commentAnalytics = buildCommentAnalytics(business?.comments ?? [], data.videos);
 
   return {
     account: data.account,
@@ -820,6 +888,7 @@ export function analyze(
     bottom,
     verdicts: buildVerdicts(data.videos, data.videos),
     dna,
+    commentAnalytics,
     limitedData: data.videos.length < 5,
     recommendations: buildRecommendations(metrics, dna, data.videos, ctx),
     plan: plan.days,

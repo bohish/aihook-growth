@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/AppShell";
-import { BestWorst } from "@/components/dashboard/sections";
+import { BestWorst, CommentIntelligence } from "@/components/dashboard/sections";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/useAuth";
@@ -701,9 +701,10 @@ function Dashboard() {
 
 
           <Tabs defaultValue="metrics" className="mt-2 min-w-0 max-w-full">
-            <TabsList className="grid h-auto w-full grid-cols-2 gap-1 bg-surface p-1 sm:grid-cols-3 lg:grid-cols-5">
+            <TabsList className="grid h-auto w-full grid-cols-2 gap-1 bg-surface p-1 sm:grid-cols-3 lg:grid-cols-6">
                <TabsTrigger value="metrics">{pick("نظرة عامة", "Overview")}</TabsTrigger>
                <TabsTrigger value="dna">{pick("الجمهور والمحتوى", "Audience & content")}</TabsTrigger>
+               <TabsTrigger value="comments">{pick("تحليل التعليقات", "Comment analysis")}</TabsTrigger>
                <TabsTrigger value="content">{pick("تحليل المقاطع", "Video analysis")}</TabsTrigger>
                <TabsTrigger value="actions">{pick("الخطة التسويقية", "Marketing plan")}</TabsTrigger>
                <TabsTrigger value="plan">{pick("خطة الأسبوع", "Weekly plan")}</TabsTrigger>
@@ -718,6 +719,9 @@ function Dashboard() {
             </TabsContent>
             <TabsContent value="dna" className="mt-6 min-w-0">
               <InsightGrid report={report} mode="dna" />
+            </TabsContent>
+            <TabsContent value="comments" className="mt-6 min-w-0">
+              <CommentIntelligence report={report} />
             </TabsContent>
             <TabsContent value="actions" className="mt-6 min-w-0">
               <InsightGrid report={report} mode="recommendations" />

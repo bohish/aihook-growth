@@ -2,14 +2,17 @@ import {
   Activity,
   BadgeCheck,
   CalendarDays,
+  CircleHelp,
   Eye,
   Flame,
   Heart,
   MessageCircle,
+  MapPin,
   Repeat2,
   Target,
   TrendingDown,
   TrendingUp,
+  Users,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -305,6 +308,99 @@ export function BestWorst({ report }: { report: AnalysisReport }) {
           <VideoCard key={selected.id} video={selected} verdict={report.verdicts[selected.id] ?? ""} tone={report.top.some((video) => video.id === selected.id) ? "top" : report.bottom.some((video) => video.id === selected.id) ? "bottom" : "neutral"} />
         </div>
       ) : null}
+    </section>
+  );
+}
+
+export function CommentIntelligence({ report }: { report: AnalysisReport }) {
+  const { pick } = useLanguage();
+  const data = report.commentAnalytics;
+  if (!data || data.analyzedComments === 0) {
+    return (
+      <section className="panel p-6">
+        <h2 className="text-lg font-bold">{pick("تحليل التعليقات", "Comment analysis")}</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          {pick("لم يُرجع TikTok نصوص تعليقات متاحة للتحليل حالياً.", "TikTok did not return comment text that can be analyzed right now.")}
+        </p>
+      </section>
+    );
+  }
+
+  const cards = [
+    {
+      title: pick("أكثر كلمة تكررت", "Most repeated word"),
+      value: data.topWord?.label ?? "—",
+      note: data.topWord ? `${data.topWord.count} ${pick("تعليق", "comments")} · ${(data.topWord.ratio * 100).toFixed(1)}%` : pick("لا يوجد تكرار كافٍ", "Not enough repetition"),
+      icon: MessageCircle,
+    },
+    {
+      title: pick("أكثر موضوع متكرر", "Most repeated topic"),
+      value: data.topTopic?.label ?? "—",
+      note: data.topTopic ? `${data.topTopic.count} ${pick("تعليق", "comments")} · ${(data.topTopic.ratio * 100).toFixed(1)}%` : pick("لا يوجد نمط واضح", "No clear pattern"),
+      icon: Target,
+    },
+    {
+      title: pick("أكثر سؤال متكرر", "Most repeated question"),
+      value: data.topQuestion?.label ?? "—",
+      note: data.topQuestion ? `${data.topQuestion.count} ${pick("تعليق", "comments")} · ${(data.topQuestion.ratio * 100).toFixed(1)}%` : pick("لا يوجد سؤال متكرر", "No repeated question"),
+      icon: CircleHelp,
+    },
+    {
+      title: pick("أكثر نوع محتوى يجلب تعليقات", "Content type with most comments"),
+      value: data.topContentType?.label ?? "—",
+      note: data.topContentType ? `${data.topContentType.commentsPer1kViews.toFixed(1)} ${pick("تعليق لكل 1K مشاهدة", "comments per 1K views")} · ${data.topContentType.videos} ${pick("فيديو", "videos")}` : pick("لا تتوفر بيانات كافية", "Not enough data"),
+      icon: TrendingUp,
+    },
+  ];
+
+  return (
+    <section>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-bold">{pick("تحليل التعليقات", "Comment analysis")}</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {pick("قراءة مباشرة لما يكرره جمهورك ويسأل عنه", "A direct reading of what your audience repeats and asks")}
+          </p>
+        </div>
+        <span className="border border-border px-3 py-1 text-xs tabular-nums" dir="ltr">
+          {data.analyzedComments} comments analyzed
+        </span>
+      </div>
+
+      <div className="mt-5 grid gap-px overflow-hidden border border-border bg-border md:grid-cols-2">
+        {cards.map((card) => (
+          <article key={card.title} className="min-w-0 bg-background p-5">
+            <div className="flex items-center justify-between gap-3 text-muted-foreground">
+              <p className="text-xs">{card.title}</p>
+              <card.icon className="size-4" />
+            </div>
+            <p className="mt-5 break-words text-2xl font-bold leading-snug">{card.value}</p>
+            <p className="mt-2 text-xs text-muted-foreground">{card.note}</p>
+          </article>
+        ))}
+      </div>
+
+      {data.topQuestion?.examples.length || data.topTopic?.examples.length ? (
+        <div className="mt-5 border border-border p-5">
+          <h3 className="text-sm font-semibold">{pick("أمثلة حقيقية من التعليقات", "Real comment examples")}</h3>
+          <div className="mt-3 grid gap-2 md:grid-cols-2">
+            {[...(data.topQuestion?.examples ?? []), ...(data.topTopic?.examples ?? [])].filter((example, index, all) => all.indexOf(example) === index).slice(0, 4).map((example) => (
+              <blockquote key={example} className="border-r-2 border-foreground/50 bg-surface p-3 text-xs leading-relaxed text-muted-foreground">«{example}»</blockquote>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      <div className="mt-5 grid gap-3 sm:grid-cols-2">
+        <div className="border border-border p-4">
+          <div className="flex items-center gap-2"><MapPin className="size-4" /><h3 className="text-sm font-semibold">{pick("منطقة أصحاب التعليقات", "Commenter region")}</h3></div>
+          <p className="mt-2 text-xs text-muted-foreground">{pick("غير متاحة من TikTok على مستوى صاحب التعليق.", "TikTok does not provide this per commenter.")}</p>
+        </div>
+        <div className="border border-border p-4">
+          <div className="flex items-center gap-2"><Users className="size-4" /><h3 className="text-sm font-semibold">{pick("جنس أصحاب التعليقات", "Commenter gender")}</h3></div>
+          <p className="mt-2 text-xs text-muted-foreground">{pick("غير متاح من TikTok على مستوى صاحب التعليق.", "TikTok does not provide this per commenter.")}</p>
+        </div>
+      </div>
     </section>
   );
 }
