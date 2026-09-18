@@ -57,7 +57,12 @@ async function call(
   path: string,
   token: string,
   query: Record<string, string> = {},
-): Promise<{ ok: boolean; data?: Record<string, unknown>; message?: string; diag?: BusinessApiDiag }> {
+): Promise<{
+  ok: boolean;
+  data?: Record<string, unknown>;
+  message?: string;
+  diag?: BusinessApiDiag;
+}> {
   const url = new URL(`${BASE}${path}`);
   for (const [k, v] of Object.entries(query)) url.searchParams.set(k, v);
   const response = await fetch(url.toString(), {
@@ -70,7 +75,9 @@ async function call(
     data?: Record<string, unknown>;
   };
   if (!response.ok || payload.code !== 0) {
-    console.error(`TikTok Business API ${path} failed [${response.status}] ${payload.message ?? ""}`);
+    console.error(
+      `TikTok Business API ${path} failed [${response.status}] ${payload.message ?? ""}`,
+    );
     return {
       ok: false,
       message: payload.message ?? `HTTP ${response.status}`,
@@ -123,6 +130,8 @@ export interface BusinessSnapshot {
   videoInsights: Array<Record<string, string | number>>;
   /** Comment count actually returned for the newest authorized video */
   commentsCount: number | null;
+  /** Real comment text returned for recent authorized videos (bounded). */
+  comments: Array<{ videoId: string; text: string }>;
   /** Sources TikTok refused for this token (endpoint names only) */
   unavailable: string[];
 }
@@ -175,19 +184,28 @@ async function fetchVideoInsights(
   return rows;
 }
 
-async function fetchCommentCount(
+async function fetchComments(
   token: string,
   businessId: string,
   videoId: string,
-): Promise<number | null> {
+): Promise<{ count: number | null; comments: Array<{ videoId: string; text: string }> }> {
   const result = await call("/business/comment/list/", token, {
     business_id: businessId,
     video_id: videoId,
     max_count: "20",
   });
-  if (!result.ok || !result.data) return null;
+  if (!result.ok || !result.data) return { count: null, comments: [] };
   const comments = result.data["comments"];
-  return Array.isArray(comments) ? comments.length : null;
+  if (!Array.isArray(comments)) return { count: null, comments: [] };
+  const rows: Array<{ videoId: string; text: string }> = [];
+  for (const item of comments) {
+    if (!item || typeof item !== "object") continue;
+    const row = item as Record<string, unknown>;
+    const text = row["text"] ?? row["comment_text"] ?? row["content"] ?? row["comment"];
+    if (typeof text === "string" && text.trim())
+      rows.push({ videoId, text: text.trim().slice(0, 500) });
+  }
+  return { count: comments.length, comments: rows };
 }
 
 export interface BusinessCreatorData {
@@ -239,7 +257,12 @@ async function fetchTokenScopes(token: string): Promise<string[]> {
  * audience_countries / audience_cities. Requires a Business Account token with
  * the audience insight permission; creator-only tokens get rejected here.
  */
-const AUDIENCE_FIELDS = ["audience_ages", "audience_genders", "audience_countries", "audience_cities"];
+const AUDIENCE_FIELDS = [
+  "audience_ages",
+  "audience_genders",
+  "audience_countries",
+  "audience_cities",
+];
 
 async function fetchOrganicAudience(
   token: string,
@@ -296,11 +319,27 @@ export async function fetchBusinessCreator(
   // any audience-like fields wherever TikTok placed them. No invented fields.
   // Matching is segment-based (split on _ - . /) so "image" never matches "age".
   const SENSITIVE = /token|secret|open_id|union_id|signature|credential/i;
-  const ASSET_RE = /^(image|avatar|photo|cover|thumbnail|url|icon|logo|picture|asset|link|href|src)$/i;
+  const ASSET_RE =
+    /^(image|avatar|photo|cover|thumbnail|url|icon|logo|picture|asset|link|href|src)$/i;
   const DEMOGRAPHIC = new Set([
-    "audience", "gender", "age", "country", "countries", "region",
-    "regions", "city", "cities", "location", "language", "languages",
-    "device", "devices", "interest", "interests", "demographic", "demographics",
+    "audience",
+    "gender",
+    "age",
+    "country",
+    "countries",
+    "region",
+    "regions",
+    "city",
+    "cities",
+    "location",
+    "language",
+    "languages",
+    "device",
+    "devices",
+    "interest",
+    "interests",
+    "demographic",
+    "demographics",
   ]);
   const segments = (key: string) => key.split(/[_\-.\/\s]+/).filter(Boolean);
   const isAudienceKey = (key: string) => {
@@ -308,8 +347,7 @@ export async function fetchBusinessCreator(
     return segs.some((s) => DEMOGRAPHIC.has(s.toLowerCase()));
   };
   const isAssetKey = (key: string) => segments(key).some((s) => ASSET_RE.test(s));
-  const isUrlValue = (v: unknown) =>
-    typeof v === "string" && /^https?:\/\//i.test(v);
+  const isUrlValue = (v: unknown) => typeof v === "string" && /^https?:\/\//i.test(v);
   const audience: Record<string, unknown> = {};
   const keySet = new Set<string>();
   const isSafeValue = (v: unknown): boolean =>
@@ -323,12 +361,7 @@ export async function fetchBusinessCreator(
     for (const [key, value] of Object.entries(node as Record<string, unknown>)) {
       if (SENSITIVE.test(key)) continue;
       keySet.add(prefix ? `${prefix}.${key}` : key);
-      if (
-        isAudienceKey(key) &&
-        !isAssetKey(key) &&
-        !isUrlValue(value) &&
-        isSafeValue(value)
-      ) {
+      if (isAudienceKey(key) && !isAssetKey(key) && !isUrlValue(value) && isSafeValue(value)) {
         audience[prefix ? `${prefix}.${key}` : key] = value;
       }
       if (value && typeof value === "object" && !Array.isArray(value)) {
@@ -341,7 +374,10 @@ export async function fetchBusinessCreator(
 
   let videoCount: number | null = null;
   const videoRows: Array<Record<string, string | number>> = [];
-  const list = await call("/tto/creator/authorized/video/list/", session.accessToken, { ...idQuery, max_count: "20" });
+  const list = await call("/tto/creator/authorized/video/list/", session.accessToken, {
+    ...idQuery,
+    max_count: "20",
+  });
   if (list.ok) {
     const videos = list.data?.["videos"];
     if (Array.isArray(videos)) {
@@ -371,13 +407,25 @@ export async function fetchBusinessCreator(
   const end = new Date(Date.now() - 24 * 60 * 60 * 1000);
   const start = new Date(end.getTime() - 29 * 24 * 60 * 60 * 1000);
   const iso = (d: Date) => d.toISOString().slice(0, 10);
-  const accountStats = await fetchAccountStats(session.accessToken, creatorId, iso(start), iso(end));
+  const accountStats = await fetchAccountStats(
+    session.accessToken,
+    creatorId,
+    iso(start),
+    iso(end),
+  );
   const videoInsights = await fetchVideoInsights(session.accessToken, creatorId);
-  const newestId = videoInsights[0]?.["item_id"] ?? videoRows[0]?.["item_id"];
-  const commentsCount =
-    typeof newestId === "string" || typeof newestId === "number"
-      ? await fetchCommentCount(session.accessToken, creatorId, String(newestId))
-      : null;
+  const recentIds = [...videoInsights, ...videoRows]
+    .map((row) => row["item_id"] ?? row["video_id"] ?? row["id"])
+    .filter((id): id is string | number => typeof id === "string" || typeof id === "number")
+    .map(String)
+    .filter((id, index, all) => all.indexOf(id) === index)
+    .slice(0, 5);
+  const commentResults = await Promise.all(
+    recentIds.map((videoId) => fetchComments(session.accessToken, creatorId, videoId)),
+  );
+  const comments = commentResults.flatMap((result) => result.comments).slice(0, 100);
+  const newestCommentResult = commentResults[0];
+  const commentsCount = newestCommentResult?.count ?? null;
   const unavailable: string[] = [];
   if (Object.keys(accountStats).length === 0) unavailable.push("/business/get/ (stats)");
   if (videoInsights.length === 0) unavailable.push("/business/video/list/");
@@ -396,7 +444,7 @@ export async function fetchBusinessCreator(
       tokenScopes,
       audienceAvailable: organic.ok,
       ...(organic.diag ? { audienceDiag: organic.diag } : {}),
-      snapshot: { accountStats, videoInsights, commentsCount, unavailable },
+      snapshot: { accountStats, videoInsights, commentsCount, comments, unavailable },
     },
   };
 }

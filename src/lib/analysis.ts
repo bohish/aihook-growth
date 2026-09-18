@@ -283,6 +283,11 @@ export function buildRecommendations(
   const sorted = [...videos].sort((a, b) => b.views - a.views);
   const top = sorted[0];
   const topSubject = (top ? shortTopic(top.caption, 5) : null) ?? subject;
+  const commentInsight = dna.find(
+    (item) =>
+      item.title.startsWith("أغلب التعليقات:") ||
+      item.title.startsWith("أكثر موضوع متكرر في التعليقات:"),
+  );
 
   const hookCounts = new Map<string, { n: number; views: number[] }>();
   videos.forEach((v) => {
@@ -296,6 +301,23 @@ export function buildRecommendations(
     top?.features.hookType ??
     "curiosity";
   const storedHook = ctx.bestStoredHookType;
+
+  if (commentInsight) {
+    const commentSubject = commentInsight.title.split(":").slice(1).join(":").trim();
+    pool.push({
+      priority: 0,
+      title: `حوّل حديث الجمهور عن ${commentSubject} إلى فيديو جواب مباشر`,
+      impact: "high",
+      confidence: commentInsight.confidence,
+      evidence: commentInsight.detail,
+      action: `خذ السؤال المتكرر عن ${commentSubject} وأجب عنه بوضوح في فيديو واحد، ثم ثبّت الإجابة في تعليق.`,
+      hookLine: `«أكثر سؤال يتكرر عندي عن ${commentSubject} — وهذا جوابه باختصار»`,
+      shoot: `اعرض مثالاً فعلياً يجيب عن ${commentSubject} من أول لقطة، ثم ضع السؤال الحقيقي كنص على الشاشة.`,
+      build: "السؤال في أول ثانية، الإجابة المباشرة بعدها، ثم دليل بصري واحد فقط.",
+      cta: `اختم بـ«وش باقي تبغون تعرفون عن ${commentSubject}؟»`,
+      targetMetric: "engagement",
+    });
+  }
 
   // 1) Turn the strongest video into a series on the same real subject.
   if (top) {
@@ -429,6 +451,7 @@ export function buildWeeklyPlanFocused(
   m: Metrics,
   videos: VideoRecord[],
   ctx: AccountContext = buildAccountContext(videos),
+  commentTheme?: CommentTheme | null,
 ): WeeklyPlanResult {
   if (videos.length === 0) return { days: [], focus: [] };
 
@@ -473,15 +496,26 @@ export function buildWeeklyPlanFocused(
   }
   const pillars: Pillar[] = [];
 
+  if (commentTheme) {
+    pillars.push({
+      label: `سؤال الجمهور: ${commentTheme.label}`,
+      subject: commentTheme.label,
+      hookType: "problem",
+      why: `ظهر موضوع ${commentTheme.label} في ${commentTheme.count} من أصل ${commentTheme.total} تعليقاً حقيقياً (${(commentTheme.ratio * 100).toFixed(1)}%).`,
+    });
+  }
+
   const top = sorted[0]!;
   const topSubject = shortTopic(top.caption, 5) ?? subjectPhrase(ctx);
-  pillars.push({
-    label: topSubject,
-    subject: topSubject,
-    hookType: top.features.hookType,
-    tag: top.features.tags[0],
-    why: `أقوى مقطع عندك على هذا الاتجاه حقّق ${fmt(top.views)} مشاهدة مقابل وسيط ${fmt(medViews)}.`,
-  });
+  if (!pillars.some((pillar) => pillar.subject === topSubject)) {
+    pillars.push({
+      label: topSubject,
+      subject: topSubject,
+      hookType: top.features.hookType,
+      tag: top.features.tags[0],
+      why: `أقوى مقطع عندك على هذا الاتجاه حقّق ${fmt(top.views)} مشاهدة مقابل وسيط ${fmt(medViews)}.`,
+    });
+  }
 
   if (tagGroups[0]) {
     const p = tagGroups[0];
@@ -563,6 +597,7 @@ export interface BusinessGroundTruth {
   accountStats: Record<string, number>;
   audience: Record<string, unknown>;
   commentsCount: number | null;
+  comments: Array<{ videoId: string; text: string }>;
   videoInsights: Array<Record<string, string | number>>;
 }
 
@@ -580,7 +615,13 @@ function topAudience(value: unknown): { label: string; pct: number } | null {
       if (item && typeof item === "object") {
         const o = item as Record<string, unknown>;
         push(
-          o["name"] ?? o["label"] ?? o["age"] ?? o["gender"] ?? o["country"] ?? o["country_code"] ?? o["city"],
+          o["name"] ??
+            o["label"] ??
+            o["age"] ??
+            o["gender"] ??
+            o["country"] ??
+            o["country_code"] ??
+            o["city"],
           o["value"] ?? o["percentage"] ?? o["percent"] ?? o["ratio"] ?? o["share"],
         );
       }
@@ -590,6 +631,51 @@ function topAudience(value: unknown): { label: string; pct: number } | null {
   }
   rows.sort((a, b) => b.pct - a.pct);
   return rows[0] ?? null;
+}
+
+interface CommentTheme {
+  label: string;
+  count: number;
+  total: number;
+  ratio: number;
+  examples: string[];
+}
+
+const COMMENT_THEMES: Array<{ label: string; pattern: RegExp }> = [
+  { label: "السعر", pattern: /سعر|بكم|كم\s*(?:ريال|يكلف|سعره)|price/i },
+  {
+    label: "طريقة الطلب والشراء",
+    pattern: /كيف\s*(?:اطلب|أطلب|اشتري|أشتري)|طلب|شراء|الرابط|متجر|shop|order/i,
+  },
+  { label: "التوفر والمخزون", pattern: /متوفر|متاح|خلص|مخزون|available|stock/i },
+  { label: "المقاس", pattern: /مقاس|قياس|حجم|size/i },
+  { label: "الموقع والتوصيل", pattern: /وين|اين|أين|موقع|مدينة|توصيل|شحن|location|delivery/i },
+  {
+    label: "طلب شرح أو طريقة الاستخدام",
+    pattern: /كيف|طريقة|شرح|استخدام|سو(?:ها|يه)|tutorial|how/i,
+  },
+  { label: "الجودة والتجربة", pattern: /جودة|تجرب|يستاهل|اصلي|أصلي|quality|review/i },
+  {
+    label: "اسم المنتج أو الشيء الظاهر",
+    pattern: /وش\s*(?:اسمه|اسم)|ايش\s*(?:اسمه|اسم)|اسم\s*(?:المنتج|اللعبة)|what.*name/i,
+  },
+];
+
+function findCommentTheme(comments: Array<{ videoId: string; text: string }>): CommentTheme | null {
+  const texts = comments.map((comment) => comment.text.trim()).filter(Boolean);
+  if (texts.length < 3) return null;
+  const ranked = COMMENT_THEMES.map((theme) => {
+    const matches = texts.filter((text) => theme.pattern.test(text));
+    return {
+      label: theme.label,
+      count: matches.length,
+      total: texts.length,
+      ratio: matches.length / texts.length,
+      examples: matches.slice(0, 3),
+    };
+  }).sort((a, b) => b.count - a.count);
+  const top = ranked[0];
+  return top && top.count >= 2 ? top : null;
 }
 
 export function buildBusinessInsights(gt: BusinessGroundTruth): DnaInsight[] {
@@ -622,7 +708,11 @@ export function buildBusinessInsights(gt: BusinessGroundTruth): DnaInsight[] {
   }
 
   const s = gt.accountStats;
-  if (typeof s["profile_views"] === "number" && typeof s["video_views"] === "number" && s["video_views"] > 0) {
+  if (
+    typeof s["profile_views"] === "number" &&
+    typeof s["video_views"] === "number" &&
+    s["video_views"] > 0
+  ) {
     const rate = (s["profile_views"] / s["video_views"]) * 100;
     out.push({
       title: "تحويل المشاهدة إلى زيارة للحساب",
@@ -647,6 +737,17 @@ export function buildBusinessInsights(gt: BusinessGroundTruth): DnaInsight[] {
       confidence: "high",
     });
   }
+  const commentTheme = findCommentTheme(gt.comments);
+  if (commentTheme) {
+    const scope = commentTheme.ratio > 0.5 ? "أغلب التعليقات" : "أكثر موضوع متكرر في التعليقات";
+    out.push({
+      title: `${scope}: ${commentTheme.label}`,
+      detail: `ظهر في ${commentTheme.count} من أصل ${commentTheme.total} تعليقاً حقيقياً (${(commentTheme.ratio * 100).toFixed(1)}%).`,
+      liftPct: null,
+      sampleSize: commentTheme.total,
+      confidence: commentTheme.total >= 15 ? "high" : commentTheme.total >= 7 ? "medium" : "low",
+    });
+  }
   return out;
 }
 
@@ -666,7 +767,8 @@ export function analyze(
     ...buildContentDna(data.videos),
   ];
   const ctx = buildAccountContext(data.videos, hookAnalyses);
-  const plan = buildWeeklyPlanFocused(metrics, data.videos, ctx);
+  const commentTheme = business ? findCommentTheme(business.comments) : null;
+  const plan = buildWeeklyPlanFocused(metrics, data.videos, ctx, commentTheme);
 
   return {
     account: data.account,

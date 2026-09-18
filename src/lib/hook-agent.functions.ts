@@ -4,7 +4,6 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { AccountData, Metrics, VideoRecord } from "@/lib/types";
 
-
 export type HookAgentStatus = {
   configured: boolean;
   missing: string[];
@@ -53,9 +52,10 @@ export const analyzeHook = createServerFn({ method: "POST" })
     if (!url || !secret) return { ok: false, error: "الوكيل غير مضبوط بعد", missing };
     try {
       const { resolveMedia } = await import("./media-resolver.server");
-      const media = data.video_id || data.share_url
-        ? await resolveMedia({ videoId: data.video_id, shareUrl: data.share_url })
-        : null;
+      const media =
+        data.video_id || data.share_url
+          ? await resolveMedia({ videoId: data.video_id, shareUrl: data.share_url })
+          : null;
 
       const response = await fetch(url, {
         method: "POST",
@@ -79,7 +79,12 @@ export const analyzeHook = createServerFn({ method: "POST" })
         const src = (parsed["analysis"] ?? parsed["result"] ?? parsed) as Record<string, unknown>;
         const pick = (k: string) => (typeof src[k] === "string" ? (src[k] as string) : undefined);
         const found: HookAnalysis = {};
-        for (const k of ["spoken_text", "onscreen_text", "visual_description", "hook_summary"] as const) {
+        for (const k of [
+          "spoken_text",
+          "onscreen_text",
+          "visual_description",
+          "hook_summary",
+        ] as const) {
           const v = pick(k);
           if (v) found[k] = v;
         }
@@ -150,6 +155,7 @@ type PerformanceContext = {
   audience?: Record<string, unknown>;
   account_stats?: Record<string, number>;
   video_insights?: Record<string, string | number>;
+  recent_comments?: Array<{ videoId: string; text: string }>;
   comparison?: Record<string, unknown>;
   previous_hook_analyses?: Array<Record<string, unknown>>;
 };
@@ -168,7 +174,11 @@ function compactAudience(audience: Record<string, unknown>): Record<string, unkn
           const valueOf = (item: unknown) => {
             if (!item || typeof item !== "object") return asNumber(item) ?? 0;
             const row = item as Record<string, unknown>;
-            return asNumber(row["percentage"] ?? row["percent"] ?? row["ratio"] ?? row["share"] ?? row["value"]) ?? 0;
+            return (
+              asNumber(
+                row["percentage"] ?? row["percent"] ?? row["ratio"] ?? row["share"] ?? row["value"],
+              ) ?? 0
+            );
           };
           return valueOf(b) - valueOf(a);
         })
@@ -211,29 +221,32 @@ async function buildPerformanceContext(
   videoId: string,
   previous: Array<Record<string, unknown>>,
 ): Promise<PerformanceContext | undefined> {
-  const [{ fetchTikTokAccountData }, { getBusinessCreatorData }, { computeMetrics }] = await Promise.all([
-    import("./tiktok.functions"),
-    import("./tiktok-business.functions"),
-    import("./metrics"),
-  ]);
+  const [{ fetchTikTokAccountData }, { getBusinessCreatorData }, { computeMetrics }] =
+    await Promise.all([
+      import("./tiktok.functions"),
+      import("./tiktok-business.functions"),
+      import("./metrics"),
+    ]);
   const [displayResult, businessResult] = await Promise.allSettled([
     fetchTikTokAccountData(),
     getBusinessCreatorData(),
   ]);
-  const display = displayResult.status === "fulfilled" && displayResult.value.ok
-    ? displayResult.value.data
-    : undefined;
-  const business = businessResult.status === "fulfilled" && businessResult.value.ok
-    ? businessResult.value
-    : undefined;
+  const display =
+    displayResult.status === "fulfilled" && displayResult.value.ok
+      ? displayResult.value.data
+      : undefined;
+  const business =
+    businessResult.status === "fulfilled" && businessResult.value.ok
+      ? businessResult.value
+      : undefined;
   if (!display && !business) return undefined;
 
   const target = display?.videos.find((video) => video.id === videoId);
   const metrics = display ? computeMetrics(display) : undefined;
   const ranked = display ? [...display.videos].sort((a, b) => b.views - a.views) : [];
   const rank = target ? ranked.findIndex((video) => video.id === target.id) + 1 : 0;
-  const insight = business?.snapshot?.videoInsights.find((row) =>
-    String(row["item_id"] ?? row["video_id"] ?? row["id"] ?? "") === videoId,
+  const insight = business?.snapshot?.videoInsights.find(
+    (row) => String(row["item_id"] ?? row["video_id"] ?? row["id"] ?? "") === videoId,
   );
 
   return {
@@ -242,14 +255,20 @@ async function buildPerformanceContext(
     ...(business?.audience ? { audience: compactAudience(business.audience) } : {}),
     ...(business?.snapshot?.accountStats ? { account_stats: business.snapshot.accountStats } : {}),
     ...(insight ? { video_insights: insight } : {}),
-    ...(target && metrics ? {
-      comparison: {
-        views_vs_average_ratio: metrics.avgViews > 0 ? target.views / metrics.avgViews : null,
-        views_vs_median_ratio: metrics.medianViews > 0 ? target.views / metrics.medianViews : null,
-        rank_by_views: rank || null,
-        compared_video_count: ranked.length,
-      },
-    } : {}),
+    ...(business?.snapshot?.comments?.length
+      ? { recent_comments: business.snapshot.comments.slice(0, 50) }
+      : {}),
+    ...(target && metrics
+      ? {
+          comparison: {
+            views_vs_average_ratio: metrics.avgViews > 0 ? target.views / metrics.avgViews : null,
+            views_vs_median_ratio:
+              metrics.medianViews > 0 ? target.views / metrics.medianViews : null,
+            rank_by_views: rank || null,
+            compared_video_count: ranked.length,
+          },
+        }
+      : {}),
     ...(previous.length > 0 ? { previous_hook_analyses: previous.slice(0, 10) } : {}),
   };
 }
@@ -296,7 +315,9 @@ function normalize(row: Record<string, unknown> | null, videoId: string): Stored
   if (!row) return out;
   const merged = { ...out, ...row } as StoredHookAnalysis;
   const rw = row["three_rewrites"];
-  merged.three_rewrites = Array.isArray(rw) ? rw.filter((x): x is string => typeof x === "string" && x.trim() !== "") : [];
+  merged.three_rewrites = Array.isArray(rw)
+    ? rw.filter((x): x is string => typeof x === "string" && x.trim() !== "")
+    : [];
   return merged;
 }
 
@@ -326,7 +347,6 @@ export const getVideoHookAnalysis = createServerFn({ method: "POST" })
     ) {
       return normalize(existingRow, data.video_id);
     }
-
 
     if (data.cache_only) return normalize(existingRow, data.video_id);
 
@@ -380,7 +400,6 @@ export const getVideoHookAnalysis = createServerFn({ method: "POST" })
             ...(performanceContext ? { performance_context: performanceContext } : {}),
             instruction:
               "حلّل الفيديو كخبير أداء باستخدام الفيديو وأول 5 ثوانٍ وperformance_context كحقائق. اربط الهوك والاحتفاظ والوصول والتفاعل والجمهور وأداء الحساب، وقارن المقطع بمتوسط ووسيط وترتيب فيديوهات الحساب. ميّز بوضوح بين ملاحظة من الفيديو، ودليل رقمي من TikTok، واستنتاج. لا تستخدم أي حقل غير متاح ولا تخترع أرقاماً أو أسباباً. لا تعتبر الهوك ضعيفاً إذا كان الاحتفاظ قوياً بلا دليل. إذا كان التفاعل قوياً والمشاهدات منخفضة فاذكر أن المحتوى قد يكون جيداً والتوزيع أو البداية أضعف؛ وإذا كانت المشاهدات عالية والتفاعل ضعيفاً فالجذب موجود وقد تكون القيمة أو الاستمرار أضعف. أعد نفس الحقول الحالية مع تشخيص دقيق، أقوى وأضعف عنصر، ما يُكرر وما يُتجنب، وثلاث إعادة صياغة للهوك بالعربية البسيطة.",
-
           },
         }),
       });

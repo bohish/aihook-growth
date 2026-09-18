@@ -13,7 +13,6 @@ import type { StoredHookAnalysis } from "@/lib/niche";
 import { fetchTikTokAccountData } from "@/lib/tiktok.functions";
 import type { AccountData, AnalysisReport, ConnectionState } from "@/lib/types";
 
-
 const CACHE_KEY = "tga.report.v1";
 
 /**
@@ -47,7 +46,10 @@ export class AnalysisUnavailableError extends Error {
 export async function runAnalysis(): Promise<AnalysisReport> {
   const result = await fetchTikTokAccountData();
   if (!result.ok || !result.data) {
-    throw new AnalysisUnavailableError(result.status, (result.message ?? "تعذّر جلب بيانات الحساب").replaceAll(".", ""));
+    throw new AnalysisUnavailableError(
+      result.status,
+      (result.message ?? "تعذّر جلب بيانات الحساب").replaceAll(".", ""),
+    );
   }
   const data = result.data;
   const metrics = computeMetrics(data);
@@ -73,6 +75,7 @@ async function fetchBusinessGroundTruth(): Promise<BusinessGroundTruth | undefin
       accountStats: biz.snapshot?.accountStats ?? {},
       audience: biz.audience ?? {},
       commentsCount: biz.snapshot?.commentsCount ?? null,
+      comments: biz.snapshot?.comments ?? [],
       videoInsights: biz.snapshot?.videoInsights ?? [],
     };
   } catch {
@@ -102,7 +105,6 @@ async function fetchStoredHookAnalyses(): Promise<StoredHookAnalysis[]> {
     hookScore: r.hook_score,
   }));
 }
-
 
 export function cacheReport(report: AnalysisReport) {
   if (typeof window === "undefined") return;

@@ -7,7 +7,8 @@ import { getRequest, setResponseHeader } from "@tanstack/react-start/server";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-export const TIKTOK_BUSINESS_REDIRECT_URI = "https://aihook.store/api/public/tiktok-business/callback";
+export const TIKTOK_BUSINESS_REDIRECT_URI =
+  "https://aihook.store/api/public/tiktok-business/callback";
 
 /** Scopes approved for this app (official OAuth scope strings only). */
 export const TIKTOK_BUSINESS_SCOPES = [
@@ -72,6 +73,7 @@ export interface BusinessCreatorResult {
     accountStats: Record<string, number>;
     videoInsights: Array<Record<string, string | number>>;
     commentsCount: number | null;
+    comments: Array<{ videoId: string; text: string }>;
     unavailable: string[];
   };
   audienceDiag?: { endpoint: string; httpStatus: number; code: number | null; message: string };
