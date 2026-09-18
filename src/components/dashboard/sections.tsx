@@ -198,22 +198,25 @@ function VideoCard({ video, verdict, tone }: { video: VideoRecord; verdict: stri
 
   return (
     <article className="panel overflow-hidden">
-      {video.thumbnailUrl ? (
-        <img
-          src={video.thumbnailUrl}
-          alt={video.caption}
-          loading="lazy"
-          className="h-28 w-full object-cover"
-        />
-      ) : (
-        <div className="relative flex h-28 items-end border-b border-border bg-surface p-3">
-          <span className="border border-border bg-background px-2 py-1 text-[10px] text-muted-foreground">
-             {pick("لا تتوفر صورة مصغّرة لهذا الفيديو", "No thumbnail is available for this video")}
-          </span>
+      <div className="grid min-w-0 lg:grid-cols-[15rem_minmax(0,1fr)]">
+        <div className="border-b border-border bg-surface lg:border-b-0 lg:border-l">
+          {video.thumbnailUrl ? (
+            <img
+              src={video.thumbnailUrl}
+              alt={video.caption}
+              loading="lazy"
+              className="h-72 w-full object-cover object-top lg:h-full lg:min-h-[32rem]"
+            />
+          ) : (
+            <div className="flex h-72 items-end p-4 lg:h-full lg:min-h-[32rem]">
+              <span className="border border-border bg-background px-2 py-1 text-[10px] text-muted-foreground">
+                 {pick("لا تتوفر صورة مصغّرة لهذا الفيديو", "No thumbnail is available for this video")}
+              </span>
+            </div>
+          )}
         </div>
-      )}
 
-      <div className="p-4">
+        <div className="min-w-0 p-4 sm:p-6">
         <h3 className="text-sm font-semibold leading-snug">{video.caption}</h3>
         <p className="mt-1 text-[11px] text-muted-foreground">
            {formatDateAr(video.publishedAt)} · {video.durationSeconds} {pick("ثانية", "seconds")}
@@ -257,6 +260,7 @@ function VideoCard({ video, verdict, tone }: { video: VideoRecord; verdict: stri
         </div>
 
         <HookAnalysisPanel videoId={video.id} shareUrl={video.shareUrl} />
+        </div>
       </div>
     </article>
   );
@@ -277,12 +281,20 @@ export function BestWorst({ report }: { report: AnalysisReport }) {
         {pick(`كل المقاطع المتاحة من TikTok (${videos.length}). اختر أي مقطع، ثم شغّل تحليل الأداء الاحترافي له.`, `All videos available from TikTok (${videos.length}). Choose any video, then run its professional performance analysis.`)}
       </p>
 
-      <div className="mt-4 grid max-h-[34rem] min-w-0 grid-cols-2 gap-3 overflow-y-auto border-y border-border py-3 sm:grid-cols-3 lg:grid-cols-5">
-        {videos.map((video) => (
+      <div className="mt-4 grid max-h-[38rem] min-w-0 grid-cols-2 gap-3 overflow-y-auto border-y border-border py-3 sm:grid-cols-3 lg:grid-cols-5">
+        {videos.map((video, index) => (
           <button key={video.id} type="button" onClick={() => setSelectedId(video.id)} className={`min-w-0 overflow-hidden border p-2 text-start transition-colors ${selected?.id === video.id ? "border-foreground bg-surface" : "border-border hover:border-foreground/50"}`}>
-            {video.thumbnailUrl ? <img src={video.thumbnailUrl} alt="" className="aspect-[9/12] w-full object-cover" /> : <div className="flex aspect-[9/12] w-full items-center justify-center bg-surface text-xs text-muted-foreground">—</div>}
+            <div className="relative">
+              {video.thumbnailUrl ? <img src={video.thumbnailUrl} alt="" className="aspect-[9/12] w-full object-cover object-top" /> : <div className="flex aspect-[9/12] w-full items-center justify-center bg-surface text-xs text-muted-foreground">—</div>}
+              <span className={`absolute start-2 top-2 flex size-6 items-center justify-center border text-[10px] font-bold tabular-nums ${selected?.id === video.id ? "border-background bg-foreground text-background" : "border-border bg-background/90 text-foreground"}`}>
+                {String(index + 1).padStart(2, "0")}
+              </span>
+            </div>
             <p className="mt-2 line-clamp-2 min-h-8 break-words text-xs font-medium">{video.caption || pick("بدون وصف", "No caption")}</p>
-            <p className="mt-1 text-[10px] tabular-nums text-muted-foreground" dir="ltr">{formatNumber(video.views)} views</p>
+            <div className="mt-2 flex items-center justify-between gap-2 text-[10px] text-muted-foreground">
+              <span dir="ltr" className="tabular-nums">{formatNumber(video.views)} views</span>
+              {selected?.id === video.id ? <span className="font-semibold text-foreground">{pick("محدد", "Selected")}</span> : null}
+            </div>
           </button>
         ))}
       </div>
