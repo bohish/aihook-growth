@@ -164,6 +164,8 @@ export interface AnalysisReport {
   metrics: Metrics;
   scoring: ScoreResult;
   scoreDelta: number;
+  /** Every video TikTok returned, used for user-selected analysis. */
+  videos: VideoRecord[];
   top: VideoRecord[];
   bottom: VideoRecord[];
   verdicts: Record<string, string>;

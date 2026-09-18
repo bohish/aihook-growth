@@ -160,6 +160,7 @@ async function persistReport(report: AnalysisReport) {
       content_dna: report.dna as unknown as Json,
       payload: {
         account: report.account,
+        videos: report.videos.map((video) => video.id),
         top: report.top.map((v) => v.id),
         bottom: report.bottom.map((v) => v.id),
       } as unknown as Json,

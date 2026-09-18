@@ -700,7 +700,7 @@ function Dashboard() {
           <Tabs defaultValue="metrics" className="mt-2">
             <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 bg-surface p-1">
                <TabsTrigger value="metrics">{pick("نظرة عامة", "Overview")}</TabsTrigger>
-               <TabsTrigger value="content">{pick("أقوى الهوكات", "Strongest hooks")}</TabsTrigger>
+               <TabsTrigger value="content">{pick("تحليل المقاطع", "Video analysis")}</TabsTrigger>
                <TabsTrigger value="dna">{pick("نمطك", "Your pattern")}</TabsTrigger>
                <TabsTrigger value="actions">{pick("الخطة التسويقية", "Marketing plan")}</TabsTrigger>
                <TabsTrigger value="plan">{pick("خطة الأسبوع", "Weekly plan")}</TabsTrigger>

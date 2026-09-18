@@ -155,7 +155,8 @@ type PerformanceContext = {
   audience?: Record<string, unknown>;
   account_stats?: Record<string, number>;
   video_insights?: Record<string, string | number>;
-  recent_comments?: Array<{ videoId: string; text: string }>;
+  target_video_comments?: string[];
+  account_comment_sample?: Array<{ videoId: string; text: string }>;
   comparison?: Record<string, unknown>;
   previous_hook_analyses?: Array<Record<string, unknown>>;
 };
@@ -256,7 +257,13 @@ async function buildPerformanceContext(
     ...(business?.snapshot?.accountStats ? { account_stats: business.snapshot.accountStats } : {}),
     ...(insight ? { video_insights: insight } : {}),
     ...(business?.snapshot?.comments?.length
-      ? { recent_comments: business.snapshot.comments.slice(0, 50) }
+      ? {
+          target_video_comments: business.snapshot.comments
+            .filter((comment) => comment.videoId === videoId)
+            .map((comment) => comment.text)
+            .slice(0, 50),
+          account_comment_sample: business.snapshot.comments.slice(0, 100),
+        }
       : {}),
     ...(target && metrics
       ? {
@@ -395,11 +402,11 @@ export const getVideoHookAnalysis = createServerFn({ method: "POST" })
             ...(data.share_url ? { share_url: data.share_url } : {}),
             output_language: "ar",
             locale: "ar-SA",
-            analysis_version: "performance-v3",
+            analysis_version: "performance-diagnosis-v4",
             ...(data.force ? { force: true } : {}),
             ...(performanceContext ? { performance_context: performanceContext } : {}),
             instruction:
-              "حلّل الفيديو كخبير أداء باستخدام الفيديو وأول 5 ثوانٍ وperformance_context كحقائق. اربط الهوك والاحتفاظ والوصول والتفاعل والجمهور وأداء الحساب، وقارن المقطع بمتوسط ووسيط وترتيب فيديوهات الحساب. ميّز بوضوح بين ملاحظة من الفيديو، ودليل رقمي من TikTok، واستنتاج. لا تستخدم أي حقل غير متاح ولا تخترع أرقاماً أو أسباباً. لا تعتبر الهوك ضعيفاً إذا كان الاحتفاظ قوياً بلا دليل. إذا كان التفاعل قوياً والمشاهدات منخفضة فاذكر أن المحتوى قد يكون جيداً والتوزيع أو البداية أضعف؛ وإذا كانت المشاهدات عالية والتفاعل ضعيفاً فالجذب موجود وقد تكون القيمة أو الاستمرار أضعف. أعد نفس الحقول الحالية مع تشخيص دقيق، أقوى وأضعف عنصر، ما يُكرر وما يُتجنب، وثلاث إعادة صياغة للهوك بالعربية البسيطة.",
+              "أنت Video Performance Diagnosis Agent محترف. حلّل المقطع الذي اختاره المستخدم نفسه بالكامل، مع تركيز زمني دقيق على 0–1 و1–3 و3–5 ثوانٍ، ثم ما بعد الهوك. استخدم الصورة والحركة والإيقاع والصوت والكلام والنص الظاهر، واربطها فقط بالحقائق الموجودة في performance_context: مشاهدات وتفاعل ووصول واحتفاظ ومدة ومتوسط ووسيط وترتيب الحساب والجمهور وتعليقات هذا المقطع وعينة تعليقات الحساب. افصل في كل نتيجة بين: ملاحظة من الفيديو، دليل رقمي من TikTok، واستنتاج مهني. لا تخترع metric أو سبباً، ولا تستنتج من حقل مفقود. لا تقل أغلب إلا إذا تجاوزت النسبة 50%. إذا كان retention قوياً وreach ضعيفاً فلا تصف الهوك بالضعف بلا دليل. إذا كان engagement قوياً وviews منخفضة فاشرح احتمال جودة المحتوى مع ضعف البداية أو التوزيع فقط كاستنتاج. إذا كانت views عالية وengagement ضعيفاً فاشرح أن الجذب موجود وقد تضعف القيمة أو الاستمرار. استخدم target_video_comments لفهم أسئلة واعتراضات الجمهور على هذا المقطع، وaccount_comment_sample للسياق العام فقط. أعد الحقول الحالية كاملة: hook_score وclarity_score وpacing_score، تشخيص 0–1 و1–3 و3–5، hook_summary يحدد هل المشكلة في الهوك أم بعده، retention_risk، target_audience_signal، تشخيص التفاعل والوصول داخل verdict، أقوى وأضعف لحظة، replicate_this، avoid_this، وثلاثة هوكات بديلة محددة للمقطع. اكتب عربية بسيطة ودقيقة، واجعل كل توصية مرتبطة بدليل فعلي.",
           },
         }),
       });

@@ -11,6 +11,7 @@ import {
   TrendingDown,
   TrendingUp,
 } from "lucide-react";
+import { useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { formatDateAr, formatNumber, formatPercent, formatSignedPercent } from "@/lib/metrics";
@@ -191,7 +192,7 @@ const HOOK_LABELS: Record<string, string> = {
   story: "هوك قصة",
 };
 
-function VideoCard({ video, verdict, tone }: { video: VideoRecord; verdict: string; tone: "top" | "bottom" }) {
+function VideoCard({ video, verdict, tone }: { video: VideoRecord; verdict: string; tone: "top" | "bottom" | "neutral" }) {
   const { pick } = useLanguage();
   const er = video.views > 0 ? (video.likes + video.comments + video.shares) / video.views : 0;
 
@@ -251,7 +252,7 @@ function VideoCard({ video, verdict, tone }: { video: VideoRecord; verdict: stri
         </div>
 
         <div className="mt-4 border border-border p-3">
-           <p className="text-xs font-semibold">{tone === "top" ? pick("لماذا شدّ الانتباه؟", "Why it earned attention") : pick("ما الذي يحتاج تعديلاً؟", "What needs improvement")}</p>
+           <p className="text-xs font-semibold">{tone === "top" ? pick("لماذا شدّ الانتباه؟", "Why it earned attention") : tone === "bottom" ? pick("ما الذي يحتاج تعديلاً؟", "What needs improvement") : pick("قراءة الأداء الأولية", "Initial performance reading")}</p>
           <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{verdict}</p>
         </div>
 
@@ -263,24 +264,34 @@ function VideoCard({ video, verdict, tone }: { video: VideoRecord; verdict: stri
 
 export function BestWorst({ report }: { report: AnalysisReport }) {
   const { pick } = useLanguage();
+  const videos = report.videos?.length
+    ? report.videos
+    : [...report.top, ...report.bottom].filter((video, index, all) => all.findIndex((item) => item.id === video.id) === index);
+  const [selectedId, setSelectedId] = useState(videos[0]?.id ?? "");
+  const selected = videos.find((video) => video.id === selectedId) ?? videos[0];
+
   return (
-    <section className="grid gap-8">
-      <div>
-         <h2 className="text-lg font-bold">{pick("أقوى الهوكات", "Strongest hooks")}</h2>
-        <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {report.top.map((v) => (
-            <VideoCard key={v.id} video={v} verdict={report.verdicts[v.id] ?? ""} tone="top" />
-          ))}
-        </div>
+    <section>
+      <h2 className="text-lg font-bold">{pick("اختر المقطع الذي تريد تحليله", "Choose a video to analyze")}</h2>
+      <p className="mt-2 text-sm text-muted-foreground">
+        {pick(`كل المقاطع المتاحة من TikTok (${videos.length}). اختر أي مقطع، ثم شغّل تحليل الأداء الاحترافي له.`, `All videos available from TikTok (${videos.length}). Choose any video, then run its professional performance analysis.`)}
+      </p>
+
+      <div className="mt-4 flex gap-3 overflow-x-auto pb-3">
+        {videos.map((video) => (
+          <button key={video.id} type="button" onClick={() => setSelectedId(video.id)} className={`w-36 shrink-0 border p-2 text-start transition-colors ${selected?.id === video.id ? "border-foreground bg-surface" : "border-border hover:border-foreground/50"}`}>
+            {video.thumbnailUrl ? <img src={video.thumbnailUrl} alt="" className="aspect-[9/12] w-full object-cover" /> : <div className="flex aspect-[9/12] w-full items-center justify-center bg-surface text-xs text-muted-foreground">—</div>}
+            <p className="mt-2 line-clamp-2 text-xs font-medium">{video.caption || pick("بدون وصف", "No caption")}</p>
+            <p className="mt-1 text-[10px] tabular-nums text-muted-foreground" dir="ltr">{formatNumber(video.views)} views</p>
+          </button>
+        ))}
       </div>
-      <div>
-         <h2 className="text-lg font-bold">{pick("هوكات تحتاج تعديل", "Hooks needing improvement")}</h2>
-        <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {report.bottom.map((v) => (
-            <VideoCard key={v.id} video={v} verdict={report.verdicts[v.id] ?? ""} tone="bottom" />
-          ))}
+
+      {selected ? (
+        <div className="mt-5 max-w-2xl">
+          <VideoCard key={selected.id} video={selected} verdict={report.verdicts[selected.id] ?? ""} tone={report.top.some((video) => video.id === selected.id) ? "top" : report.bottom.some((video) => video.id === selected.id) ? "bottom" : "neutral"} />
         </div>
-      </div>
+      ) : null}
     </section>
   );
 }

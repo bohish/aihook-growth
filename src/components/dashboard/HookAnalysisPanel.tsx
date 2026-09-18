@@ -34,7 +34,7 @@ function ScorePill({ label, value }: { label: string; value: number }) {
 }
 
 /**
- * Per-video marketing hook analysis. Reads the stored result first and only
+ * Per-video performance diagnosis. Reads the stored result first and only
  * calls the external agent when the user asks for it (one request at a time).
  */
 export function HookAnalysisPanel({ videoId, shareUrl }: { videoId: string; shareUrl: string | null }) {
@@ -81,12 +81,12 @@ export function HookAnalysisPanel({ videoId, shareUrl }: { videoId: string; shar
   return (
     <div className="mt-3 border border-border/60 bg-surface/50 p-3">
       <p className="flex items-center gap-1.5 text-xs font-semibold">
-         <Sparkles className="size-3.5 text-primary" /> {pick("تحليل الهوك", "Hook analysis")}
+         <Sparkles className="size-3.5 text-primary" /> {pick("تشخيص أداء المقطع", "Video performance diagnosis")}
       </p>
 
       {busy ? (
         <p className="mt-2 flex items-center gap-2 text-[11px] text-muted-foreground">
-           <Loader2 className="size-3.5 animate-spin" /> {pick("جاري تحليل أول 5 ثوانٍ…", "Analyzing the first 5 seconds…")}
+           <Loader2 className="size-3.5 animate-spin" /> {pick("جاري تحليل المقطع والبيانات الفعلية…", "Analyzing the video and its real metrics…")}
         </p>
       ) : data?.status === "completed" ? (
         <div className="mt-2 space-y-2 text-[11px] leading-relaxed text-muted-foreground">
@@ -112,7 +112,7 @@ export function HookAnalysisPanel({ videoId, shareUrl }: { videoId: string; shar
              {data.pacing_score !== null ? <ScorePill label={pick("الإيقاع", "Pacing")} value={data.pacing_score} /> : null}
           </div>
 
-          {data.hook_summary ? <p className="text-foreground">{data.hook_summary}</p> : null}
+          {data.hook_summary ? <p>{pick("التشخيص", "Diagnosis")}: <span className="text-foreground">{data.hook_summary}</span></p> : null}
           {data.best_moment ? (
             <p>
                {pick("أقوى نقطة", "Best moment")}: <span className="text-foreground">{data.best_moment}</span>
@@ -120,7 +120,7 @@ export function HookAnalysisPanel({ videoId, shareUrl }: { videoId: string; shar
           ) : null}
           {data.retention_risk ? (
             <p>
-               {pick("أكبر خطر", "Biggest risk")}: <span className="text-foreground">{data.retention_risk}</span>
+               {pick("تشخيص الاحتفاظ", "Retention diagnosis")}: <span className="text-foreground">{data.retention_risk}</span>
             </p>
           ) : null}
 
@@ -163,14 +163,14 @@ export function HookAnalysisPanel({ videoId, shareUrl }: { videoId: string; shar
         </div>
       ) : data?.status === "failed" ? (
         <div className="mt-2 text-[11px]">
-           <p className="text-destructive">{data.error_message?.replaceAll(".", "") ?? pick("فشل تحليل الهوك", "Hook analysis failed")}</p>
+           <p className="text-destructive">{data.error_message?.replaceAll(".", "") ?? pick("فشل تحليل المقطع", "Video analysis failed")}</p>
           <Button size="sm" variant="outline" className="mt-2 h-7 px-2 text-[11px]" onClick={() => void analyze(true)}>
              <RefreshCw className="size-3" /> {pick("إعادة المحاولة", "Try again")}
           </Button>
         </div>
       ) : (
         <Button size="sm" variant="outline" className="mt-2 h-7 px-2 text-[11px]" onClick={() => void analyze(false)}>
-           {pick("تحليل الهوك", "Analyze hook")}
+           {pick("حلّل هذا المقطع", "Analyze this video")}
         </Button>
       )}
     </div>

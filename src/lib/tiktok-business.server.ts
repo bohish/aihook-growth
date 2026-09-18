@@ -418,12 +418,19 @@ export async function fetchBusinessCreator(
     .map((row) => row["item_id"] ?? row["video_id"] ?? row["id"])
     .filter((id): id is string | number => typeof id === "string" || typeof id === "number")
     .map(String)
-    .filter((id, index, all) => all.indexOf(id) === index)
-    .slice(0, 5);
-  const commentResults = await Promise.all(
-    recentIds.map((videoId) => fetchComments(session.accessToken, creatorId, videoId)),
-  );
-  const comments = commentResults.flatMap((result) => result.comments).slice(0, 100);
+    .filter((id, index, all) => all.indexOf(id) === index);
+  const commentResults: Array<Awaited<ReturnType<typeof fetchComments>>> = [];
+  // Read comments for every video TikTok returned, in small batches to avoid
+  // bursting the Business API rate limit.
+  for (let index = 0; index < recentIds.length; index += 4) {
+    const batch = recentIds.slice(index, index + 4);
+    commentResults.push(
+      ...(await Promise.all(
+        batch.map((videoId) => fetchComments(session.accessToken, creatorId, videoId)),
+      )),
+    );
+  }
+  const comments = commentResults.flatMap((result) => result.comments).slice(0, 400);
   const newestCommentResult = commentResults[0];
   const commentsCount = newestCommentResult?.count ?? null;
   const unavailable: string[] = [];
